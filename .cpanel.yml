@@ -1,7 +1,6 @@
 deployment:
   tasks:
-    - export PATH=$PATH:/usr/local/bin
-    - git pull origin main
+    - /usr/bin/git pull origin main
     - composer install --no-dev --optimize-autoloader
     - php artisan migrate --force
     - php artisan config:cache
