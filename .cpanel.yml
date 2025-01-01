@@ -1,7 +1,6 @@
 deployment:
   tasks:
-    - /usr/bin/git pull origin main
-    - composer install --no-dev --optimize-autoloader
-    - php artisan migrate --force
-    - php artisan config:cache
-    - php artisan route:cache
+    - export DEPLOY_PATH="/home/convosoftserver/public_html/backend.convosoftserver.com/"
+    - echo "Starting deployment to $DEPLOY_PATH"
+    - rsync -av --delete ./ $DEPLOY_PATH
+    - echo "Deployment completed successfully"
