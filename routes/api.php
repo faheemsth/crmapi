@@ -19,6 +19,7 @@ use App\Http\Controllers\Auth\LoginRegisterController;
 // Public routes of authtication
 Route::controller(LoginRegisterController::class)->group(function() {
     Route::post('/register', 'register');
+    Route::post('/registerAgent', 'registerAgent');
     Route::post('/login', 'login');
     Route::post('/googlelogin', 'googlelogin');
     Route::post('/changePassword', 'changePassword');
