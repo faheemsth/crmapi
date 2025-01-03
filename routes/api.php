@@ -2,8 +2,11 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\Auth\LoginRegisterController;
+use App\Http\Controllers\AgentController;
+use App\Http\Controllers\GeneralController;
+use App\Http\Controllers\TaskController;
+use App\Models\TaskFile;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,39 +30,23 @@ Route::controller(LoginRegisterController::class)->group(function() {
 
 Route::get('/appMeta', [ProductController::class, 'appMeta']);
 
-// Public routes of product
-Route::controller(ProductController::class)->group(function() {
-    Route::get('/products', 'index');
-    Route::get('/products/{id}', 'show');
-    Route::get('/products/search/{name}', 'search');
-});
 
 // Protected routes of product and logout
 Route::middleware('auth:sanctum')->group( function () {
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
-    Route::post('/editProfile', [ProductController::class, 'editProfile']);
-    Route::get('/getUserProfile', [ProductController::class, 'getUserProfile']);
-    Route::post('/clockIn', [ProductController::class, 'attendance']);
-    Route::post('/clockOut', [ProductController::class, 'clockOut']);
-    Route::get('/attendanceStatus', [ProductController::class, 'getCurrentDayAttendance']);
-    Route::post('/tasklist', [ProductController::class, 'tasklist']);
-    Route::post('/createtask', [ProductController::class, 'createtask']);
-    Route::post('/getTaskDetails', [ProductController::class, 'getTaskDetails']);
-    Route::get('/attendance/view', [ProductController::class, 'viewAttendance']);
-    Route::get('/getUserBranch', [ProductController::class, 'branchDetail']);
-    Route::get('/getLeaves', [ProductController::class, 'getLeaves']);
-    Route::post('/createLeave', [ProductController::class, 'createLeave']);
-    Route::post('/userDetail', [ProductController::class, 'userDetail']);
-    Route::post('/regionDetail', [ProductController::class, 'regionDetail']);
-    Route::post('/branchDetail', [ProductController::class, 'branchDetailByID']);
-    Route::post('/TaskStatusChange', [ProductController::class, 'TaskStatusChange']);
-    Route::get('/LeaveTypeDetail', [ProductController::class, 'LeaveTypeDetail']);
-    Route::get('/deleteAttendance', [ProductController::class, 'deleteAttendanceRecord']);
+    Route::get('/agentRequestGet', [AgentController::class, 'agentRequestGet']);
+    Route::post('/agentRequestPost', [AgentController::class, 'agentRequestPost']);
+    Route::post('/userTasksGet', [TaskController::class, 'userTasksGet']);
+    Route::post('/createtask', [TaskController::class, 'createtask']);
+    Route::post('/taskUpdate', [TaskController::class, 'taskUpdate']);
+    Route::post('/updateTaskStatus', [TaskController::class, 'updateTaskStatus']);
+    Route::post('/ShuffleTaskOwnership', [TaskController::class, 'ShuffleTaskOwnership']);
+    Route::post('/getTaskDetails', [TaskController::class, 'getTaskDetails']);
+    Route::post('/taskDiscussionStore', [TaskController::class, 'taskDiscussionStore']);
+    Route::post('/taskDelete', [TaskController::class, 'taskDelete']);
+    Route::post('/getDefaultFiltersData', [GeneralController::class, 'getDefaultFiltersData']);
+    Route::post('/getRegionBrands', [GeneralController::class, 'getRegionBrands']);
+    Route::post('/getFilterData', [GeneralController::class, 'getFilterData']);
+    Route::post('/getFilterBranchUsers', [GeneralController::class, 'getFilterBranchUsers']);
 
-
-    Route::controller(ProductController::class)->group(function() {
-        Route::post('/products', 'store');
-        Route::post('/products/{id}', 'update');
-        Route::delete('/products/{id}', 'destroy');
-    });
 });

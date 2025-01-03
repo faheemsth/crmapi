@@ -312,11 +312,11 @@ class LoginRegisterController extends Controller
             'verificationUrl' => url('/verify?token=' . $user->password), // Replace with real token
         ];
 
-        Mail::send('email.welcome', $data, function ($message) use ($user) {
-            $message->to($user->email)
-                ->subject('Welcome to Our Platform')
-                ->from('hashim@convosoft.com', 'Convosoft');
-        });
+        // Mail::send('email.welcome', $data, function ($message) use ($user) {
+        //     $message->to($user->email)
+        //         ->subject('Welcome to Our Platform')
+        //         ->from('hashim@convosoft.com', 'Convosoft');
+        // });
 
         // Create Agency Record
         $agency = new Agency();
