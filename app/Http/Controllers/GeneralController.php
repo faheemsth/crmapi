@@ -44,6 +44,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Models\ApplicationNote;
 use App\Models\instalment;
 use App\Models\LeadTag;
+use App\Models\LeadStage;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -261,6 +262,68 @@ public function getFilterBranchUsers(Request $request)
         'data' => $html,
     ]);
 }
+
+
+    public function getSources()
+    {
+        $sources = Source::pluck('name', 'id');
+        return response()->json([
+            'status' => 'success',
+            'data' => $sources,
+        ], 200);
+    }
+
+    /**
+     * Get Branches
+     */
+    public function getBranches()
+    {
+        $branches = Branch::pluck('name', 'id')->toArray();
+        return response()->json([
+            'status' => 'success',
+            'data' => $branches,
+        ], 200);
+    }
+
+    /**
+     * Get Stages
+     */
+    public function getStages()
+    {
+        $stages = LeadStage::all();
+        return response()->json([
+            'status' => 'success',
+            'data' => $stages,
+        ], 200);
+    }
+
+    /**
+     * Get Saved Filters
+     */
+    public function getSavedFilters(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'module' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        $user = \Auth::user(); // Authenticated user
+
+        $savedFilters = SavedFilter::where('created_by', $user->id)
+            ->where('module', $request->module)
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $savedFilters,
+        ], 200);
+    }
 
 
 

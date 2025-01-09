@@ -355,4 +355,31 @@ class LoginRegisterController extends Controller
             'agency' => $agency
         ], 201);
     }
+
+    public function userDetail(Request $request)
+{
+          // Input Validation
+          $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+
+    // Fetch the user by the validated id
+    $user = User::findOrFail($request->id);
+
+
+    // Prepare the response data
+    $responseData = [
+        'status' => 'success',
+        'user' => $user
+    ];
+
+    // Return JSON response
+    return response()->json($responseData);
+}
+
 }

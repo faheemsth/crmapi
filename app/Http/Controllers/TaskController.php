@@ -46,6 +46,7 @@ use App\Models\instalment;
 use App\Models\LeadTag;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -848,6 +849,79 @@ public function taskDelete(Request $request)
         'message' => __('Task successfully deleted!')
     ], 201);
 
+}
+
+
+public function downloadTasks()
+{
+    if (\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team' || \Auth::user()->can('level 1')) {
+        $tasks = DealTask::select(['deal_tasks.*'])->join('users', 'users.id', '=', 'deal_tasks.assigned_to');
+
+        $companies = FiltersBrands();
+        $brand_ids = array_keys($companies);
+
+        if (\Auth::user()->type == 'company') {
+            $tasks->where('deal_tasks.brand_id', \Auth::user()->id);
+        } else if (\Auth::user()->type == 'Project Director' || \Auth::user()->type == 'Project Manager' || \Auth::user()->can('level 2')) {
+            $tasks->whereIn('deal_tasks.brand_id', $brand_ids);
+        } else if (\Auth::user()->type == 'Regional Manager' || \Auth::user()->can('level 3') && !empty(\Auth::user()->region_id)) {
+            $tasks->where('deal_tasks.region_id', \Auth::user()->region_id);
+        } else if (\Auth::user()->type == 'Branch Manager' || \Auth::user()->type == 'Admissions Officer' || \Auth::user()->type == 'Marketing Officer' || \Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id)) {
+            $tasks->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+        } else {
+            $tasks->where('deal_tasks.assigned_to', \Auth::user()->id);
+        }
+
+        $filters = $this->TasksFilter();
+
+        foreach ($filters as $column => $value) {
+            if ($column === 'subjects') {
+                $tasks->whereIn('deal_tasks.name', $value);
+            } elseif ($column === 'assigned_to') {
+                $tasks->whereIn('assigned_to', $value);
+            } elseif ($column === 'created_by') {
+                $tasks->whereIn('deal_tasks.brand_id', $value);
+            } elseif ($column == 'due_date') {
+                $tasks->whereDate('due_date', 'LIKE', '%' . substr($value, 0, 10) . '%');
+            } elseif ($column == 'status') {
+                $tasks->where('status', $value);
+            }
+        }
+
+        if (!isset($_GET['status'])) {
+            $tasks->where('status', 0);
+        }
+
+        if (isset($_GET['search']) && !empty($_GET['search'])) {
+            $g_search = $_GET['search'];
+            $tasks->Where('deal_tasks.name', 'like', '%' . $g_search . '%');
+            $tasks->orWhere('deal_tasks.due_date', 'like', '%' . $g_search . '%');
+        }
+
+        $tasks = $tasks->orderBy('created_at', 'DESC')->get();
+        $all_users = allUsers();
+
+        // Prepare CSV Data
+        $header = ['Sr.No.', 'Subject', 'Assigned to', 'Brand', 'Status'];
+        $data = [];
+        foreach ($tasks as $key => $task) {
+            $data[] = [
+                $key + 1,
+                $task->name,
+                $all_users[$task->assigned_to] ?? '',
+                $all_users[$task->brand_id] ?? '',
+                ($task->status == 1) ? 'Completed' : 'On Going'
+            ];
+        }
+
+        downloadCSV($header, $data, 'tasks.csv');
+            return true;
+    } else {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission Denied.')
+        ], 403);
+    }
 }
 
 
