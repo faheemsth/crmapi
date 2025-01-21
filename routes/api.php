@@ -8,6 +8,8 @@ use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\JobController;
+use App\Http\Controllers\CustomQuestionController;
 use App\Models\TaskFile;
 
 /*
@@ -71,6 +73,15 @@ Route::middleware('auth:sanctum')->group( function () {
 
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
+
+    // Jobs
+    Route::post('/getJobs', [JobController::class, 'getJobs']);
+
+    // Custom Question
+    Route::post('/getQuestions', [CustomQuestionController::class, 'getQuestions']);
+    Route::post('/createQuestion', [CustomQuestionController::class, 'createQuestion']);
+    Route::post('/updateQuestion', [CustomQuestionController::class, 'updateQuestion']);
+    Route::post('/deleteQuestion', [CustomQuestionController::class, 'deleteQuestion']);
 
 
 
