@@ -108,6 +108,10 @@ class LeadController extends Controller
         'leads.stage_id',
         'leads.tag_ids'
     )
+    ->with('assignto')
+    ->with('brand')
+    ->with('stage')
+    ->with('branch')
     ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id');
 
     // Apply Filters

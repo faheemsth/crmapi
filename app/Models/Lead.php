@@ -56,6 +56,16 @@ class Lead extends Model
         return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
     }
 
+    public function brand()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'brand_id');
+    }
+
+    public function assignto()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'user_id');
+    }
+
     public function products()
     {
         if($this->products)
