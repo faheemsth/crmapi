@@ -111,7 +111,16 @@ class GeneralController extends Controller
     $id = $request->input('id');
     $type = $request->input('type');
 
-    if ($type == 'brand') {
+    if ($type == 'branch') {
+        // Fetch regions based on the brand ID
+        $regions = User::where('type', 'client')->where('branch_id', $id)->orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+
+        // Return JSON response with regions
+        return response()->json([
+            'status' => 'success',
+            'regions' => $regions,
+        ]);
+    } elseif  ($type == 'brand') {
         // Fetch regions based on the brand ID
         $regions = Region::where('brands', $id)->orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
 
