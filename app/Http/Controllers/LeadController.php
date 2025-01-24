@@ -69,20 +69,21 @@ class LeadController extends Controller
     public function getLeads(Request $request)
 {
 
+
     $validator = Validator::make($request->all(), [
 
-        'perPage' => 'sometimes|integer|min:1',
-        'page' => 'sometimes|integer|min:1',
-        'name' => 'sometimes|string',
-        'brand' => 'sometimes|integer',
-        'region_id' => 'sometimes|integer',
-        'branch_id' => 'sometimes|integer',
-        'stage_id' => 'sometimes|array',
-        'users' => 'sometimes|array',
+        'perPage' => 'nullable|integer|min:1',
+        'page' => 'nullable|integer|min:1',
+        'name' => 'nullable|string',
+        'brand' => 'nullable|integer|exists:users,id',
+        'region_id' => 'nullable|integer',
+        'branch_id' => 'nullable|integer',
+        'stage_id' => 'nullable|array',
+        'users' => 'nullable|array',
         'lead_assigned_user' => 'sometimes|nullable',
-        'created_at_from' => 'sometimes|date',
-        'created_at_to' => 'sometimes|date',
-        'tag' => 'sometimes|string',
+        'created_at_from' => 'nullable|date',
+        'created_at_to' => 'nullable|date',
+        'tag' => 'nullable|integer',
     ]);
 
     if ($validator->fails()) {
@@ -121,6 +122,26 @@ class LeadController extends Controller
 
     if ($request->filled('Unassigned')) {
         $leadsQuery->whereNull('leads.user_id');
+    }
+
+    if ($request->filled('brand')) {
+        $leadsQuery->where('leads.brand_id', $request->brand);
+    }
+
+    if ($request->filled('region_id')) {
+        $leadsQuery->where('leads.region_id', $request->region_id);
+    }
+
+    if ($request->filled('branch_id')) {
+        $leadsQuery->where('leads.branch_id', $request->branch_id);
+    }
+
+    if ($request->filled('stage_id')) {
+        $leadsQuery->where('leads.stage_id', $request->stage_id);
+    }
+
+    if ($request->filled('lead_assigned_user')) {
+        $leadsQuery->where('leads.user_id', $request->lead_assigned_user);
     }
 
     // User Permissions Filtering

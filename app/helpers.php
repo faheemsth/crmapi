@@ -884,10 +884,10 @@ if (!function_exists('BrandsRegionsBranches')) {
 
 
         return [
-            'brands' => [0 => 'Select Brand'] + $brands,
-            'regions' => [0 => 'Select Region'] + $regions,
-            'branches' => [0 => 'Select Branch'] + $branches,
-            'employees' => [0 => 'Select Employee'] + $employees
+            'brands' =>   $brands,
+            'regions' =>    $regions,
+            'branches' =>   $branches,
+            'employees' =>   $employees
         ];
     }
 
@@ -983,10 +983,10 @@ if (!function_exists('BrandsRegionsBranches')) {
             }
 
             return [
-                'brands' => [0 => 'Select Brand'] + $brands,
-                'regions' => [0 => 'Select Region'] + $regions,
-                'branches' => [0 => 'Select Branch'] + $branches,
-                'employees' => [0 => 'Select Employee'] + $employees
+                'brands' =>   $brands,
+                'regions' =>   $regions,
+                'branches' =>   $branches,
+                'employees' =>  $employees
             ];
         }
     }

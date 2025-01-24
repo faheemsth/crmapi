@@ -87,6 +87,7 @@ Route::middleware('auth:sanctum')->group( function () {
 
 
     // general routes
+    Route::get('/getAllBrands', [GeneralController::class, 'getAllBrands']);
     Route::post('/getDefaultFiltersData', [GeneralController::class, 'getDefaultFiltersData']);
     Route::post('/getRegionBrands', [GeneralController::class, 'getRegionBrands']);
     Route::post('/getFilterData', [GeneralController::class, 'getFilterData']);

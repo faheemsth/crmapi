@@ -69,7 +69,6 @@ class GeneralController extends Controller
                 ], 422);
             }
             //$user_type = User::distinct()->pluck('type', 'id')->toArray();
-            $users = User::orderBy('name', 'ASC')->get()->pluck('name', 'id')->toArray();
             $access_levels = accessLevel();
 
             if (!empty($request->brand) || !empty($request->region_id) || !empty($request->branch_id)) {
@@ -85,8 +84,6 @@ class GeneralController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                //'user_type' => $user_type,
-                'users' => $users,
                 'access_levels' => $access_levels,
                 'filters' => $filters,
                 'type' => $type,
@@ -172,6 +169,36 @@ class GeneralController extends Controller
             ]);
         }
     }
+}
+
+
+    public function getAllBrands(Request $request)
+{
+
+
+
+        // Fetch region details based on the ID
+        $region = Region::where('id', $id)->first();
+        $brands = [];
+
+        $ids = explode(',', $region->brands);
+        $brands = User::where('type', 'company')->orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+
+        if ($brands) {
+
+
+            // Return JSON response with brands
+            return response()->json([
+                'status' => 'success',
+                'brands' => $brands,
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'failure',
+                'message' => 'Brand not found.',
+            ]);
+        }
+
 }
 
 
