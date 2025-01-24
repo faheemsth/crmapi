@@ -118,7 +118,7 @@ class GeneralController extends Controller
         // Return JSON response with regions
         return response()->json([
             'status' => 'success',
-            'regions' => $regions,
+            'employees' => $regions,
         ]);
     } elseif  ($type == 'brand') {
         // Fetch regions based on the brand ID
