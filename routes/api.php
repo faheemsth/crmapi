@@ -35,6 +35,8 @@ Route::controller(LoginRegisterController::class)->group(function() {
 });
 
 Route::get('/appMeta', [ProductController::class, 'appMeta']);
+Route::post('/jobRequirement', [JobController::class, 'jobRequirement']);
+Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 
 
 // Protected routes of product and logout

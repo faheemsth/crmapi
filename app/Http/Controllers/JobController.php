@@ -417,4 +417,161 @@ class JobController extends Controller
             'message' => 'Job successfully deleted.',
         ], 200);
     }
+
+    public function jobRequirement(Request $request)
+    {
+        // Validate the incoming request
+        $validator = \Validator::make($request->all(), [
+            'code' => 'required|exists:jobs,code',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 422);
+        }
+
+        // Find the job by code
+        $job = Job::where('code', $request->code)->first();
+
+        // Check if the job exists
+        if (!$job) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        // Check if the job status is 'in_active'
+        if ($job->status == 'in_active') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission Denied.',
+            ], 403);
+        }
+
+
+
+        // Fetch company settings
+        $companySettings = [
+            'title_text'      => \DB::table('settings')->where('created_by', $job->created_by)->where('name', 'title_text')->first(),
+            'footer_text'     => \DB::table('settings')->where('created_by', $job->created_by)->where('name', 'footer_text')->first(),
+            'company_favicon' => \DB::table('settings')->where('created_by', $job->created_by)->where('name', 'company_favicon')->first(),
+            'company_logo'    => \DB::table('settings')->where('created_by', $job->created_by)->where('name', 'company_logo')->first(),
+        ];
+
+
+
+
+        // Return the data in a structured JSON response
+        return response()->json([
+            'status' => 'success',
+            'companySettings' => $companySettings,
+            'data' => $job,
+        ]);
+    }
+
+    public function jobApplyData(Request $request)
+    {
+        // Validate the incoming request
+        $validator = \Validator::make($request->all(), [
+            'code' => 'required|exists:jobs,code',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email',
+            'phone' => 'required|string|max:20',
+            'profile' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            'resume' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
+            'academic_documents' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'id_card' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'start_date' => 'nullable|date',
+            'how_did_you_hear' => 'nullable|string|max:255',
+            'cover_letter' => 'nullable|string',
+            'dob' => 'nullable|date',
+            'gender' => 'nullable|string|in:male,female,other',
+            'country' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'question' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        // Check if the job exists
+        $job = Job::where('code', $request->code)->first();
+        if (!$job) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        // Handle file uploads
+        $filePaths = [];
+        foreach (['profile', 'resume', 'academic_documents', 'id_card'] as $fileKey) {
+            if ($request->hasFile($fileKey)) {
+                $filePaths[$fileKey] = $request->file($fileKey)->store('JobApplicant', 'public');
+            }
+        }
+
+        // Get the first job stage
+        $stage = JobStage::where('created_by', $job->created_by)->orderBy('id')->first();
+        if (!$stage) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job stage does not exist.',
+            ], 400);
+        }
+
+        // Create the job application
+        $jobApplication = new JobApplication();
+        $jobApplication->job = $job->id;
+        $jobApplication->name = $request->name;
+        $jobApplication->email = $request->email;
+        $jobApplication->phone = $request->phone;
+        $jobApplication->profile = $filePaths['profile'] ?? '';
+        $jobApplication->resume = $filePaths['resume'] ?? '';
+        $jobApplication->academic_documents = $filePaths['academic_documents'] ?? '';
+        $jobApplication->id_card = $filePaths['id_card'] ?? '';
+        $jobApplication->start_date = $request->start_date;
+        $jobApplication->how_did_you_hear = $request->how_did_you_hear;
+        $jobApplication->cover_letter = $request->cover_letter;
+        $jobApplication->dob = $request->dob;
+        $jobApplication->gender = $request->gender;
+        $jobApplication->country = $request->country;
+        $jobApplication->state = $request->state;
+        $jobApplication->city = $request->city;
+        $jobApplication->custom_question = json_encode($request->question);
+        $jobApplication->created_by = $job->created_by;
+        $jobApplication->stage = $stage->id;
+        $jobApplication->save();
+
+        // Log the activity
+        $log = new LogActivity();
+        $log->type = 'info';
+        $log->start_date = now()->toDateString();
+        $log->time = now()->toTimeString();
+        $log->note = json_encode([
+            'title' => 'New Job Applicant',
+            'message' => 'New Job Applicant created successfully',
+        ]);
+        $log->module_type = 'hrm';
+        $log->module_id = $job->created_by;
+        $log->created_by = $job->created_by;
+        $log->save();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Job application successfully submitted.',
+            'data' => [
+                'jobApplication' => $jobApplication,
+            ],
+        ]);
+    }
 }
