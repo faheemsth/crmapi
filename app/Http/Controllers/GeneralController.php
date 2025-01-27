@@ -30,6 +30,7 @@ use App\Models\SavedFilter;
 use App\Models\Notification;
 use App\Models\StageHistory;
 use Illuminate\Http\Request;
+
 use App\Models\DealDiscussion;
 use App\Models\ProductService;
 use App\Models\TaskDiscussion;
@@ -360,6 +361,35 @@ public function getFilterBranchUsers(Request $request)
             'data' => $savedFilters,
         ], 200);
     }
+
+
+public function getTags(Request $request)
+{
+    if (Auth::check()) {
+        $user = Auth::user();
+        $tags = [];
+
+        if (in_array($user->type, ['super admin', 'Admin Team'])) {
+            $tags = LeadTag::pluck('id', 'tag')->toArray();
+        } elseif (in_array($user->type, ['Project Director', 'Project Manager', 'Admissions Officer'])) {
+            $tags = LeadTag::whereIn('brand_id', array_keys(FiltersBrands()))->pluck('id', 'tag')->toArray();
+        } elseif ($user->type === 'Region Manager') {
+            $tags = LeadTag::where('region_id', $user->region_id)->pluck('id', 'tag')->toArray();
+        } else {
+            $tags = LeadTag::where('branch_id', $user->branch_id)->pluck('id', 'tag')->toArray();
+        }
+
+        return response()->json([
+            'success' => true,
+            'tags' => $tags,
+        ], 200);
+    }
+
+    return response()->json([
+        'success' => false,
+        'message' => 'Unauthorized',
+    ], 401);
+}
 
 
 

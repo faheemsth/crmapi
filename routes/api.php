@@ -96,5 +96,6 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::get('/getSources', [GeneralController::class, 'getSources']);
     Route::get('/getBranches', [GeneralController::class, 'getBranches']);
     Route::get('/getStages', [GeneralController::class, 'getStages']);
+    Route::get('/getTags', [GeneralController::class, 'getTags']);
 
 });
