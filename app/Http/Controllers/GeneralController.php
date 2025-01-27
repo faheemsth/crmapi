@@ -380,13 +380,13 @@ public function getTags(Request $request)
         }
 
         return response()->json([
-            'success' => true,
-            'tags' => $tags,
+            'status' => 'success',
+            'data' => $tags,
         ], 200);
     }
 
     return response()->json([
-        'success' => false,
+        'status' => 'false',
         'message' => 'Unauthorized',
     ], 401);
 }
