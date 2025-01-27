@@ -140,6 +140,10 @@ class LeadController extends Controller
         $leadsQuery->where('leads.stage_id', $request->stage_id);
     }
 
+    if ($request->filled('tag')) {
+        $leadsQuery->whereRaw('FIND_IN_SET(?, leads.tag_ids)', [$request->tag]);
+    }
+
     if ($request->filled('lead_assigned_user')) {
         $leadsQuery->where('leads.user_id', $request->lead_assigned_user);
     }
