@@ -15,73 +15,121 @@ use App\Models\SavedFilter;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Validator;
 
 class JobController extends Controller
 {
 
+
+
     public function getJobs(Request $request)
     {
-        if (\Auth::user()->can('manage job')) {
-            $user = \Auth::user();
+        $validator = Validator::make($request->all(), [
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'brand' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'created_at' => 'nullable|date',
+            'price_operator' => 'nullable|string|in:=,>,<,>=,<=',
+            'price_value' => 'nullable|numeric',
+            'search' => 'nullable|string',
+        ]);
 
-            // Building the query
-            $query = Job::select(
-                'jobs.*',
-                'regions.name as region',
-                'branches.name as branch',
-                'users.name as brand',
-                'assigned_to.name as created_user'
-            )
-            ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
-            ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
-            ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
-            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
-
-            // Apply role-based filtering
-            $Appraisal_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
-
-            // Apply filters
-            $filters = $this->jobsFilters($request);
-            foreach ($filters as $column => $value) {
-                if ($column == 'created_at') {
-                    $Appraisal_query->whereDate('jobs.created_at', 'LIKE', '%' . substr($value, 0, 10) . '%');
-                } elseif ($column == 'brand') {
-                    $Appraisal_query->where('jobs.brand_id', $value);
-                } elseif ($column == 'region_id') {
-                    $Appraisal_query->where('jobs.region_id', $value);
-                } elseif ($column == 'branch_id') {
-                    $Appraisal_query->where('jobs.branch', $value);
-                } elseif ($column == 'price') {
-                    $Appraisal_query->where('jobs.price', $value['operator'], $value['value']);
-                }
-            }
-
-            // Fetch jobs
-            $jobs = $Appraisal_query->get();
-
-            // For inactive jobs
-            $data = [
-                'total' => CountJob(['active', 'in_active']),
-                'active' => CountJob(['active']),
-                'in_active' => CountJob(['in_active']),
-            ];
-
-            // Return JSON response
+        if ($validator->fails()) {
             return response()->json([
-                'status' => 'success',
-                'data' => [
-                    'jobs' => $jobs,
-                    'summary' => $data,
-                ],
-                'message' => __('Jobs retrieved successfully'),
-            ]);
-        } else {
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = \Auth::user();
+
+        if (!$user->can('manage job')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied'),
             ], 403);
         }
+
+        // Default pagination settings
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
+
+        // Build the query
+        $jobsQuery = Job::select(
+            'jobs.*',
+            'regions.name as region',
+            'branches.name as branch',
+            'users.name as brand',
+            'assigned_to.name as created_user'
+        )
+            ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+            ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
+
+        // Apply role-based filtering
+        $jobsQuery = RoleBaseTableGet($jobsQuery, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
+
+        // Apply filters
+        if ($request->filled('brand')) {
+            $jobsQuery->where('jobs.brand_id', $request->brand);
+        }
+
+        if ($request->filled('region_id')) {
+            $jobsQuery->where('jobs.region_id', $request->region_id);
+        }
+
+        if ($request->filled('branch_id')) {
+            $jobsQuery->where('jobs.branch', $request->branch_id);
+        }
+
+        if ($request->filled('created_at')) {
+            $jobsQuery->whereDate('jobs.created_at', '=', $request->created_at);
+        }
+
+        if ($request->filled('price_operator') && $request->filled('price_value')) {
+            $jobsQuery->where('jobs.price', $request->price_operator, $request->price_value);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $jobsQuery->where(function ($query) use ($search) {
+                $query->where('jobs.title', 'like', "%$search%")
+                    ->orWhere('users.name', 'like', "%$search%")
+                    ->orWhere('branches.name', 'like', "%$search%")
+                    ->orWhere('regions.name', 'like', "%$search%");
+            });
+        }
+
+        // Fetch paginated jobs
+        $jobs = $jobsQuery
+            ->orderBy('jobs.created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        // Get summary data for active/inactive jobs
+        $summary = [
+            'total' => CountJob(['active', 'in_active']),
+            'active' => CountJob(['active']),
+            'in_active' => CountJob(['in_active']),
+        ];
+
+        // Return JSON response
+        return response()->json([
+            'status' => 'success',
+
+            'data' => $jobs->items(),
+            'current_page' => $jobs->currentPage(),
+            'last_page' => $jobs->lastPage(),
+            'total_records' => $jobs->total(),
+            'per_page' => $jobs->perPage(),
+            'summary' => $summary,
+
+            'message' => __('Jobs retrieved successfully'),
+        ]);
     }
+
 
     /**
      * Filters for jobs.
@@ -146,5 +194,227 @@ class JobController extends Controller
         return $filters;
     }
 
+    public function createJob(Request $request)
+    {
+        // Check permission
+        if (!\Auth::user()->can('create job')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.'
+            ], 403);
+        }
 
+        // Validation rules
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'brand' => 'required|integer|exists:users,id',
+            'region_id' => 'required|integer|exists:regions,id',
+            'branch_id' => 'required|integer|exists:branches,id',
+            'category' => 'required|integer|exists:job_categories,id',
+            'skill' => 'required|string|max:255',
+            'position' => 'required|integer',
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'description' => 'required|string',
+            'requirement' => 'required|string',
+            'status' => 'nullable|in:active,inactive',
+            'applicant' => 'nullable|array',
+            'visibility' => 'nullable|array',
+            'custom_question' => 'nullable|array',
+        ]);
+
+        // Handle validation errors
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Create a new Job instance
+        $job = new Job();
+        $job->title = $request->title;
+        $job->brand_id = $request->brand;
+        $job->region_id = $request->region_id;
+        $job->branch = $request->branch_id;
+        $job->category = $request->category;
+        $job->skill = $request->skill;
+        $job->position = $request->position;
+        $job->status = $request->status ?? 'active'; // Default to 'active' if not provided
+        $job->start_date = $request->start_date;
+        $job->end_date = $request->end_date;
+        $job->description = $request->description;
+        $job->requirement = $request->requirement;
+        $job->code = uniqid();
+        $job->applicant = $request->has('applicant') ? implode(',', $request->applicant) : '';
+        $job->visibility = $request->has('visibility') ? implode(',', $request->visibility) : '';
+        $job->custom_question = $request->has('custom_question') ? implode(',', $request->custom_question) : '';
+        $job->created_by = \Auth::id();
+
+        // Save the job
+        $job->save();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Job successfully created.',
+            'data' => $job
+        ], 201);
+    }
+
+    public function getJobDetails(Request $request)
+    {
+        // Validate the request to ensure jobID is provided and is an integer
+        $validator = Validator::make($request->all(), [
+            'jobID' => 'required|integer|exists:jobs,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        // Fetch the job by ID
+        $job = Job::find($request->jobID);
+
+        if (!$job) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        // Extract and process relevant data
+        $status = Job::$status;
+        $job->applicant = !empty($job->applicant) ? explode(',', $job->applicant) : [];
+        $job->visibility = !empty($job->visibility) ? explode(',', $job->visibility) : [];
+        $job->skill = !empty($job->skill) ? explode(',', $job->skill) : [];
+
+
+        // Return the response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Job details retrieved successfully.',
+            'data' =>  $job,
+            'status_options' => $status,
+        ], 200);
+    }
+
+    public function updateJob(Request $request)
+    {
+        // Check if the user has permission to edit jobs
+        if (!\Auth::user()->can('edit job')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'jobID' => 'required|integer|exists:jobs,id',
+            'title' => 'required',
+            'brand' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'branch_id' => 'required|integer|min:1',
+            'category' => 'required',
+            'skill' => 'required',
+            'position' => 'required|integer',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'description' => 'required',
+            'requirement' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 422);
+        }
+
+        // Find the job using the jobID
+        $job = Job::find($request->jobID);
+
+        if (!$job) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        // Update job details
+        $job->title = $request->title;
+        $job->brand_id = $request->brand;
+        $job->region_id = $request->region_id;
+        $job->branch = $request->branch_id;
+        $job->category = $request->category;
+        $job->skill = $request->skill;
+        $job->position = $request->position;
+        $job->status = $request->status ?? $job->status; // Retain existing status if not provided
+        $job->start_date = $request->start_date;
+        $job->end_date = $request->end_date;
+        $job->description = $request->description;
+        $job->requirement = $request->requirement;
+        $job->applicant = !empty($request->applicant) ? implode(',', $request->applicant) : '';
+        $job->visibility = !empty($request->visibility) ? implode(',', $request->visibility) : '';
+        $job->custom_question = !empty($request->custom_question) ? implode(',', $request->custom_question) : '';
+        $job->save();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Job successfully updated.',
+            'data' => $job,
+        ], 200);
+    }
+
+    public function deleteJob(Request $request)
+    {
+        // Check if the user has permission to delete jobs
+        if (!\Auth::user()->can('delete job')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        // Validate the jobID in the request
+        $validator = Validator::make($request->all(), [
+            'jobID' => 'required|integer|exists:jobs,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        // Find the job by ID
+        $job = Job::find($request->jobID);
+
+        if (!$job) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        // Delete related job applications and notes
+        $applicationIds = JobApplication::where('job', $job->id)->get()->pluck('id');
+        JobApplicationNote::whereIn('application_id', $applicationIds)->delete();
+        JobApplication::where('job', $job->id)->delete();
+
+        // Delete the job
+        $job->delete();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Job successfully deleted.',
+        ], 200);
+    }
 }

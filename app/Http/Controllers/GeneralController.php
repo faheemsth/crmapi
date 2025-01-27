@@ -44,6 +44,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Models\ApplicationNote;
 use App\Models\instalment;
+use App\Models\Job;
+use App\Models\JobCategory;
 use App\Models\LeadTag;
 use App\Models\LeadStage;
 use Carbon\Carbon;
@@ -319,6 +321,15 @@ public function getFilterBranchUsers(Request $request)
         return response()->json([
             'status' => 'success',
             'data' => $branches,
+        ], 200);
+    }
+
+    public function getJobCategories()
+    {
+        $categories = JobCategory::get()->pluck('title', 'id');
+        return response()->json([
+            'status' => 'success',
+            'data' => $categories,
         ], 200);
     }
 

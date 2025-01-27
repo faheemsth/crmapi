@@ -10,6 +10,8 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
+use App\Http\Controllers\UserController;
+use App\Models\JobCategory;
 use App\Models\TaskFile;
 
 /*
@@ -71,11 +73,19 @@ Route::middleware('auth:sanctum')->group( function () {
 
 
 
+    // user/employees
+    Route::post('/getEmployees', [UserController::class, 'getEmployees']);
+
+
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
 
     // Jobs
     Route::post('/getJobs', [JobController::class, 'getJobs']);
+    Route::post('/createJob', [JobController::class, 'createJob']);
+    Route::post('/getJobDetails', [JobController::class, 'getJobDetails']);
+    Route::post('/updateJob', [JobController::class, 'updateJob']);
+    Route::post('/deleteJob', [JobController::class, 'deleteJob']);
 
     // Custom Question
     Route::post('/getQuestions', [CustomQuestionController::class, 'getQuestions']);
@@ -97,5 +107,6 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::get('/getBranches', [GeneralController::class, 'getBranches']);
     Route::get('/getStages', [GeneralController::class, 'getStages']);
     Route::get('/getTags', [GeneralController::class, 'getTags']);
+    Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
 
 });
