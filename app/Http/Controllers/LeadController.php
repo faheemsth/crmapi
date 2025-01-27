@@ -149,6 +149,14 @@ class LeadController extends Controller
             $leadsQuery->where('leads.user_id', $request->lead_assigned_user);
         }
 
+        if ($request->filled('created_at_to')) {
+            $leadsQuery->whereDate('leads.created_at', '<=', $request->created_at_to);
+        }
+
+        if ($request->filled('created_at_from')) {
+            $leadsQuery->whereDate('leads.created_at', '>=', $request->created_at_from);
+        }
+
         // User Permissions Filtering
         $userType = $usr->type;
         if ($userType === 'company') {
