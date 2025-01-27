@@ -370,13 +370,13 @@ public function getTags(Request $request)
         $tags = [];
 
         if (in_array($user->type, ['super admin', 'Admin Team'])) {
-            $tags = LeadTag::pluck('id', 'tag')->toArray();
+            $tags = LeadTag::pluck('tag', 'id')->toArray();
         } elseif (in_array($user->type, ['Project Director', 'Project Manager', 'Admissions Officer'])) {
-            $tags = LeadTag::whereIn('brand_id', array_keys(FiltersBrands()))->pluck('id', 'tag')->toArray();
+            $tags = LeadTag::whereIn('brand_id', array_keys(FiltersBrands()))->pluck('tag', 'id')->toArray();
         } elseif ($user->type === 'Region Manager') {
-            $tags = LeadTag::where('region_id', $user->region_id)->pluck('id', 'tag')->toArray();
+            $tags = LeadTag::where('region_id', $user->region_id)->pluck('tag', 'id')->toArray();
         } else {
-            $tags = LeadTag::where('branch_id', $user->branch_id)->pluck('id', 'tag')->toArray();
+            $tags = LeadTag::where('branch_id', $user->branch_id)->pluck('tag', 'id')->toArray();
         }
 
         return response()->json([
