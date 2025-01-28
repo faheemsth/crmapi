@@ -37,102 +37,61 @@ class JobApplicationController extends Controller
     public function index(Request $request)
     {
 
-        if(\Auth::user()->can('manage job application'))
-        {
-            $stages = JobStage::orderBy('order', 'asc')->where('created_by',\Auth::id())->get();
+        if (\Auth::user()->can('manage job application')) {
+            $stages = JobStage::orderBy('order', 'asc')->where('created_by', \Auth::id())->get();
 
             $jobs = Job::get()->pluck('title', 'id');
             $jobs->prepend('All', '');
 
-            if(isset($request->start_date) && !empty($request->start_date))
-            {
+            if (isset($request->start_date) && !empty($request->start_date)) {
                 $filter['start_date'] = $request->start_date;
-            }
-            else
-            {
+            } else {
                 $filter['start_date'] = date("Y-m-d", strtotime("-1 month"));
             }
 
-            if(isset($request->end_date) && !empty($request->end_date))
-            {
+            if (isset($request->end_date) && !empty($request->end_date)) {
                 $filter['end_date'] = $request->end_date;
-            }
-            else
-            {
+            } else {
                 $filter['end_date'] = date("Y-m-d H:i:s", strtotime("+1 hours"));
             }
 
-            if(isset($request->job) && !empty($request->job))
-            {
+            if (isset($request->job) && !empty($request->job)) {
                 $filter['job'] = $request->job;
-            }
-            else
-            {
+            } else {
                 $filter['job'] = '';
             }
 
 
             return view('jobApplication.index', compact('stages', 'jobs', 'filter'));
-        }
-        else
-        {
+        } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
 
-    public function create()
-    {
-        $jobs = Job::where('created_by', \Auth::id())->get()->pluck('title', 'id');
-        $jobs->prepend('--', '');
 
-        $questions = CustomQuestion::where('created_by', \Auth::id())->get();
-
-        return view('jobApplication.create', compact('jobs', 'questions'));
-    }
 
     public function store(Request $request)
     {
 
-        if(\Auth::user()->can('create job application'))
-        {
+        if (\Auth::user()->can('create job application')) {
             $validator = \Validator::make(
-                $request->all(), [
-                                   'job' => 'required',
-                                   'name' => 'required',
-                                   'email' => 'required',
-                                   'phone' => 'required',
-//                                   'profile' => 'mimes:jpeg,png,jpg,gif,svg|max:20480',
-//                                   'resume' => 'mimes:jpeg,png,jpg,gif,svg,pdf,doc,zip|max:20480',
-                               ]
+                $request->all(),
+                [
+                    'job' => 'required',
+                    'name' => 'required',
+                    'email' => 'required',
+                    'phone' => 'required',
+                ]
             );
 
-            if($validator->fails())
-            {
+            if ($validator->fails()) {
                 $messages = $validator->getMessageBag();
 
                 return redirect()->back()->with('error', $messages->first());
             }
 
-            if(!empty($request->profile))
-            {
-//                $filenameWithExt = $request->file('profile')->getClientOriginalName();
-//                $filename        = pathinfo($filenameWithExt, PATHINFO_FILENAME);
-//                $extension       = $request->file('profile')->getClientOriginalExtension();
-//                $fileNameToStore = $filename . '_' . time() . '.' . $extension;
-//
-//                $dir        = storage_path('uploads/job/profile');
-//                $image_path = $dir . $filenameWithExt;
-//
-//                if(\File::exists($image_path))
-//                {
-//                    \File::delete($image_path);
-//                }
-//                if(!file_exists($dir))
-//                {
-//                    mkdir($dir, 0777, true);
-//                }
-//                $path = $request->file('profile')->storeAs('uploads/job/profile/', $fileNameToStore);
-//            }
+            if (!empty($request->profile)) {
+
                 $filenameWithExt = $request->file('profile')->getClientOriginalName();
                 $filename        = pathinfo($filenameWithExt, PATHINFO_FILENAME);
                 $extension       = $request->file('profile')->getClientOriginalExtension();
@@ -145,34 +104,16 @@ class JobApplicationController extends Controller
                     \File::delete($image_path);
                 }
                 $url = '';
-                $path = Utility::upload_file($request,'profile',$fileNameToStore,$dir,[]);
-                if($path['flag'] == 1){
+                $path = Utility::upload_file($request, 'profile', $fileNameToStore, $dir, []);
+                if ($path['flag'] == 1) {
                     $url = $path['url'];
-                }else{
+                } else {
                     return redirect()->back()->with('error', __($path['msg']));
                 }
             }
 
-            if(!empty($request->resume))
-            {
-//                $filenameWithExt1 = $request->file('resume')->getClientOriginalName();
-//                $filename1        = pathinfo($filenameWithExt1, PATHINFO_FILENAME);
-//                $extension1       = $request->file('resume')->getClientOriginalExtension();
-//                $fileNameToStore1 = $filename1 . '_' . time() . '.' . $extension1;
-//
-//                $dir        = storage_path('uploads/job/resume');
-//                $image_path = $dir . $filenameWithExt1;
-//
-//                if(\File::exists($image_path))
-//                {
-//                    \File::delete($image_path);
-//                }
-//                if(!file_exists($dir))
-//                {
-//                    mkdir($dir, 0777, true);
-//                }
-//                $path = $request->file('resume')->storeAs('uploads/job/resume/', $fileNameToStore1);
-//            }
+            if (!empty($request->resume)) {
+
 
                 $filenameWithExt1 = $request->file('resume')->getClientOriginalName();
                 $filename1        = pathinfo($filenameWithExt1, PATHINFO_FILENAME);
@@ -186,15 +127,15 @@ class JobApplicationController extends Controller
                     \File::delete($image_path);
                 }
                 $url = '';
-                $path = Utility::upload_file($request,'resume',$fileNameToStore1,$dir,[]);
+                $path = Utility::upload_file($request, 'resume', $fileNameToStore1, $dir, []);
 
-                if($path['flag'] == 1){
+                if ($path['flag'] == 1) {
                     $url = $path['url'];
-                }else{
+                } else {
                     return redirect()->back()->with('error', __($path['msg']));
                 }
             }
-            $stages = JobStage::where('created_by',\Auth::id())->first();
+            $stages = JobStage::where('created_by', \Auth::id())->first();
 
             $job                  = new JobApplication();
             $job->job             = $request->job;
@@ -209,15 +150,13 @@ class JobApplicationController extends Controller
             $job->country         = $request->country;
             $job->state           = $request->state;
             $job->city            = $request->city;
-            $job->stage           = !empty($stages)?$stages->id:1;
+            $job->stage           = !empty($stages) ? $stages->id : 1;
             $job->custom_question = json_encode($request->question);
             $job->created_by      = \Auth::id();
             $job->save();
 
             return redirect()->route('job-application.index')->with('success', __('Job application successfully created.'));
-        }
-        else
-        {
+        } else {
             return redirect()->route('job-application.index')->with('error', __('Permission denied.'));
         }
     }
@@ -225,8 +164,7 @@ class JobApplicationController extends Controller
     public function show($ids)
     {
 
-        if(\Auth::user()->can('show job application'))
-        {
+        if (\Auth::user()->can('show job application')) {
             $id             = Crypt::decrypt($ids);
             $jobApplication = JobApplication::find($id);
 
@@ -235,128 +173,38 @@ class JobApplicationController extends Controller
             $stages = JobStage::where('created_by', \Auth::id())->get();
 
             return view('jobApplication.show', compact('jobApplication', 'notes', 'stages'));
-        }
-        else
-        {
+        } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
 
     public function destroy(JobApplication $jobApplication)
     {
-        if(\Auth::user()->can('delete job application'))
-        {
+        if (\Auth::user()->can('delete job application')) {
             $jobApplication->delete();
             return redirect()->route('job-application.index')->with('success', __('Job application successfully deleted.'));
-        }
-        else
-        {
+        } else {
             return redirect()->route('job-application.index')->with('error', __('Permission denied.'));
         }
-
     }
 
     public function order(Request $request)
     {
-        if(\Auth::user()->can('move job application'))
-        {
+        if (\Auth::user()->can('move job application')) {
             $post = $request->all();
-            foreach($post['order'] as $key => $item)
-            {
+            foreach ($post['order'] as $key => $item) {
                 $application        = JobApplication::where('id', '=', $item)->first();
                 $application->order = $key;
                 $application->stage = $post['stage_id'];
                 $application->save();
             }
-        }
-        else
-        {
+        } else {
             return redirect()->route('job-application.index')->with('error', __('Permission denied.'));
         }
-
     }
 
-    public function addSkill(Request $request, $id)
-    {
-        if(\Auth::user()->can('add job application skill'))
-        {
-            $validator = \Validator::make(
-                $request->all(), [
-                                   'skill' => 'required',
-                               ]
-            );
-
-            if($validator->fails())
-            {
-                $messages = $validator->getMessageBag();
-
-                return redirect()->back()->with('error', $messages->first());
-            }
-
-            $job        = JobApplication::find($id);
-            $job->skill = $request->skill;
-            $job->save();
-
-            return redirect()->back()->with('success', __('Job application skill successfully added.'));
-        }
-        else
-        {
-            return redirect()->route('job-application.index')->with('error', __('Permission denied.'));
-        }
 
 
-    }
-
-    public function addNote(Request $request, $id)
-    {
-        if(\Auth::user()->can('add job application note'))
-        {
-            $validator = \Validator::make(
-                $request->all(), [
-                                   'note' => 'required',
-                               ]
-            );
-
-            if($validator->fails())
-            {
-                $messages = $validator->getMessageBag();
-
-                return redirect()->back()->with('error', $messages->first());
-            }
-
-            $note                 = new JobApplicationNote();
-            $note->application_id = $id;
-            $note->note           = $request->note;
-            $note->note_created   = \Auth::user()->id;
-            $note->created_by     = \Auth::id();
-            $note->save();
-
-            return redirect()->back()->with('success', __('Job application notes successfully added.'));
-        }
-        else
-        {
-            return redirect()->route('job-application.index')->with('error', __('Permission denied.'));
-        }
-
-
-    }
-
-    public function destroyNote($id)
-    {
-        if(\Auth::user()->can('delete job application note'))
-        {
-            $note = JobApplicationNote::find($id);
-            $note->delete();
-
-            return redirect()->back()->with('success', __('Job application notes successfully deleted.'));
-        }
-        else
-        {
-            return redirect()->route('job-application.index')->with('error', __('Permission denied.'));
-        }
-
-
-    }
 
     public function rating(Request $request, $id)
     {
@@ -368,55 +216,34 @@ class JobApplicationController extends Controller
     public function archive($id)
     {
         $jobApplication = JobApplication::find($id);
-        if($jobApplication->is_archive == 0)
-        {
+        if ($jobApplication->is_archive == 0) {
             $jobApplication->is_archive = 1;
             $jobApplication->save();
 
             return redirect()->route('job.application.candidate')->with('success', __('Job application successfully added to archive.'));
-        }
-        else
-        {
+        } else {
             $jobApplication->is_archive = 0;
             $jobApplication->save();
 
             return redirect()->route('job-application.index')->with('success', __('Job application successfully remove to archive.'));
         }
-
     }
 
     public function candidate()
     {
-        if(\Auth::user()->can('manage job onBoard'))
-        {
+        if (\Auth::user()->can('manage job onBoard')) {
             $archive_application = JobApplication::where('created_by', \Auth::id())->where('is_archive', 1)->get();
 
             return view('jobApplication.candidate', compact('archive_application'));
-        }
-        else
-        {
+        } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
 
-    //    -----------------------Job OnBoard-----------------------------
-
-    public function jobBoardCreate($id)
-    {
-        $status       = JobOnBoard::$status;
-        $job_type        = JobOnBoard::$job_type;
-        $salary_duration = JobOnBoard::$salary_duration;
-        $salary_type     = PayslipType::where('created_by', \Auth::id())->get()->pluck('name', 'id');
-        $applications = InterviewSchedule::select('interview_schedules.*', 'job_applications.name')->join('job_applications', 'interview_schedules.candidate', '=', 'job_applications.id')->where('job_applications.created_by', \Auth::id())->get()->pluck('name', 'candidate');
-        $applications->prepend('-', '');
-        $applications;
-        return view('jobApplication.onboardCreate', compact('id', 'status', 'applications','job_type','salary_type','salary_duration'));
-    }
 
     public function jobOnBoard()
     {
-        if(\Auth::user()->can('manage job onBoard'))
-        {
+        if (\Auth::user()->can('manage job onBoard')) {
             $query = JobOnBoard::select(
                 'job_on_boards.*',
                 'regions.name as region',
@@ -424,36 +251,33 @@ class JobApplicationController extends Controller
                 'users.name as brand',
                 'assigned_to.name as created_user'
             )
-            ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
-            ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
-            ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
-            ->leftJoin('job_applications as ja2', 'ja2.id', '=', 'jobs.brand_id')
-            ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
-            ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
-            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
+                ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
+                ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
+                ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+                ->leftJoin('job_applications as ja2', 'ja2.id', '=', 'jobs.brand_id')
+                ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+                ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+                ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
 
-            $jobOnBoard_query=RoleBaseTableGet($query,'jobs.brand_id','jobs.region_id','jobs.branch','jobs.created_by');
+            $jobOnBoard_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
             $filters = $this->jobsFilters();
 
             foreach ($filters as $column => $value) {
                 if ($column == 'created_at') {
                     $jobOnBoard_query->whereDate('jobs.created_at', 'LIKE', '%' . substr($value, 0, 10) . '%');
-                }elseif ($column == 'brand') {
+                } elseif ($column == 'brand') {
                     $jobOnBoard_query->where('jobs.brand_id', $value);
-                }elseif ($column == 'region_id') {
+                } elseif ($column == 'region_id') {
                     $jobOnBoard_query->where('jobs.region_id', $value);
-                }elseif ($column == 'branch_id') {
+                } elseif ($column == 'branch_id') {
                     $jobOnBoard_query->where('jobs.branch', $value);
                 }
-
             }
-            $jobOnBoards=$jobOnBoard_query->get();
+            $jobOnBoards = $jobOnBoard_query->get();
             $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
             $filters = BrandsRegionsBranches();
-            return view('jobApplication.onboard', compact('filters','saved_filters','jobOnBoards'));
-        }
-        else
-        {
+            return view('jobApplication.onboard', compact('filters', 'saved_filters', 'jobOnBoards'));
+        } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
@@ -519,19 +343,19 @@ class JobApplicationController extends Controller
     public function jobBoardStore(Request $request, $id)
     {
         $validator = \Validator::make(
-            $request->all(), [
-                                'joining_date' => 'required',
-                                'job_type' => 'required',
-                                'days_of_week'=>'required|gt:0',
-                                'salary'=>'required|gt:0',
-                                'salary_type'=>'required',
-                                'salary_duration'=>'required',
-                                'status' => 'required',
-                           ]
+            $request->all(),
+            [
+                'joining_date' => 'required',
+                'job_type' => 'required',
+                'days_of_week' => 'required|gt:0',
+                'salary' => 'required|gt:0',
+                'salary_type' => 'required',
+                'salary_duration' => 'required',
+                'status' => 'required',
+            ]
         );
 
-        if($validator->fails())
-        {
+        if ($validator->fails()) {
             $messages = $validator->getMessageBag();
 
             return redirect()->back()->with('error', $messages->first());
@@ -543,17 +367,16 @@ class JobApplicationController extends Controller
         $jobBoard->application  = $id;
         $jobBoard->joining_date         = $request->joining_date;
         $jobBoard->job_type              = $request->job_type;
-        $jobBoard->days_of_week          =$request->days_of_week;
-        $jobBoard->salary                =$request->salary;
-        $jobBoard->salary_type           =$request->salary_type;
-        $jobBoard->salary_duration       =$request->salary_duration;
+        $jobBoard->days_of_week          = $request->days_of_week;
+        $jobBoard->salary                = $request->salary;
+        $jobBoard->salary_type           = $request->salary_type;
+        $jobBoard->salary_duration       = $request->salary_duration;
         $jobBoard->status                = $request->status;
         $jobBoard->created_by   = \Auth::id();
         $jobBoard->save();
 
         $interview = InterviewSchedule::where('candidate', $id)->first();
-        if(!empty($interview))
-        {
+        if (!empty($interview)) {
             $interview->delete();
         }
 
@@ -563,19 +386,19 @@ class JobApplicationController extends Controller
     public function jobBoardUpdate(Request $request, $id)
     {
         $validator = \Validator::make(
-            $request->all(), [
-                                'joining_date' => 'required',
-                                'job_type' => 'required',
-                                'days_of_week'=>'required',
-                                'salary'=>'required',
-                                'salary_type'=>'required',
-                                'salary_duration'=>'required',
-                                'status' => 'required',
-                           ]
+            $request->all(),
+            [
+                'joining_date' => 'required',
+                'job_type' => 'required',
+                'days_of_week' => 'required',
+                'salary' => 'required',
+                'salary_type' => 'required',
+                'salary_duration' => 'required',
+                'status' => 'required',
+            ]
         );
 
-        if($validator->fails())
-        {
+        if ($validator->fails()) {
             $messages = $validator->getMessageBag();
 
             return redirect()->back()->with('error', $messages->first());
@@ -584,10 +407,10 @@ class JobApplicationController extends Controller
         $jobBoard                        = JobOnBoard::find($id);
         $jobBoard->joining_date          = $request->joining_date;
         $jobBoard->job_type              = $request->job_type;
-        $jobBoard->days_of_week          =$request->days_of_week;
-        $jobBoard->salary                =$request->salary;
-        $jobBoard->salary_type           =$request->salary_type;
-        $jobBoard->salary_duration     =$request->salary_duration;
+        $jobBoard->days_of_week          = $request->days_of_week;
+        $jobBoard->salary                = $request->salary;
+        $jobBoard->salary_type           = $request->salary_type;
+        $jobBoard->salary_duration     = $request->salary_duration;
         $jobBoard->status                = $request->status;
         $jobBoard->save();
 
@@ -604,7 +427,7 @@ class JobApplicationController extends Controller
         $salary_type      = PayslipType::where('created_by', \Auth::id())->get()->pluck('name', 'id');
 
 
-        return view('jobApplication.onboardEdit', compact('jobOnBoard', 'status','job_type','salary_type','salary_duration'));
+        return view('jobApplication.onboardEdit', compact('jobOnBoard', 'status', 'job_type', 'salary_type', 'salary_duration'));
     }
 
     public function jobBoardDelete($id)
@@ -618,11 +441,11 @@ class JobApplicationController extends Controller
 
     public function jobBoardConvert($id)
     {
-        $jobOnBoard = JobOnBoard::select('job_on_boards.*','jobs.brand_id','jobs.region_id','jobs.branch as branch_id')
-        ->join('job_applications', 'job_applications.id', '=', 'job_on_boards.application')
-        ->join('jobs', 'jobs.id', '=', 'job_applications.job')
-        ->where('job_on_boards.id', $id)
-        ->first();
+        $jobOnBoard = JobOnBoard::select('job_on_boards.*', 'jobs.brand_id', 'jobs.region_id', 'jobs.branch as branch_id')
+            ->join('job_applications', 'job_applications.id', '=', 'job_on_boards.application')
+            ->join('jobs', 'jobs.id', '=', 'job_applications.job')
+            ->where('job_on_boards.id', $id)
+            ->first();
 
         $filter = BrandsRegionsBranchesForEdit($jobOnBoard->brand_id, $jobOnBoard->region_id, $jobOnBoard->branch_id);
         $companies = $filter['brands'];
@@ -637,35 +460,34 @@ class JobApplicationController extends Controller
         $employees        = User::where('created_by', \Auth::id())->get();
         $employeesId      = \Auth::user()->employeeIdFormat($this->employeeNumber());
         $roles = Role::where('name', '!=', 'super admin')->pluck('name', 'id')->toArray();
-        return view('jobApplication.convert', compact('roles','companies','regions','branches','jobOnBoard', 'employees', 'employeesId', 'departments', 'designations', 'documents', 'branches', 'company_settings'));
-
+        return view('jobApplication.convert', compact('roles', 'companies', 'regions', 'branches', 'jobOnBoard', 'employees', 'employeesId', 'departments', 'designations', 'documents', 'branches', 'company_settings'));
     }
 
     public function jobBoardConvertData(Request $request, $id)
     {
 
         $validator = \Validator::make(
-            $request->all(), [
-                               'name' => 'required',
-                               'dob' => 'required',
-                               'gender' => 'required',
-                               'phone' => 'required',
-                               'address' => 'required',
-                               'email' => 'required|unique:users',
-                               'password' => 'required',
-                               'department_id' => 'required',
-                               'designation_id' => 'required',
-                           ]
+            $request->all(),
+            [
+                'name' => 'required',
+                'dob' => 'required',
+                'gender' => 'required',
+                'phone' => 'required',
+                'address' => 'required',
+                'email' => 'required|unique:users',
+                'password' => 'required',
+                'department_id' => 'required',
+                'designation_id' => 'required',
+            ]
         );
 
-        if($validator->fails())
-        {
+        if ($validator->fails()) {
             $messages = $validator->getMessageBag();
 
             return redirect()->back()->withInput()->with('error', $messages->first());
         }
         $objUser = \Auth::user();
-        $employees        = User::where('type','!=','client')->where('type','!=','company')->where('created_by',\Auth::id())->get();
+        $employees        = User::where('type', '!=', 'client')->where('type', '!=', 'company')->where('created_by', \Auth::id())->get();
 
         $total_employee = $employees->count();
         $plan           = Plan::find($objUser->plan);
@@ -683,12 +505,9 @@ class JobApplicationController extends Controller
         $user->assignRole($request->role);
 
 
-        if(!empty($request->document) && !is_null($request->document))
-        {
+        if (!empty($request->document) && !is_null($request->document)) {
             $document_implode = implode(',', array_keys($request->document));
-        }
-        else
-        {
+        } else {
             $document_implode = null;
         }
 
@@ -719,16 +538,13 @@ class JobApplicationController extends Controller
             ]
         );
 
-        if(!empty($employee))
-        {
+        if (!empty($employee)) {
             $JobOnBoard                      = JobOnBoard::find($id);
             $JobOnBoard->convert_to_employee = $employee->id;
             $JobOnBoard->save();
         }
-        if($request->hasFile('document'))
-        {
-            foreach($request->document as $key => $document)
-            {
+        if ($request->hasFile('document')) {
+            foreach ($request->document as $key => $document) {
 
                 $filenameWithExt = $request->file('document')[$key]->getClientOriginalName();
                 $filename        = pathinfo($filenameWithExt, PATHINFO_FILENAME);
@@ -737,13 +553,11 @@ class JobApplicationController extends Controller
                 $dir             = storage_path('uploads/document/');
                 $image_path      = $dir . $filenameWithExt;
 
-                if(\File::exists($image_path))
-                {
+                if (\File::exists($image_path)) {
                     \File::delete($image_path);
                 }
 
-                if(!file_exists($dir))
-                {
+                if (!file_exists($dir)) {
                     mkdir($dir, 0777, true);
                 }
                 $path              = $request->file('document')[$key]->storeAs('uploads/document/', $fileNameToStore);
@@ -756,14 +570,11 @@ class JobApplicationController extends Controller
                     ]
                 );
                 $employee_document->save();
-
             }
-
         }
 
         $setings = Utility::settings();
-        if($setings['new_user'] == 1)
-        {
+        if ($setings['new_user'] == 1) {
             $userArr = [
                 'email' => $user->email,
                 'password' => $user->password,
@@ -771,34 +582,14 @@ class JobApplicationController extends Controller
 
             $resp = Utility::sendEmailTemplate('new_user', [$user->id => $user->email], $userArr);
 
-            return redirect()->back()->with('success', __('Application successfully converted to employee.') .((!empty($resp) && $resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
-
+            return redirect()->back()->with('success', __('Application successfully converted to employee.') . ((!empty($resp) && $resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
         }
 
         return redirect()->back()->with('success', __('Application successfully converted to employee.'));
     }
 
-    function employeeNumber()
-    {
-        $latest = Employee::where('created_by', '=', \Auth::id())->latest()->first();
-        if(!$latest)
-        {
-            return 1;
-        }
-
-        return $latest->employee_id + 1;
-    }
-
-    public function getByJob(Request $request)
-    {
-        $job                  = Job::find($request->id);
-        $job->applicant       = !empty($job->applicant) ? explode(',', $job->applicant) : '';
-        $job->visibility      = !empty($job->visibility) ? explode(',', $job->visibility) : '';
-        $job->custom_question = !empty($job->custom_question) ? explode(',', $job->custom_question) : '';
 
 
-        return json_encode($job);
-    }
 
     public function stageChange(Request $request)
     {
@@ -810,9 +601,9 @@ class JobApplicationController extends Controller
         return response()->json(
             [
                 'success' => __('This candidate stage successfully changed.'),
-            ], 200
+            ],
+            200
         );
-
     }
 
     public function offerletterPdf($id)
@@ -820,17 +611,17 @@ class JobApplicationController extends Controller
         $users = \Auth::user();
         $currantLang = $users->currentLanguage();
         // $Offerletter=GenerateOfferLetter::where('lang', $currantLang)->first();
-        $Offerletter=GenerateOfferLetter::where(['lang' =>   $currantLang,'created_by' =>  \Auth::id()])->first();
+        $Offerletter = GenerateOfferLetter::where(['lang' =>   $currantLang, 'created_by' =>  \Auth::id()])->first();
 
-        if(empty($Offerletter)){
+        if (empty($Offerletter)) {
             return redirect()->back()->with('error', __('Offer Letter not found.'));
         }
         $job = JobApplication::find($id);
-        $Onboard=JobOnBoard::find($id);
-        $name=JobApplication::find($Onboard->application);
-        $job_title=job::find($name->job);
+        $Onboard = JobOnBoard::find($id);
+        $name = JobApplication::find($Onboard->application);
+        $job_title = job::find($name->job);
         // dd($job);
-        $salary=PayslipType::find($Onboard->salary_type);
+        $salary = PayslipType::find($Onboard->salary_type);
 
 
         //  dd($salary->name);
@@ -838,34 +629,33 @@ class JobApplicationController extends Controller
             'applicant_name' => $name->name,
             'app_name' => env('APP_NAME'),
             'job_title' => $job_title->title,
-            'job_type' =>!empty($Onboard->job_type)?$Onboard->job_type:'' ,
+            'job_type' => !empty($Onboard->job_type) ? $Onboard->job_type : '',
             'start_date' => $Onboard->joining_date,
-            'workplace_location' => !empty($job->jobs->branches->name)?$job->jobs->branches->name:'',
-            'days_of_week' => !empty($Onboard->days_of_week)?$Onboard->days_of_week:'',
-            'salary' => !empty($Onboard->salary)?$Onboard->salary:'',
-            'salary_type' => !empty($salary->name)?$salary->name:'',
-            'salary_duration' => !empty($Onboard->salary_duration)?$Onboard->salary_duration:'',
-            'offer_expiration_date' => !empty($Onboard->joining_date)?$Onboard->joining_date:'',
+            'workplace_location' => !empty($job->jobs->branches->name) ? $job->jobs->branches->name : '',
+            'days_of_week' => !empty($Onboard->days_of_week) ? $Onboard->days_of_week : '',
+            'salary' => !empty($Onboard->salary) ? $Onboard->salary : '',
+            'salary_type' => !empty($salary->name) ? $salary->name : '',
+            'salary_duration' => !empty($Onboard->salary_duration) ? $Onboard->salary_duration : '',
+            'offer_expiration_date' => !empty($Onboard->joining_date) ? $Onboard->joining_date : '',
 
         ];
         $Offerletter->content = GenerateOfferLetter::replaceVariable($Offerletter->content, $obj);
-        return view('jobApplication.template.offerletterpdf', compact('Offerletter','name'));
-
+        return view('jobApplication.template.offerletterpdf', compact('Offerletter', 'name'));
     }
     public function offerletterDoc($id)
     {
         $users = \Auth::user();
         $currantLang = $users->currentLanguage();
-        $Offerletter=GenerateOfferLetter::where(['lang' =>   $currantLang,'created_by' =>  \Auth::id()])->first();
-        if(empty($Offerletter)){
+        $Offerletter = GenerateOfferLetter::where(['lang' =>   $currantLang, 'created_by' =>  \Auth::id()])->first();
+        if (empty($Offerletter)) {
             return redirect()->back()->with('error', __('Offer Letter not found.'));
         }
         $job = JobApplication::find($id);
-        $Onboard=JobOnBoard::find($id);
-        $name=JobApplication::find($Onboard->application);
-        $job_title=job::find($name->job);
+        $Onboard = JobOnBoard::find($id);
+        $name = JobApplication::find($Onboard->application);
+        $job_title = job::find($name->job);
         // dd($job_title->title);
-        $salary=PayslipType::find($Onboard->salary_type);
+        $salary = PayslipType::find($Onboard->salary_type);
         // dd($Offerletter);
 
 
@@ -874,48 +664,19 @@ class JobApplicationController extends Controller
             'applicant_name' => $name->name,
             'app_name' => env('APP_NAME'),
             'job_title' => $job_title->title,
-            'job_type' =>!empty($Onboard->job_type)?$Onboard->job_type:'' ,
+            'job_type' => !empty($Onboard->job_type) ? $Onboard->job_type : '',
             'start_date' => $Onboard->joining_date,
-            'workplace_location' => !empty($job->jobs->branches->name)?$job->jobs->branches->name:'',
-            'days_of_week' => !empty($Onboard->days_of_week)?$Onboard->days_of_week:'',
-            'salary' => !empty($Onboard->salary)?$Onboard->salary:'',
-            'salary_type' => !empty($salary->name)?$salary->name:'',
-            'salary_duration' => !empty($Onboard->salary_duration)?$Onboard->salary_duration:'',
-            'offer_expiration_date' => !empty($Onboard->joining_date)?$Onboard->joining_date:'',
+            'workplace_location' => !empty($job->jobs->branches->name) ? $job->jobs->branches->name : '',
+            'days_of_week' => !empty($Onboard->days_of_week) ? $Onboard->days_of_week : '',
+            'salary' => !empty($Onboard->salary) ? $Onboard->salary : '',
+            'salary_type' => !empty($salary->name) ? $salary->name : '',
+            'salary_duration' => !empty($Onboard->salary_duration) ? $Onboard->salary_duration : '',
+            'offer_expiration_date' => !empty($Onboard->joining_date) ? $Onboard->joining_date : '',
 
         ];
         $Offerletter->content = GenerateOfferLetter::replaceVariable($Offerletter->content, $obj);
-        return view('jobApplication.template.offerletterdocx', compact('Offerletter','name'));
-
+        return view('jobApplication.template.offerletterdocx', compact('Offerletter', 'name'));
     }
 
-    public function getDealApplication(){
-        $id = $_GET['id'];
-        $applications = \App\Models\DealApplication::where('deal_id', $id)->pluck('application_key', 'id');
-
-        $html = '<option value=""> Select Application</option>';
-
-        foreach($applications as $key => $app){
-            $html = '<option value="'.$key.'">'.$app.'</option>';
-        }
-
-        return json_encode([
-            'status' => 'success',
-            'html' => $html
-        ]);
-    }
-
-    public function HrmFileAttachments(){
-
-        if(isset($_GET['emp_id'])){
-            $userId = $_GET['emp_id'];
-         }else{
-            $userId = \Auth::id();
-         }
-        $AuthUser = User::find($userId);
-        $HrmFileAttachments=EmployeeDocument::where('employee_id',$userId)->get();
-
-        return view('hrmhome.HrmFileAttachments', compact('HrmFileAttachments','AuthUser'));
-    }
 
 }
