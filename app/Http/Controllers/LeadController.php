@@ -967,6 +967,9 @@ class LeadController extends Controller
         ->with('brand')
         ->with('stage')
         ->with('branch')
+        ->with('region')
+        ->with('pipeline')
+        ->with('created_by')
         ->select('leads.*')
         ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')->findOrFail($request->lead_id);
 
