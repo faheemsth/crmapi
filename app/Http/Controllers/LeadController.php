@@ -986,8 +986,8 @@ class LeadController extends Controller
                 'related_type' => 'lead'
             ])->orderBy('status')->get();
 
-            $branches = Branch::pluck('name', 'id');
-            $users = allUsers();
+            // $branches = Branch::pluck('name', 'id');
+            // $users = allUsers();
             $logActivities = getLogActivity($lead->id, 'lead');
 
             // Lead Stage History
@@ -1025,8 +1025,8 @@ class LeadController extends Controller
                     'current_stage_index' => $currentStageIndex,
                     'progress_percentage' => $progressPercentage,
                     'tasks' => $tasks,
-                    'branches' => $branches,
-                    'users' => $users,
+                    // 'branches' => $branches,
+                    // 'users' => $users,
                     'log_activities' => $logActivities,
                     'stage_histories' => $stageHistories,
                     'tags' => $tags,
