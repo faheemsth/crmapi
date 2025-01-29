@@ -963,7 +963,11 @@ class LeadController extends Controller
         }
 
         // Fetch Lead Details
-        $lead = Lead::findOrFail($request->lead_id);
+        $lead = Lead::with('assignto')
+        ->with('brand')
+        ->with('stage')
+        ->with('branch')
+        ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')->findOrFail($request->lead_id);
 
         if ($lead->is_active) {
             $calendarTasks = [];
