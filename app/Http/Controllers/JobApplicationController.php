@@ -39,7 +39,7 @@ class JobApplicationController extends Controller
     {
         if (\Auth::user()->can('manage job application')) {
             $stages = JobStage::orderBy('order', 'asc')
-                ->where('id','<', 6)
+                ->where('id', '<', 6)
                 ->get();
 
             $jobs = Job::all()->pluck('title', 'id');
@@ -69,42 +69,42 @@ class JobApplicationController extends Controller
     }
 
     public function getJobApplicationDetails(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'id' => 'required|integer|exists:job_applications,id',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:job_applications,id',
+        ]);
 
-    if ($validator->fails()) {
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if (!\Auth::user()->can('show job application')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        $jobApplication = JobApplication::find($request->id);
+        $notes = JobApplicationNote::where('application_id', $request->id)->get();
+
+        $stages = JobStage::orderBy('order', 'asc')
+            ->where('id', '<', 6) // Applying your filter condition
+            ->get();
+
         return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors(),
-        ], 422);
+            'status' => 'success',
+            'message' => 'Job application details retrieved successfully.',
+            'data' => [
+                'jobApplication' => $jobApplication,
+                'notes' => $notes,
+                'stages' => $stages,
+            ],
+        ]);
     }
-
-    if (!\Auth::user()->can('show job application')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Permission denied.',
-        ], 403);
-    }
-
-    $jobApplication = JobApplication::find($request->id);
-    $notes = JobApplicationNote::where('application_id', $request->id)->get();
-
-    $stages = JobStage::orderBy('order', 'asc')
-        ->where('id', '<', 6) // Applying your filter condition
-        ->get();
-
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Job application details retrieved successfully.',
-        'data' => [
-            'jobApplication' => $jobApplication,
-            'notes' => $notes,
-            'stages' => $stages,
-        ],
-    ]);
-}
 
 
 
@@ -716,6 +716,4 @@ class JobApplicationController extends Controller
         $Offerletter->content = GenerateOfferLetter::replaceVariable($Offerletter->content, $obj);
         return view('jobApplication.template.offerletterdocx', compact('Offerletter', 'name'));
     }
-
-
 }
