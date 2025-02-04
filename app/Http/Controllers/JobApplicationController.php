@@ -29,44 +29,83 @@ use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 
 class JobApplicationController extends Controller
 {
 
-    public function index(Request $request)
+    public function getJobApplications(Request $request)
     {
-
         if (\Auth::user()->can('manage job application')) {
-            $stages = JobStage::orderBy('order', 'asc')->where('created_by', \Auth::id())->get();
+            $stages = JobStage::orderBy('order', 'asc')
+                ->where('id','<', 6)
+                ->get();
 
-            $jobs = Job::get()->pluck('title', 'id');
+            $jobs = Job::all()->pluck('title', 'id');
             $jobs->prepend('All', '');
 
-            if (isset($request->start_date) && !empty($request->start_date)) {
-                $filter['start_date'] = $request->start_date;
-            } else {
-                $filter['start_date'] = date("Y-m-d", strtotime("-1 month"));
-            }
+            $filter = [
+                'start_date' => $request->start_date ?? date("Y-m-d", strtotime("-1 month")),
+                'end_date' => $request->end_date ?? date("Y-m-d H:i:s", strtotime("+1 hours")),
+                'job' => $request->job ?? '',
+            ];
 
-            if (isset($request->end_date) && !empty($request->end_date)) {
-                $filter['end_date'] = $request->end_date;
-            } else {
-                $filter['end_date'] = date("Y-m-d H:i:s", strtotime("+1 hours"));
-            }
-
-            if (isset($request->job) && !empty($request->job)) {
-                $filter['job'] = $request->job;
-            } else {
-                $filter['job'] = '';
-            }
-
-
-            return view('jobApplication.index', compact('stages', 'jobs', 'filter'));
-        } else {
-            return redirect()->back()->with('error', __('Permission denied.'));
+            return response()->json([
+                'success' => true,
+                'message' => 'Job applications fetched successfully.',
+                'data' => [
+                    'stages' => $stages,
+                    'jobs' => $jobs,
+                    'filter' => $filter,
+                ],
+            ]);
         }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Permission denied.',
+        ], 403);
     }
+
+    public function getJobApplicationDetails(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|integer|exists:job_applications,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    if (!\Auth::user()->can('show job application')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Permission denied.',
+        ], 403);
+    }
+
+    $jobApplication = JobApplication::find($request->id);
+    $notes = JobApplicationNote::where('application_id', $request->id)->get();
+
+    $stages = JobStage::orderBy('order', 'asc')
+        ->where('id', '<', 6) // Applying your filter condition
+        ->get();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Job application details retrieved successfully.',
+        'data' => [
+            'jobApplication' => $jobApplication,
+            'notes' => $notes,
+            'stages' => $stages,
+        ],
+    ]);
+}
+
 
 
 
