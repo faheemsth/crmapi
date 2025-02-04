@@ -362,55 +362,64 @@ class JobApplicationController extends Controller
     }
 
 
-    public function getjobBoardStore()
-    {
-        if (\Auth::user()->can('manage job onBoard')) {
-            $query = JobOnBoard::with('applications.jobs')->select(
-                'job_on_boards.*',
-                'regions.name as region',
-                'branches.name as branch',
-                'users.name as brand',
-                'assigned_to.name as created_user'
-            )
-                ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
-                ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
-                ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
-                ->leftJoin('job_applications as ja2', 'ja2.id', '=', 'jobs.brand_id')
-                ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
-                ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
-                ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
-            $jobOnBoard_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
-            $filters = $this->jobsFilters();
-            foreach ($filters as $column => $value) {
-                if ($column == 'created_at') {
-                    $jobOnBoard_query->whereDate('jobs.created_at', 'LIKE', '%' . substr($value, 0, 10) . '%');
-                } elseif ($column == 'brand') {
-                    $jobOnBoard_query->where('jobs.brand_id', $value);
-                } elseif ($column == 'region_id') {
-                    $jobOnBoard_query->where('jobs.region_id', $value);
-                } elseif ($column == 'branch_id') {
-                    $jobOnBoard_query->where('jobs.branch', $value);
-                }
-            }
-            $jobOnBoards = $jobOnBoard_query->get();
-            $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
-            $filters = BrandsRegionsBranches();
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'jobOnBoards' => $jobOnBoards,
-                    'saved_filters' => $saved_filters,
-                    'filters' => $filters
-                ]
-            ]);
-        } else {
-            // Return JSON response for permission denied
-            return response()->json([
-                'success' => false,
-                'message' => 'Permission denied.'
-            ], 403);
+public function getjobBoardStore(Request $request)
+{
+    if (\Auth::user()->can('manage job onBoard')) {
+        $query = JobOnBoard::with('applications.jobs')->select(
+            'job_on_boards.*',
+            'regions.name as region',
+            'branches.name as branch',
+            'users.name as brand',
+            'assigned_to.name as created_user'
+        )
+            ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
+            ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
+            ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+            ->leftJoin('job_applications as ja2', 'ja2.id', '=', 'jobs.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+            ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
+
+        // Apply role-based filtering
+        $jobOnBoard_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
+
+        // Apply filters from the request
+        if (!empty($request->brand)) {
+            $jobOnBoard_query->where('jobs.brand_id', $request->brand);
         }
+
+        if (!empty($request->region_id)) {
+            $jobOnBoard_query->where('jobs.region_id', $request->region_id);
+        }
+
+        if (!empty($request->branch_id)) {
+            $jobOnBoard_query->where('jobs.branch', $request->branch_id);
+        }
+
+        // Fetch filtered data
+        $jobOnBoards = $jobOnBoard_query->get();
+
+        // Fetch saved filters and other data
+        $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
+        $filters = BrandsRegionsBranches();
+
+        // Return JSON response
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'jobOnBoards' => $jobOnBoards,
+                'saved_filters' => $saved_filters,
+                'filters' => $filters
+            ]
+        ]);
+    } else {
+        // Return JSON response for permission denied
+        return response()->json([
+            'success' => false,
+            'message' => 'Permission denied.'
+        ], 403);
     }
+}
 
     private function jobsFilters()
     {
