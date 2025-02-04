@@ -493,6 +493,7 @@ class JobController extends Controller
             'state' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'question' => 'nullable|array',
+            'stage' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -548,7 +549,7 @@ class JobController extends Controller
         $jobApplication->city = $request->city;
         $jobApplication->custom_question = json_encode($request->question);
         $jobApplication->created_by = $job->created_by;
-        $jobApplication->stage = $stage->id;
+        $jobApplication->stage = $request->stage;
         $jobApplication->save();
 
         // Log the activity
