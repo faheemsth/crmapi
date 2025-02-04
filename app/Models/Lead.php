@@ -55,6 +55,11 @@ class Lead extends Model
     {
         return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
     }
+    
+    public function region()
+    {
+        return $this->hasOne('App\Models\Region', 'id', 'region_id');
+    }
 
     public function brand()
     {
@@ -64,6 +69,11 @@ class Lead extends Model
     public function assignto()
     {
         return $this->hasOne('App\Models\User', 'id', 'user_id');
+    }
+    
+    public function created_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
     }
 
     public function products()
