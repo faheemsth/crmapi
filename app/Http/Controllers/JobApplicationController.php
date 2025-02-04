@@ -271,7 +271,7 @@ class JobApplicationController extends Controller
             ], 403);
         }
 
-        $jobApplication = JobApplication::where('is_archive',1)->get();
+        $jobApplication = JobApplication::with('jobs')->where('is_archive',1)->get();
 
         return response()->json([
             'success' => true,
