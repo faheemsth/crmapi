@@ -39,6 +39,7 @@ class JobApplicationController extends Controller
     {
         if (\Auth::user()->can('manage job application')) {
             $stages = JobStage::orderBy('order', 'asc')
+                ->with('application')
                 ->where('id', '<', 6)
                 ->get();
 
@@ -226,6 +227,84 @@ class JobApplicationController extends Controller
             return redirect()->route('job-application.index')->with('error', __('Permission denied.'));
         }
     }
+    public function archiveJobApplication(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:job_applications,id',
+            'is_archive' => 'required|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if (!\Auth::user()->can('show job application')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        $jobApplication = JobApplication::find($request->id);
+
+        $jobApplication->is_archive = !$jobApplication->is_archive;
+        $jobApplication->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $jobApplication->is_archive
+                ? __('Job application successfully added to archive.')
+                : __('Job application successfully removed from archive.'),
+            'data' => $jobApplication
+        ]);
+    }
+
+
+    public function jobBoardStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'application'      => 'required|exists:job_applications,id',
+            'joining_date'     => 'required|date',
+            'job_type'         => 'required|string',
+            'days_of_week'     => 'required|integer|gt:0',
+            'salary'           => 'required|numeric|gt:0',
+            'salary_type'      => 'required|string',
+            'salary_duration'  => 'required|string',
+            'status'           => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()
+            ], 400);
+        }
+
+        // Create a new job board entry
+        $jobBoard = JobOnBoard::create([
+            'application'     => $request->application,
+            'joining_date'    => date('Y-m-d',strtotime($request->joining_date)),
+            'job_type'        => $request->job_type,
+            'days_of_week'    => $request->days_of_week,
+            'salary'          => $request->salary,
+            'salary_type'     => $request->salary_type,
+            'salary_duration' => $request->salary_duration,
+            'status'          => $request->status,
+            'created_by'      => auth()->id(),
+        ]);
+
+        // Delete the interview schedule if it exists
+        InterviewSchedule::where('candidate', $request->application)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => __('Candidate successfully added to the job board.'),
+            'data'    => $jobBoard
+        ], 201);
+    }
 
     public function order(Request $request)
     {
@@ -252,21 +331,6 @@ class JobApplicationController extends Controller
         $jobApplication->save();
     }
 
-    public function archive($id)
-    {
-        $jobApplication = JobApplication::find($id);
-        if ($jobApplication->is_archive == 0) {
-            $jobApplication->is_archive = 1;
-            $jobApplication->save();
-
-            return redirect()->route('job.application.candidate')->with('success', __('Job application successfully added to archive.'));
-        } else {
-            $jobApplication->is_archive = 0;
-            $jobApplication->save();
-
-            return redirect()->route('job-application.index')->with('success', __('Job application successfully remove to archive.'));
-        }
-    }
 
     public function candidate()
     {
@@ -379,48 +443,7 @@ class JobApplicationController extends Controller
         return $filters;
     }
 
-    public function jobBoardStore(Request $request, $id)
-    {
-        $validator = \Validator::make(
-            $request->all(),
-            [
-                'joining_date' => 'required',
-                'job_type' => 'required',
-                'days_of_week' => 'required|gt:0',
-                'salary' => 'required|gt:0',
-                'salary_type' => 'required',
-                'salary_duration' => 'required',
-                'status' => 'required',
-            ]
-        );
 
-        if ($validator->fails()) {
-            $messages = $validator->getMessageBag();
-
-            return redirect()->back()->with('error', $messages->first());
-        }
-
-        $id = ($id == 0) ? $request->application : $id;
-
-        $jobBoard               = new JobOnBoard();
-        $jobBoard->application  = $id;
-        $jobBoard->joining_date         = $request->joining_date;
-        $jobBoard->job_type              = $request->job_type;
-        $jobBoard->days_of_week          = $request->days_of_week;
-        $jobBoard->salary                = $request->salary;
-        $jobBoard->salary_type           = $request->salary_type;
-        $jobBoard->salary_duration       = $request->salary_duration;
-        $jobBoard->status                = $request->status;
-        $jobBoard->created_by   = \Auth::id();
-        $jobBoard->save();
-
-        $interview = InterviewSchedule::where('candidate', $id)->first();
-        if (!empty($interview)) {
-            $interview->delete();
-        }
-
-        return redirect()->route('job.on.board')->with('success', __('Candidate succefully added in job board.'));
-    }
 
     public function jobBoardUpdate(Request $request, $id)
     {

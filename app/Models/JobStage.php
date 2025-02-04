@@ -24,10 +24,14 @@ class JobStage extends Model
                 $application->where('job', $filter['job']);
             }
         }
-       
+
 
         $application = $application->orderBy('order')->get();
 
         return $application;
+    }
+    public function application()
+    {
+        return $this->hasMany('App\Models\JobApplication', 'stage', 'id');
     }
 }

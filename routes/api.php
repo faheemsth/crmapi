@@ -10,8 +10,10 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
+use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\UserController;
+use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
 use App\Models\TaskFile;
 
@@ -83,9 +85,15 @@ Route::middleware('auth:sanctum')->group( function () {
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
 
+    // Branches
+    Route::post('/getInterviews', [InterviewScheduleController::class, 'getInterviews']);
+    Route::post('/addInterveiw', [InterviewScheduleController::class, 'addInterveiw']);
+
     //  Job Applications
     Route::post('/getJobApplications', [JobApplicationController::class, 'getJobApplications']);
     Route::post('/getJobApplicationDetails', [JobApplicationController::class, 'getJobApplicationDetails']);
+    Route::post('/archiveJobApplication', [JobApplicationController::class, 'archiveJobApplication']);
+    Route::post('/jobBoardStore', [JobApplicationController::class, 'jobBoardStore']);
 
     // Jobs
     Route::post('/getJobs', [JobController::class, 'getJobs']);
