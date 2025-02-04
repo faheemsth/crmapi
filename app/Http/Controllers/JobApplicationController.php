@@ -344,10 +344,10 @@ class JobApplicationController extends Controller
     }
 
 
-    public function jobOnBoard()
+    public function getjobBoardStore()
     {
         if (\Auth::user()->can('manage job onBoard')) {
-            $query = JobOnBoard::select(
+            $query = JobOnBoard::with('applications.jobs')->select(
                 'job_on_boards.*',
                 'regions.name as region',
                 'branches.name as branch',
@@ -361,10 +361,8 @@ class JobApplicationController extends Controller
                 ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
                 ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
                 ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
-
             $jobOnBoard_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
             $filters = $this->jobsFilters();
-
             foreach ($filters as $column => $value) {
                 if ($column == 'created_at') {
                     $jobOnBoard_query->whereDate('jobs.created_at', 'LIKE', '%' . substr($value, 0, 10) . '%');
@@ -379,9 +377,20 @@ class JobApplicationController extends Controller
             $jobOnBoards = $jobOnBoard_query->get();
             $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
             $filters = BrandsRegionsBranches();
-            return view('jobApplication.onboard', compact('filters', 'saved_filters', 'jobOnBoards'));
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'jobOnBoards' => $jobOnBoards,
+                    'saved_filters' => $saved_filters,
+                    'filters' => $filters
+                ]
+            ]);
         } else {
-            return redirect()->back()->with('error', __('Permission denied.'));
+            // Return JSON response for permission denied
+            return response()->json([
+                'success' => false,
+                'message' => 'Permission denied.'
+            ], 403);
         }
     }
 
