@@ -262,7 +262,25 @@ class JobApplicationController extends Controller
         ]);
     }
 
+    public function getarchiveJobApplication(Request $request)
+    {
+        if (!\Auth::user()->can('show job application')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.',
+            ], 403);
+        }
 
+        $jobApplication = JobApplication::where('is_archive',1)->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Job applications fetched successfully.',
+            'data' => $jobApplication,
+        ]);
+    }
+
+    
     public function jobBoardStore(Request $request)
     {
         $validator = Validator::make($request->all(), [
