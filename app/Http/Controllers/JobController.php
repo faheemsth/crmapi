@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Validator;
 
 class JobController extends Controller
 {
-
+// set pull
 
 
     public function getJobs(Request $request)
@@ -134,6 +134,7 @@ class JobController extends Controller
     /**
      * Filters for jobs.
      */
+
     private function jobsFilters(Request $request)
     {
         $filters = [];

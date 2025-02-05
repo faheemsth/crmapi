@@ -34,6 +34,7 @@ use Illuminate\Support\Facades\Validator;
 
 class JobApplicationController extends Controller
 {
+// set pull
 
     public function getJobApplications(Request $request)
     {
@@ -433,6 +434,7 @@ public function getjobBoardStore(Request $request)
         if (!empty($request->region_id)) {
             $jobOnBoard_query->where('jobs.region_id', $request->region_id);
         }
+
 
         if (!empty($request->branch_id)) {
             $jobOnBoard_query->where('jobs.branch', $request->branch_id);
