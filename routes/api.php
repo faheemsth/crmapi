@@ -88,6 +88,7 @@ Route::middleware('auth:sanctum')->group( function () {
 
     // Branches
     Route::post('/getInterviews', [InterviewScheduleController::class, 'getInterviews']);
+    Route::post('/showInterviews', [InterviewScheduleController::class, 'show']);
     Route::post('/addInterveiw', [InterviewScheduleController::class, 'addInterveiw']);
 
     //  Job Applications
