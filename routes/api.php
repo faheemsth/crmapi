@@ -92,6 +92,7 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::post('/updateInterviews', [InterviewScheduleController::class, 'update']);
     Route::post('/deleteInterviews', [InterviewScheduleController::class, 'destroy']);
     Route::post('/addInterveiw', [InterviewScheduleController::class, 'addInterveiw']);
+    Route::post('archiveApplication', [InterviewScheduleController::class, 'archiveApplication']);
 
     //  Job Applications
     Route::post('/getJobApplications', [JobApplicationController::class, 'getJobApplications']);

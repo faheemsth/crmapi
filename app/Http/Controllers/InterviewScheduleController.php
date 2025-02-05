@@ -179,4 +179,35 @@ class InterviewScheduleController extends Controller
             'user'    => $AuthUser
         ]);
     }
+    public function archiveApplication(Request $request)
+    {
+        try {
+            // Find the job application by ID
+            $jobApplication = JobApplication::findOrFail($request->id);
+    
+            // Toggle the archive status
+            $jobApplication->is_archive = !$jobApplication->is_archive;
+            $jobApplication->save();
+    
+            // Determine the message based on the new archive status
+            $message = $jobApplication->is_archive 
+                ? 'Job application successfully added to archive.' 
+                : 'Job application successfully removed from archive.';
+    
+            // Return a JSON response with the appropriate message
+            return response()->json([
+                'success' => true,
+                'message' => __($message),
+                'data' => $jobApplication
+            ], 200);
+    
+        } catch (\Exception $e) {
+            // Handle any exceptions (e.g., JobApplication not found)
+            return response()->json([
+                'success' => false,
+                'message' => __('Failed to update job application archive status.'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
