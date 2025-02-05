@@ -42,6 +42,54 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
 
+    public function employees(Request $request)
+    {
+        $user = \Auth::user();
+    
+        // Ensure the user has permission to manage employees
+        if (\Auth::user()->can('manage employee')) {
+            $excludedTypes = ['super admin', 'company', 'team', 'client'];
+            $usersQuery = User::select('users.*');
+    
+            // Get company filters
+            $companies = FiltersBrands();
+            $brand_ids = array_keys($companies);
+    
+            // Apply permissions based on user levels and attributes
+            if (\Auth::user()->can('level 1')) {
+                // Permissions for level 1
+            } elseif (\Auth::user()->type == 'company') {
+                $usersQuery->where('brand_id', \Auth::user()->id);
+            } elseif (\Auth::user()->can('level 2')) {
+                $usersQuery->whereIn('brand_id', $brand_ids);
+            } elseif (\Auth::user()->can('level 3') && !empty(\Auth::user()->region_id)) {
+                $usersQuery->where('region_id', \Auth::user()->region_id);
+            } elseif (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id)) {
+                $usersQuery->where('branch_id', \Auth::user()->branch_id);
+            } else {
+                $usersQuery->where('id', \Auth::user()->id);
+            }
+    
+            // Apply exclusion of user types
+            $usersQuery->whereNotIn('type', $excludedTypes);
+    
+            // Fetch user data (e.g., 'name' and 'id')
+            $users = $usersQuery->orderBy('users.name', 'ASC')->get(['name', 'id']);
+    
+            // Return response with status and data
+            return response()->json([
+                'status' => 'success',
+                'data' => $users
+            ]);
+        }
+    
+        // Return an error if the user doesn't have permission
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Unauthorized'
+        ], 403);
+    }
+        
     public function getEmployees(Request $request)
     {
         $validator = Validator::make($request->all(), [

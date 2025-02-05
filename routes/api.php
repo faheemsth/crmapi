@@ -80,6 +80,7 @@ Route::middleware('auth:sanctum')->group( function () {
 
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
+    Route::get('/employees', [UserController::class, 'employees']);
 
 
     // Branches
