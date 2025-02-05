@@ -25,4 +25,11 @@ class InterviewSchedule extends Model
     {
         return $this->hasOne('App\Models\User', 'id', 'employee');
     }
+
+    public function scheduled_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
+    }
+
+    
 }

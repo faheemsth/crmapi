@@ -15,7 +15,7 @@ class InterviewScheduleController extends Controller
 {
     public function getInterviews()
     {
-        $schedules = InterviewSchedule::with('applications.jobs','users')->where('created_by', Auth::id())->get();
+        $schedules = InterviewSchedule::with('applications.jobs','users','scheduled_by')->where('created_by', Auth::id())->get();
 
         return response()->json([
             'success' => true,
