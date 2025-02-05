@@ -15,31 +15,25 @@ class InterviewScheduleController extends Controller
 {
     public function getInterviews(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'startDate'      => 'required|date',
-            'startTime'      => 'required',
-        ]);
-        
-        // Check if validation fails
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        $query = InterviewSchedule::with('applications.jobs', 'users', 'scheduled_by')
+            ->where('created_by', Auth::id());
+    
+        if (!empty($request->startDate)) {
+            $query->whereDate('date', $request->startDate); // Filter by date
         }
-        
-        // Retrieve validated input
-        $validatedData = $validator->validated();
-        
-        // Apply filters to the query
-        $schedules = InterviewSchedule::with('applications.jobs', 'users', 'scheduled_by')
-            ->where('created_by', Auth::id())
-            ->whereDate('date', $validatedData['startDate']) // Filter by date
-            ->whereTime('time', $validatedData['startTime']) // Filter by time
-            ->get();
-
+    
+        if (!empty($request->startTime)) { // Corrected variable name and method
+            $query->whereTime('time', $request->startTime); // Filter by time
+        }
+    
+        $schedules = $query->get();
+    
         return response()->json([
             'success' => true,
-            'data' => $schedules
+            'data' => $schedules,
         ]);
     }
+    
 
     public function addInterveiw(Request $request)
     {
