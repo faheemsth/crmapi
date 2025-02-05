@@ -139,9 +139,9 @@ class InterviewScheduleController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request)
     {
-        $schedule = InterviewSchedule::find($id);
+        $schedule = InterviewSchedule::find($request->id);
 
         if (!$schedule) {
             return response()->json([
