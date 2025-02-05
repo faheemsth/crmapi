@@ -262,7 +262,7 @@ class JobApplicationController extends Controller
         ]);
     }
 
-    public function getarchiveJobApplication(Request $request)
+    public function getArchiveJobApplication(Request $request)
     {
         if (!\Auth::user()->can('show job application')) {
             return response()->json([
@@ -270,15 +270,57 @@ class JobApplicationController extends Controller
                 'message' => 'Permission denied.',
             ], 403);
         }
-
-        $jobApplication = JobApplication::with('jobs')->where('is_archive',1)->get();
-
+    
+        $query = JobApplication::where('job_applications.is_archive', 1)
+            ->with('jobs')
+            ->select(
+                'job_applications.*',
+                'regions.name as region',
+                'branches.name as branch',
+                'users.name as brand',
+                'assigned_to.name as created_user'
+            )
+            ->leftJoin('jobs', 'jobs.id', '=', 'job_applications.job')
+            ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+            ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
+    
+        // Apply role-based filtering
+        $query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
+    
+        // Apply request filters
+        $filters = [
+            'jobs.brand_id' => $request->brand,
+            'jobs.region_id' => $request->region_id,
+            'jobs.branch' => $request->branch_id,
+        ];
+    
+        foreach ($filters as $column => $value) {
+            if (!empty($value)) {
+                $query->where($column, $value);
+            }
+        }
+    
+        // Apply date range filter
+        if ($request->filled(['start_date', 'end_date'])) {
+            $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
+        } elseif ($request->filled('start_date')) {
+            $query->where('jobs.start_date', '>=', $request->start_date);
+        } elseif ($request->filled('end_date')) {
+            $query->where('jobs.start_date', '<=', $request->end_date);
+        }
+    
+        // Fetch archived job applications
+        $jobApplications = $query->get();
+    
         return response()->json([
             'success' => true,
             'message' => 'Job applications fetched successfully.',
-            'data' => $jobApplication,
+            'data' => $jobApplications,
         ]);
     }
+    
 
     
     public function jobBoardStore(Request $request)
@@ -395,7 +437,14 @@ public function getjobBoardStore(Request $request)
         if (!empty($request->branch_id)) {
             $jobOnBoard_query->where('jobs.branch', $request->branch_id);
         }
-
+        // Apply date range filter
+        if ($request->filled(['start_date', 'end_date'])) {
+            $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
+        } elseif ($request->filled('start_date')) {
+            $query->where('jobs.start_date', '>=', $request->start_date);
+        } elseif ($request->filled('end_date')) {
+            $query->where('jobs.start_date', '<=', $request->end_date);
+        }
         // Fetch filtered data
         $jobOnBoards = $jobOnBoard_query->get();
 
