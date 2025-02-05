@@ -48,7 +48,7 @@ class UserController extends Controller
     
         // Ensure the user has permission to manage employees
         if (\Auth::user()->can('manage employee')) {
-            $excludedTypes = ['super admin', 'company', 'team', 'client'];
+            $excludedTypes = ['company', 'team', 'client'];
             $usersQuery = User::select('users.*');
     
             // Get company filters
