@@ -92,7 +92,7 @@ class InterviewScheduleController extends Controller
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
         if (!Auth::user()->can('edit interview schedule')) {
             return response()->json([
@@ -101,7 +101,7 @@ class InterviewScheduleController extends Controller
             ], 403);
         }
 
-        $schedule = InterviewSchedule::find($id);
+        $schedule = InterviewSchedule::find($request->id);
         if (!$schedule) {
             return response()->json([
                 'success' => false,
