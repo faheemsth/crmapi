@@ -77,7 +77,7 @@ class InterviewScheduleController extends Controller
 
     public function show(Request $request)
     {
-        $schedule = InterviewSchedule::with('candidate', 'employee')->find($request->id);
+        $schedule = InterviewSchedule::with('applications.jobs', 'users', 'scheduled_by')->find($request->id);
 
         if (!$schedule) {
             return response()->json([
