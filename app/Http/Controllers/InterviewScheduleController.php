@@ -13,9 +13,27 @@ use Illuminate\Support\Facades\Auth;
 
 class InterviewScheduleController extends Controller
 {
-    public function getInterviews()
+    public function getInterviews(Request $request)
     {
-        $schedules = InterviewSchedule::with('applications.jobs','users','scheduled_by')->where('created_by', Auth::id())->get();
+        $validator = Validator::make($request->all(), [
+            'date'      => 'required|date',
+            'time'      => 'required',
+        ]);
+        
+        // Check if validation fails
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        
+        // Retrieve validated input
+        $validatedData = $validator->validated();
+        
+        // Apply filters to the query
+        $schedules = InterviewSchedule::with('applications.jobs', 'users', 'scheduled_by')
+            ->where('created_by', Auth::id())
+            ->whereDate('date', $validatedData['date']) // Filter by date
+            ->whereTime('time', $validatedData['time']) // Filter by time
+            ->get();
 
         return response()->json([
             'success' => true,
