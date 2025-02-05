@@ -92,7 +92,6 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::post('/updateInterviews', [InterviewScheduleController::class, 'update']);
     Route::post('/deleteInterviews', [InterviewScheduleController::class, 'destroy']);
     Route::post('/addInterveiw', [InterviewScheduleController::class, 'addInterveiw']);
-    Route::post('archiveApplication', [InterviewScheduleController::class, 'archiveApplication']);
 
     //  Job Applications
     Route::post('/getJobApplications', [JobApplicationController::class, 'getJobApplications']);
@@ -101,7 +100,7 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::post('/getarchiveJobApplication', [JobApplicationController::class, 'getarchiveJobApplication']);
     Route::post('/jobBoardStore', [JobApplicationController::class, 'jobBoardStore']);
     Route::post('/getjobBoardStore', [JobApplicationController::class, 'getjobBoardStore']);
-
+    Route::post('archiveApplication', [JobApplicationController::class, 'archiveApplication']);
     // Jobs
     Route::post('/getJobs', [JobController::class, 'getJobs']);
     Route::post('/createJob', [JobController::class, 'createJob']);
