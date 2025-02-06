@@ -678,6 +678,61 @@ class JobApplicationController extends Controller
     }
 }
 
+public function addJobApplicationNote(Request $request)
+{
+    // Validate the incoming request
+    $validator = \Validator::make(
+        $request->all(),
+        [
+            'id' => 'required|exists:job_applications,id',  // Ensure ID exists in the job_applications table
+            'note' => 'required|string',  // Adjust validation as per your standard
+        ]
+    );
+
+    if ($validator->fails()) {
+        // Return validation errors as a JSON response
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()->first(),
+        ], 422);
+    }
+
+    // Find the JobApplication by ID from the request
+    $job = JobApplication::find($request->id);
+
+    if (!$job) {
+        // Return error if JobApplication is not found
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Job application not found.'),
+        ], 404);
+    }
+
+    // Check if the user has permission
+    if (\Auth::user()->can('manage job application')) {
+        // Create a new note
+        $note = new JobApplicationNote();
+        $note->application_id = $request->id;
+        $note->note = $request->note;
+        $note->note_created = \Auth::user()->id;
+        $note->created_by = \Auth::id();
+        $note->save();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Job application notes successfully added.'),
+        ], 200);
+    } else {
+        // Return permission denied response
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission denied.'),
+        ], 403);
+    }
+}
+
+
     public function jobBoardDelete($id)
     {
 
