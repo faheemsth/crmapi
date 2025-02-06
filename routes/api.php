@@ -100,6 +100,7 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::post('/archiveJobApplication', [JobApplicationController::class, 'archiveJobApplication']);
     Route::post('/getarchiveJobApplication', [JobApplicationController::class, 'getarchiveJobApplication']);
     Route::post('/jobBoardStore', [JobApplicationController::class, 'jobBoardStore']);
+    Route::post('/getJobBoardDetail', [JobApplicationController::class, 'getJobBoardDetail']);
     Route::post('/getjobBoardStore', [JobApplicationController::class, 'getjobBoardStore']);
     Route::post('archiveApplication', [JobApplicationController::class, 'archiveApplication']);
     Route::post('/job-board/update', [JobApplicationController::class, 'jobBoardUpdate']);

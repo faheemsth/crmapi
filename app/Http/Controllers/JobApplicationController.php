@@ -589,19 +589,45 @@ class JobApplicationController extends Controller
     }
 
 
-
-
-    public function jobBoardEdit($id)
+    public function getJobBoardDetail(Request $request)
     {
-        $jobOnBoard = JobOnBoard::find($id);
-        $status     = JobOnBoard::$status;
-        $job_type       = JobOnBoard::$job_type;
+        if (!\Auth::user()->can('edit job')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.'),
+            ], 403);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'id' => 'required|integer|exists:job_on_boards,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $jobOnBoard = JobOnBoard::find($request->id);
+        $status = JobOnBoard::$status;
+        $job_type = JobOnBoard::$job_type;
         $salary_duration = JobOnBoard::$salary_duration;
-        $salary_type      = PayslipType::where('created_by', \Auth::id())->get()->pluck('name', 'id');
+        $salary_type = PayslipType::where('created_by', \Auth::id())->pluck('name', 'id');
 
-
-        return view('jobApplication.onboardEdit', compact('jobOnBoard', 'status', 'job_type', 'salary_type', 'salary_duration'));
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Job board data retrieved successfully.'),
+            'data' => [
+                'job_on_board' => $jobOnBoard,
+                'status' => $status,
+                'job_type' => $job_type,
+                'salary_type' => $salary_type,
+                'salary_duration' => $salary_duration,
+            ],
+        ], 200);
     }
+
 
     public function jobBoardDelete($id)
     {
