@@ -12,6 +12,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
 use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\JobApplicationController;
+use App\Http\Controllers\PayslipTypeController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
@@ -113,6 +114,14 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::post('/createQuestion', [CustomQuestionController::class, 'createQuestion']);
     Route::post('/updateQuestion', [CustomQuestionController::class, 'updateQuestion']);
     Route::post('/deleteQuestion', [CustomQuestionController::class, 'deleteQuestion']);
+
+    // paytype
+
+    Route::get('/payslip-types', [PayslipTypeController::class, 'index'])->middleware('can:manage payslip type');
+    Route::post('/payslip-store', [PayslipTypeController::class, 'store'])->middleware('can:create payslip type');
+    Route::get('/payslip-get/{id}', [PayslipTypeController::class, 'show'])->middleware('can:manage payslip type');
+    Route::put('/payslip-update/{id}', [PayslipTypeController::class, 'update'])->middleware('can:edit payslip type');
+    Route::post('/payslip-delete/{id}', [PayslipTypeController::class, 'destroy'])->middleware('can:delete payslip type');
 
 
 
