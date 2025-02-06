@@ -90,7 +90,21 @@ class JobApplicationController extends Controller
             ], 403);
         }
 
-        $jobApplication = JobApplication::find($request->id);
+        $jobApplication = JobApplication::with('jobs', 'JobStages')
+        ->select(
+            'job_applications.*',
+            'regions.name as region',
+            'branches.name as branch',
+            'users.name as brand',
+            'assigned_to.name as created_user'
+        )
+        ->leftJoin('jobs', 'jobs.id', '=', 'job_applications.job')
+        ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+        ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+        ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+        ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by')
+        ->where('job_applications.id', $request->id) // Filter by the given ID
+        ->first(); // Fetch the first matching record    
         $notes = JobApplicationNote::where('application_id', $request->id)->get();
 
         $stages = JobStage::orderBy('order', 'asc')
