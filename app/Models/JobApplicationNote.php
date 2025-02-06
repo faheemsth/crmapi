@@ -13,7 +13,7 @@ class JobApplicationNote extends Model
         'created_by',
     ];
 
-    public function noteCreated()
+    public function Creater()
     {
         return $this->hasOne('App\Models\User', 'id', 'note_created');
     }

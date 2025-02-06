@@ -105,7 +105,7 @@ class JobApplicationController extends Controller
             ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by')
             ->where('job_applications.id', $request->id) // Filter by the given ID
             ->first(); // Fetch the first matching
-        $notes = JobApplicationNote::where('application_id', $request->id)->get();
+        $notes = JobApplicationNote::with('Creater')->where('application_id', $request->id)->get();
 
         $stages = JobStage::orderBy('order', 'asc')
             ->where('id', '<', 6) // Applying your filter condition
