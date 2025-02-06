@@ -277,6 +277,55 @@ class JobApplicationController extends Controller
         }
     }
 
+    public function deleteJobApplicationNote(Request $request)
+{
+    // Validate the incoming request
+    $validator = \Validator::make(
+        $request->all(),
+        [
+            'id' => 'required|exists:job_application_notes,id',  // Ensure ID exists in the job_application_notes table
+        ]
+    );
+
+    if ($validator->fails()) {
+        // Return validation errors as a JSON response
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()->first(),
+        ], 422);
+    }
+
+    // Check if the user has permission to delete the note
+    if (\Auth::user()->can('manage job application')) {
+        // Find the note by ID from the request
+        $note = JobApplicationNote::find($request->id);
+
+        if (!$note) {
+            // Return error if the note is not found
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Job application note not found.'),
+            ], 404);
+        }
+
+        // Delete the note
+        $note->delete();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Job application notes successfully deleted.'),
+        ], 200);
+    } else {
+        // Return permission denied response
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission denied.'),
+        ], 403);
+    }
+}
+
+
     public function destroy(JobApplication $jobApplication)
     {
         if (\Auth::user()->can('delete job application')) {
