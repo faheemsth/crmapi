@@ -102,6 +102,7 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::post('/jobBoardStore', [JobApplicationController::class, 'jobBoardStore']);
     Route::post('/getjobBoardStore', [JobApplicationController::class, 'getjobBoardStore']);
     Route::post('archiveApplication', [JobApplicationController::class, 'archiveApplication']);
+    Route::post('/job-board/update', [JobApplicationController::class, 'jobBoardUpdate']);
     // Jobs
     Route::post('/getJobs', [JobController::class, 'getJobs']);
     Route::post('/createJob', [JobController::class, 'createJob']);
@@ -118,6 +119,7 @@ Route::middleware('auth:sanctum')->group( function () {
     // paytype
 
     Route::get('/payslip-types', [PayslipTypeController::class, 'index'])->middleware('can:manage payslip type');
+    Route::get('/pluckPayslip', [PayslipTypeController::class, 'pluckPayslip'])->middleware('can:manage payslip type');
     Route::post('/payslip-store', [PayslipTypeController::class, 'store'])->middleware('can:create payslip type');
     Route::get('/payslip-get/{id}', [PayslipTypeController::class, 'show'])->middleware('can:manage payslip type');
     Route::put('/payslip-update/{id}', [PayslipTypeController::class, 'update'])->middleware('can:edit payslip type');

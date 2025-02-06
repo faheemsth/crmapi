@@ -18,6 +18,15 @@ class PayslipTypeController extends Controller
         $paysliptypes = PayslipType::get();
         return response()->json(['status' => 'success', 'data' => $paysliptypes], 200);
     }
+    public function pluckPayslip()
+    {
+        if (!\Auth::user()->can('manage payslip type')) {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+
+        $paysliptypes =    PayslipType::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+        return response()->json(['status' => 'success', 'data' => $paysliptypes], 200);
+    }
 
     public function store(Request $request)
     {

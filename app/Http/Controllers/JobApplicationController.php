@@ -34,7 +34,7 @@ use Illuminate\Support\Facades\Validator;
 
 class JobApplicationController extends Controller
 {
-// set pull
+    // set pull
 
     public function getJobApplications(Request $request)
     {
@@ -91,20 +91,20 @@ class JobApplicationController extends Controller
         }
 
         $jobApplication = JobApplication::with('jobs', 'JobStages')
-        ->select(
-            'job_applications.*',
-            'regions.name as region',
-            'branches.name as branch',
-            'users.name as brand',
-            'assigned_to.name as created_user'
-        )
-        ->leftJoin('jobs', 'jobs.id', '=', 'job_applications.job')
-        ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
-        ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
-        ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
-        ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by')
-        ->where('job_applications.id', $request->id) // Filter by the given ID
-        ->first(); // Fetch the first matching    
+            ->select(
+                'job_applications.*',
+                'regions.name as region',
+                'branches.name as branch',
+                'users.name as brand',
+                'assigned_to.name as created_user'
+            )
+            ->leftJoin('jobs', 'jobs.id', '=', 'job_applications.job')
+            ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+            ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by')
+            ->where('job_applications.id', $request->id) // Filter by the given ID
+            ->first(); // Fetch the first matching
         $notes = JobApplicationNote::where('application_id', $request->id)->get();
 
         $stages = JobStage::orderBy('order', 'asc')
@@ -216,6 +216,50 @@ class JobApplicationController extends Controller
         }
     }
 
+    public function jobBoardUpdate(Request $request)
+    {
+        // if (!\Auth::user()->can('edit job board')) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => __('Permission denied.'),
+        //     ], 403);
+        // }
+
+        $validator = \Validator::make($request->all(), [
+            'id' => 'required|integer|exists:job_on_boards,id',
+            'joining_date' => 'required|date',
+            'job_type' => 'required|string',
+            'days_of_week' => 'required|string',
+            'salary' => 'required|numeric',
+            'salary_type' => 'required|string',
+            'salary_duration' => 'required|string',
+            'status' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $jobBoard = JobOnBoard::find($request->id);
+        $jobBoard->joining_date = $request->joining_date;
+        $jobBoard->job_type = $request->job_type;
+        $jobBoard->days_of_week = $request->days_of_week;
+        $jobBoard->salary = $request->salary;
+        $jobBoard->salary_type = $request->salary_type;
+        $jobBoard->salary_duration = $request->salary_duration;
+        $jobBoard->status = $request->status;
+        $jobBoard->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Job board candidate successfully updated.'),
+            'data' => $jobBoard,
+        ], 200);
+    }
+
     public function show($ids)
     {
 
@@ -285,7 +329,7 @@ class JobApplicationController extends Controller
                 'message' => 'Permission denied.',
             ], 403);
         }
-    
+
         $query = JobApplication::where('job_applications.is_archive', 1)
             ->with('jobs')
             ->select(
@@ -300,23 +344,23 @@ class JobApplicationController extends Controller
             ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
             ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
             ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
-    
+
         // Apply role-based filtering
         $query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
-    
+
         // Apply request filters
         $filters = [
             'jobs.brand_id' => $request->brand,
             'jobs.region_id' => $request->region_id,
             'jobs.branch' => $request->branch_id,
         ];
-    
+
         foreach ($filters as $column => $value) {
             if (!empty($value)) {
                 $query->where($column, $value);
             }
         }
-    
+
         // Apply date range filter
         if ($request->filled(['start_date', 'end_date'])) {
             $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
@@ -325,19 +369,19 @@ class JobApplicationController extends Controller
         } elseif ($request->filled('end_date')) {
             $query->where('jobs.start_date', '<=', $request->end_date);
         }
-    
+
         // Fetch archived job applications
         $jobApplications = $query->get();
-    
+
         return response()->json([
             'success' => true,
             'message' => 'Job applications fetched successfully.',
             'data' => $jobApplications,
         ]);
     }
-    
 
-    
+
+
     public function jobBoardStore(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -361,7 +405,7 @@ class JobApplicationController extends Controller
         // Create a new job board entry
         $jobBoard = JobOnBoard::create([
             'application'     => $request->application,
-            'joining_date'    => date('Y-m-d',strtotime($request->joining_date)),
+            'joining_date'    => date('Y-m-d', strtotime($request->joining_date)),
             'job_type'        => $request->job_type,
             'days_of_week'    => $request->days_of_week,
             'salary'          => $request->salary,
@@ -419,72 +463,72 @@ class JobApplicationController extends Controller
     }
 
 
-public function getjobBoardStore(Request $request)
-{
-    if (\Auth::user()->can('manage job onBoard')) {
-        $query = JobOnBoard::with('applications.jobs')->select(
-            'job_on_boards.*',
-            'regions.name as region',
-            'branches.name as branch',
-            'users.name as brand',
-            'assigned_to.name as created_user'
-        )
-            ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
-            ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
-            ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
-            ->leftJoin('job_applications as ja2', 'ja2.id', '=', 'jobs.brand_id')
-            ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
-            ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
-            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
+    public function getjobBoardStore(Request $request)
+    {
+        if (\Auth::user()->can('manage job onBoard')) {
+            $query = JobOnBoard::with('applications.jobs')->select(
+                'job_on_boards.*',
+                'regions.name as region',
+                'branches.name as branch',
+                'users.name as brand',
+                'assigned_to.name as created_user'
+            )
+                ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
+                ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
+                ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+                ->leftJoin('job_applications as ja2', 'ja2.id', '=', 'jobs.brand_id')
+                ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+                ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+                ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
 
-        // Apply role-based filtering
-        $jobOnBoard_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
+            // Apply role-based filtering
+            $jobOnBoard_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
 
-        // Apply filters from the request
-        if (!empty($request->brand)) {
-            $jobOnBoard_query->where('jobs.brand_id', $request->brand);
+            // Apply filters from the request
+            if (!empty($request->brand)) {
+                $jobOnBoard_query->where('jobs.brand_id', $request->brand);
+            }
+
+            if (!empty($request->region_id)) {
+                $jobOnBoard_query->where('jobs.region_id', $request->region_id);
+            }
+
+
+            if (!empty($request->branch_id)) {
+                $jobOnBoard_query->where('jobs.branch', $request->branch_id);
+            }
+            // Apply date range filter
+            if ($request->filled(['start_date', 'end_date'])) {
+                $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
+            } elseif ($request->filled('start_date')) {
+                $query->where('jobs.start_date', '>=', $request->start_date);
+            } elseif ($request->filled('end_date')) {
+                $query->where('jobs.start_date', '<=', $request->end_date);
+            }
+            // Fetch filtered data
+            $jobOnBoards = $jobOnBoard_query->get();
+
+            // Fetch saved filters and other data
+            $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
+            $filters = BrandsRegionsBranches();
+
+            // Return JSON response
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'jobOnBoards' => $jobOnBoards,
+                    'saved_filters' => $saved_filters,
+                    'filters' => $filters
+                ]
+            ]);
+        } else {
+            // Return JSON response for permission denied
+            return response()->json([
+                'success' => false,
+                'message' => 'Permission denied.'
+            ], 403);
         }
-
-        if (!empty($request->region_id)) {
-            $jobOnBoard_query->where('jobs.region_id', $request->region_id);
-        }
-
-
-        if (!empty($request->branch_id)) {
-            $jobOnBoard_query->where('jobs.branch', $request->branch_id);
-        }
-        // Apply date range filter
-        if ($request->filled(['start_date', 'end_date'])) {
-            $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
-        } elseif ($request->filled('start_date')) {
-            $query->where('jobs.start_date', '>=', $request->start_date);
-        } elseif ($request->filled('end_date')) {
-            $query->where('jobs.start_date', '<=', $request->end_date);
-        }
-        // Fetch filtered data
-        $jobOnBoards = $jobOnBoard_query->get();
-
-        // Fetch saved filters and other data
-        $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
-        $filters = BrandsRegionsBranches();
-
-        // Return JSON response
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'jobOnBoards' => $jobOnBoards,
-                'saved_filters' => $saved_filters,
-                'filters' => $filters
-            ]
-        ]);
-    } else {
-        // Return JSON response for permission denied
-        return response()->json([
-            'success' => false,
-            'message' => 'Permission denied.'
-        ], 403);
     }
-}
 
     private function jobsFilters()
     {
@@ -546,40 +590,6 @@ public function getjobBoardStore(Request $request)
 
 
 
-    public function jobBoardUpdate(Request $request, $id)
-    {
-        $validator = \Validator::make(
-            $request->all(),
-            [
-                'joining_date' => 'required',
-                'job_type' => 'required',
-                'days_of_week' => 'required',
-                'salary' => 'required',
-                'salary_type' => 'required',
-                'salary_duration' => 'required',
-                'status' => 'required',
-            ]
-        );
-
-        if ($validator->fails()) {
-            $messages = $validator->getMessageBag();
-
-            return redirect()->back()->with('error', $messages->first());
-        }
-
-        $jobBoard                        = JobOnBoard::find($id);
-        $jobBoard->joining_date          = $request->joining_date;
-        $jobBoard->job_type              = $request->job_type;
-        $jobBoard->days_of_week          = $request->days_of_week;
-        $jobBoard->salary                = $request->salary;
-        $jobBoard->salary_type           = $request->salary_type;
-        $jobBoard->salary_duration     = $request->salary_duration;
-        $jobBoard->status                = $request->status;
-        $jobBoard->save();
-
-
-        return redirect()->route('job.on.board')->with('success', __('Job board Candidate succefully updated.'));
-    }
 
     public function jobBoardEdit($id)
     {
@@ -846,23 +856,22 @@ public function getjobBoardStore(Request $request)
         try {
             // Find the job application by ID
             $jobApplication = JobApplication::findOrFail($request->id);
-    
+
             // Toggle the archive status
             $jobApplication->is_archive = !$jobApplication->is_archive;
             $jobApplication->save();
-    
+
             // Determine the message based on the new archive status
-            $message = $jobApplication->is_archive 
-                ? 'Job application successfully added to archive.' 
+            $message = $jobApplication->is_archive
+                ? 'Job application successfully added to archive.'
                 : 'Job application successfully removed from archive.';
-    
+
             // Return a JSON response with the appropriate message
             return response()->json([
                 'success' => true,
                 'message' => __($message),
                 'data' => $jobApplication
             ], 200);
-    
         } catch (\Exception $e) {
             // Handle any exceptions (e.g., JobApplication not found)
             return response()->json([
