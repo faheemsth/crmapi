@@ -628,6 +628,55 @@ class JobApplicationController extends Controller
         ], 200);
     }
 
+    public function addJobApplicationSkill(Request $request)
+{
+    // Validate the incoming request
+    $validator = \Validator::make(
+        $request->all(),
+        [
+            'id' => 'required|exists:job_applications,id',  // Ensure ID is provided and exists in the job_applications table
+            'skill' => 'required|string',  // Adjust validation as per your standard
+        ]
+    );
+
+    if ($validator->fails()) {
+        // Return validation errors as a JSON response
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()->first(),
+        ], 422);
+    }
+
+    // Find the JobApplication by ID from the request
+    $job = JobApplication::find($request->id);
+
+    if (!$job) {
+        // Return error if JobApplication is not found
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Job application not found.'),
+        ], 404);
+    }
+
+    // Check if the user has permission
+    if (\Auth::user()->can('manage job application')) {
+        // Update the skill
+        $job->skill = $request->skill;
+        $job->save();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Job application skill successfully added.'),
+        ], 200);
+    } else {
+        // Return permission denied response
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission denied.'),
+        ], 403);
+    }
+}
 
     public function jobBoardDelete($id)
     {
