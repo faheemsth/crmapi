@@ -372,6 +372,25 @@ class JobApplicationController extends Controller
 
     public function getArchiveJobApplication(Request $request)
     {
+        // Validate request parameters
+        $validator = Validator::make($request->all(), [
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'brand' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'search' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         if (!\Auth::user()->can('show job application')) {
             return response()->json([
                 'status' => 'error',
@@ -379,6 +398,11 @@ class JobApplicationController extends Controller
             ], 403);
         }
 
+        // Default pagination settings
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
+
+        // Build the query
         $query = JobApplication::where('job_applications.is_archive', 1)
             ->with('jobs')
             ->select(
@@ -398,20 +422,20 @@ class JobApplicationController extends Controller
         $query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
 
         // Apply request filters
-        $filters = [
-            'jobs.brand_id' => $request->brand,
-            'jobs.region_id' => $request->region_id,
-            'jobs.branch' => $request->branch_id,
-        ];
+        if ($request->filled('brand')) {
+            $query->where('jobs.brand_id', $request->brand);
+        }
 
-        foreach ($filters as $column => $value) {
-            if (!empty($value)) {
-                $query->where($column, $value);
-            }
+        if ($request->filled('region_id')) {
+            $query->where('jobs.region_id', $request->region_id);
+        }
+
+        if ($request->filled('branch_id')) {
+            $query->where('jobs.branch', $request->branch_id);
         }
 
         // Apply date range filter
-        if ($request->filled(['start_date', 'end_date'])) {
+        if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
         } elseif ($request->filled('start_date')) {
             $query->where('jobs.start_date', '>=', $request->start_date);
@@ -419,15 +443,35 @@ class JobApplicationController extends Controller
             $query->where('jobs.start_date', '<=', $request->end_date);
         }
 
-        // Fetch archived job applications
-        $jobApplications = $query->get();
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('jobs.title', 'like', "%$search%")
+                    ->orWhere('users.name', 'like', "%$search%")
+                    ->orWhere('branches.name', 'like', "%$search%")
+                    ->orWhere('regions.name', 'like', "%$search%");
+            });
+        }
 
+        // Fetch paginated archived job applications
+        $jobApplications = $query->orderBy('jobs.created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        // Return JSON response
         return response()->json([
             'success' => true,
             'message' => 'Job applications fetched successfully.',
-            'data' => $jobApplications,
+            'data' => [
+                'jobApplications' => $jobApplications->items(),
+                'current_page' => $jobApplications->currentPage(),
+                'last_page' => $jobApplications->lastPage(),
+                'total_records' => $jobApplications->total(),
+                'per_page' => $jobApplications->perPage(),
+            ],
         ]);
     }
+
 
 
 
@@ -513,71 +557,112 @@ class JobApplicationController extends Controller
 
 
     public function getjobBoardStore(Request $request)
-    {
-        if (\Auth::user()->can('manage job onBoard')) {
-            $query = JobOnBoard::with('applications.jobs')->select(
-                'job_on_boards.*',
-                'regions.name as region',
-                'branches.name as branch',
-                'users.name as brand',
-                'assigned_to.name as created_user'
-            )
-                ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
-                ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
-                ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
-                ->leftJoin('job_applications as ja2', 'ja2.id', '=', 'jobs.brand_id')
-                ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
-                ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
-                ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
+{
+    // Validate request parameters
+    $validator = Validator::make($request->all(), [
+        'perPage' => 'nullable|integer|min:1',
+        'page' => 'nullable|integer|min:1',
+        'brand' => 'nullable|integer|exists:users,id',
+        'region_id' => 'nullable|integer|exists:regions,id',
+        'branch_id' => 'nullable|integer|exists:branches,id',
+        'start_date' => 'nullable|date',
+        'end_date' => 'nullable|date|after_or_equal:start_date',
+        'search' => 'nullable|string',
+    ]);
 
-            // Apply role-based filtering
-            $jobOnBoard_query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
-
-            // Apply filters from the request
-            if (!empty($request->brand)) {
-                $jobOnBoard_query->where('jobs.brand_id', $request->brand);
-            }
-
-            if (!empty($request->region_id)) {
-                $jobOnBoard_query->where('jobs.region_id', $request->region_id);
-            }
-
-
-            if (!empty($request->branch_id)) {
-                $jobOnBoard_query->where('jobs.branch', $request->branch_id);
-            }
-            // Apply date range filter
-            if ($request->filled(['start_date', 'end_date'])) {
-                $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
-            } elseif ($request->filled('start_date')) {
-                $query->where('jobs.start_date', '>=', $request->start_date);
-            } elseif ($request->filled('end_date')) {
-                $query->where('jobs.start_date', '<=', $request->end_date);
-            }
-            // Fetch filtered data
-            $jobOnBoards = $jobOnBoard_query->get();
-
-            // Fetch saved filters and other data
-            $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
-            $filters = BrandsRegionsBranches();
-
-            // Return JSON response
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'jobOnBoards' => $jobOnBoards,
-                    'saved_filters' => $saved_filters,
-                    'filters' => $filters
-                ]
-            ]);
-        } else {
-            // Return JSON response for permission denied
-            return response()->json([
-                'success' => false,
-                'message' => 'Permission denied.'
-            ], 403);
-        }
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
     }
+
+    if (!\Auth::user()->can('manage job onBoard')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Permission denied.'
+        ], 403);
+    }
+
+    // Default pagination settings
+    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+    $page = $request->input('page', 1);
+
+    // Build the query
+    $query = JobOnBoard::with('applications.jobs')->select(
+        'job_on_boards.*',
+        'regions.name as region',
+        'branches.name as branch',
+        'users.name as brand',
+        'assigned_to.name as created_user'
+    )
+        ->leftJoin('job_applications as ja1', 'ja1.id', '=', 'job_on_boards.application')
+        ->leftJoin('jobs', 'jobs.id', '=', 'ja1.job')
+        ->leftJoin('users', 'users.id', '=', 'jobs.brand_id')
+        ->leftJoin('branches', 'branches.id', '=', 'jobs.branch')
+        ->leftJoin('regions', 'regions.id', '=', 'jobs.region_id')
+        ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'jobs.created_by');
+
+    // Apply role-based filtering
+    $query = RoleBaseTableGet($query, 'jobs.brand_id', 'jobs.region_id', 'jobs.branch', 'jobs.created_by');
+
+    // Apply filters
+    if ($request->filled('brand')) {
+        $query->where('jobs.brand_id', $request->brand);
+    }
+
+    if ($request->filled('region_id')) {
+        $query->where('jobs.region_id', $request->region_id);
+    }
+
+    if ($request->filled('branch_id')) {
+        $query->where('jobs.branch', $request->branch_id);
+    }
+
+    // Apply date range filter
+    if ($request->filled('start_date') && $request->filled('end_date')) {
+        $query->whereBetween('jobs.start_date', [$request->start_date, $request->end_date]);
+    } elseif ($request->filled('start_date')) {
+        $query->where('jobs.start_date', '>=', $request->start_date);
+    } elseif ($request->filled('end_date')) {
+        $query->where('jobs.start_date', '<=', $request->end_date);
+    }
+
+    // Apply search filter
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where(function ($q) use ($search) {
+            $q->where('jobs.title', 'like', "%$search%")
+                ->orWhere('users.name', 'like', "%$search%")
+                ->orWhere('branches.name', 'like', "%$search%")
+                ->orWhere('regions.name', 'like', "%$search%");
+        });
+    }
+
+    // Fetch paginated data
+    $jobOnBoards = $query->orderBy('jobs.created_at', 'desc')
+        ->paginate($perPage, ['*'], 'page', $page);
+
+    // Fetch saved filters and other data
+    $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'jobOnBoards')->get();
+    $filters = BrandsRegionsBranches();
+
+    // Return JSON response
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'jobOnBoards' => $jobOnBoards->items(),
+            'current_page' => $jobOnBoards->currentPage(),
+            'last_page' => $jobOnBoards->lastPage(),
+            'total_records' => $jobOnBoards->total(),
+            'per_page' => $jobOnBoards->perPage(),
+            'saved_filters' => $saved_filters,
+            'filters' => $filters
+        ],
+        'message' => __('Job board data retrieved successfully'),
+    ]);
+}
+
 
     private function jobsFilters()
     {

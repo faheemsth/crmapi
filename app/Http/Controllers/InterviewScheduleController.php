@@ -15,25 +15,73 @@ class InterviewScheduleController extends Controller
 {
     public function getInterviews(Request $request)
     {
+        // Validate request parameters
+        $validator = Validator::make($request->all(), [
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'startDate' => 'nullable|date',
+            'startTime' => 'nullable|date_format:H:i:s',
+            'search' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Default pagination settings
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
+
+        // Build the query
         $query = InterviewSchedule::with('applications.jobs', 'users', 'scheduled_by')
             ->where('created_by', Auth::id());
-    
-        if (!empty($request->startDate)) {
-            $query->whereDate('date', $request->startDate); // Filter by date
+
+        // Apply date filter
+        if ($request->filled('startDate')) {
+            $query->whereDate('date', $request->startDate);
         }
-    
-        if (!empty($request->startTime)) { // Corrected variable name and method
-            $query->whereTime('time', $request->startTime); // Filter by time
+
+        // Apply time filter
+        if ($request->filled('startTime')) {
+            $query->whereTime('time', $request->startTime);
         }
-    
-        $schedules = $query->get();
-    
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('users', function ($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%$search%");
+                })->orWhereHas('applications.jobs', function ($subQuery) use ($search) {
+                    $subQuery->where('title', 'like', "%$search%");
+                })->orWhereHas('scheduled_by', function ($subQuery) use ($search) {
+                    $subQuery->where('name', 'like', "%$search%");
+                });
+            });
+        }
+
+        // Fetch paginated interview schedules
+        $schedules = $query->orderBy('date', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        // Return JSON response
         return response()->json([
             'success' => true,
-            'data' => $schedules,
+            'message' => 'Interviews fetched successfully.',
+            'data' => [
+                'interviews' => $schedules->items(),
+                'current_page' => $schedules->currentPage(),
+                'last_page' => $schedules->lastPage(),
+                'total_records' => $schedules->total(),
+                'per_page' => $schedules->perPage(),
+            ],
         ]);
     }
-    
+
+
 
     public function addInterveiw(Request $request)
     {
