@@ -231,7 +231,7 @@ class JobApplicationController extends Controller
             'job_type' => 'required|string',
             'days_of_week' => 'required|string',
             'salary' => 'required|numeric',
-            'salary_type' => 'required|string',
+            'salary_type' => 'required',
             'salary_duration' => 'required|string',
             'status' => 'required|string',
         ]);
@@ -390,7 +390,7 @@ class JobApplicationController extends Controller
             'job_type'         => 'required|string',
             'days_of_week'     => 'required|integer|gt:0',
             'salary'           => 'required|numeric|gt:0',
-            'salary_type'      => 'required|string',
+            'salary_type'      => 'required',
             'salary_duration'  => 'required|string',
             'status'           => 'required|string',
         ]);
