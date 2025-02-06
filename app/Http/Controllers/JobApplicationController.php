@@ -229,7 +229,7 @@ class JobApplicationController extends Controller
             'id' => 'required|integer|exists:job_on_boards,id',
             'joining_date' => 'required|date',
             'job_type' => 'required|string',
-            'days_of_week' => 'required|string',
+            'days_of_week' => 'required',
             'salary' => 'required|numeric',
             'salary_type' => 'required',
             'salary_duration' => 'required|string',
@@ -636,6 +636,49 @@ class JobApplicationController extends Controller
         $jobBoard->delete();
 
         return redirect()->route('job.on.board')->with('success', __('Job onBoard successfully deleted.'));
+    }
+
+
+    public function deleteJobOnBoard(Request $request)
+    {
+        if (\Auth::user()->can('delete job')) {
+            $validator = \Validator::make(
+                $request->all(),
+                [ 'id' => 'required|integer|exists:job_on_boards,id']
+            );
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $customQuestion = JobOnBoard::find($request->id);
+            $customQuestion->delete();
+
+            // Log activity
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'JobOnBoard Deleted',
+                    'message' => __('JobOnBoard successfully deleted.')
+                ]),
+                'module_id' => $request->id,
+                'module_type' => 'custom_question',
+                'notification_type' => 'Custom Question Deleted',
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => __('JobOnBoard deleted.'),
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.'),
+            ], 403);
+        }
     }
 
     public function jobBoardConvert($id)
