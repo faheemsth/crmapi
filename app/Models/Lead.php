@@ -131,9 +131,8 @@ class Lead extends Model
         return $this->hasMany('App\Models\LeadEmail', 'lead_id', 'id')->orderByDesc('id');
     }
 
-    public function tags()
+    public function getTagsAttribute()
     {
-        return $this->hasMany(LeadTag::class, 'id', 'id')
-            ->whereRaw("FIND_IN_SET(lead_tags.id, leads.tag_ids)");
+        return LeadTag::whereRaw("FIND_IN_SET(id, ?)", [$this->tag_ids])->get();
     }
 }
