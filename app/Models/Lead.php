@@ -130,4 +130,9 @@ class Lead extends Model
     {
         return $this->hasMany('App\Models\LeadEmail', 'lead_id', 'id')->orderByDesc('id');
     }
+
+    public function tags()
+    {
+        return $this->hasMany(LeadTag::class, 'lead_id', 'id');
+    }
 }
