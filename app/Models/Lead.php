@@ -133,6 +133,8 @@ class Lead extends Model
 
     public function tags()
     {
-        return $this->hasMany(LeadTag::class, 'lead_id', 'id');
+        return $this->hasMany(LeadTag::class, 'id', 'id')->whereRaw(\DB::raw("
+            FIND_IN_SET(id, tag_ids)
+        "));
     }
 }

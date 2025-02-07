@@ -8,9 +8,4 @@ use Illuminate\Database\Eloquent\Model;
 class LeadTag extends Model
 {
     use HasFactory;
-
-    public function lead()
-    {
-        return $this->belongsTo(Lead::class, 'lead_id', 'id');
-    }
 }
