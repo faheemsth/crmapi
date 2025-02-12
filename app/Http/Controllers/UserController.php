@@ -208,10 +208,13 @@ class UserController extends Controller
             ->where('employees.user_id', $request->id)
             ->get();
 
-
+ $data=[
+    'EmployeeDetails' => $EmployeeDetails,
+    'pay_slips' => $Employee,
+ ];
         return response()->json([
             'status' => 'success',
-            'data' => $EmployeeDetails,
+            'data' => $data,
         ], 200);
     }
     
