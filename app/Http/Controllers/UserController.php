@@ -191,7 +191,7 @@ class UserController extends Controller
     }
     public function EmployeeDetails(Request $request)
     {
-        $EmployeeDetails = User::with('employee.paySlips')->select(
+        $EmployeeDetails = User::with('employee')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',
@@ -202,6 +202,12 @@ class UserController extends Controller
         ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
         ->where('users.id', $request->id)
         ->first();
+
+        $Employee = Employee::select('pay_slips.*')
+            ->leftJoin('pay_slips', 'pay_slips.employee_id', '=', 'employees.id')
+            ->where('employees.user_id', $request->id)
+            ->get();
+
 
         return response()->json([
             'status' => 'success',
