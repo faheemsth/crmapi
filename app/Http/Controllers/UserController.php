@@ -189,6 +189,15 @@ class UserController extends Controller
             'perPage' => $employees->perPage()
         ], 200);
     }
+    public function EmployeeDetails(Request $request)
+    {
+        $EmployeeDetails = User::where('id',$request->id);
 
+        return response()->json([
+            'status' => 'success',
+            'data' => $EmployeeDetails,
+        ], 200);
+    }
+    
 
 }
