@@ -191,7 +191,7 @@ class UserController extends Controller
     }
     public function EmployeeDetails(Request $request)
     {
-        $EmployeeDetails = User::with('employee.paySlip')->select(
+        $EmployeeDetails = User::with('employee.paySlips')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',

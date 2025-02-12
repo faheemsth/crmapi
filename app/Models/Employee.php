@@ -276,7 +276,12 @@ class Employee extends Model
     {
         return $this->hasOne('App\Models\PaySlip', 'id', 'employee_id');
     }
-
+    
+    public function paySlips()
+    {
+        return $this->hasMany(PaySlip::class, 'employee_id');
+    }
+    
 
     public function present_status($employee_id, $data)
     {
