@@ -209,4 +209,9 @@ class User extends Authenticatable
     {
         return $this->belongsToMany('App\Models\Deal', 'client_deals', 'client_id', 'deal_id');
     }
+
+    public function employee()
+    {
+        return $this->hasOne('App\Models\Employee', 'user_id', 'id');
+    }
 }
