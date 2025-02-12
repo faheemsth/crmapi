@@ -203,15 +203,16 @@ class UserController extends Controller
         ->where('users.id', $request->id)
         ->first();
 
-        $Employee = Employee::select('pay_slips.*')
-            ->leftJoin('pay_slips', 'pay_slips.employee_id', '=', 'employees.id')
-            ->where('employees.user_id', $request->id)
-            ->get();
-
- $data=[
-    'EmployeeDetails' => $EmployeeDetails,
-    'pay_slips' => $Employee,
- ];
+        $Employee = Employee::select('pay_slips.*', 'creater.name as created_by')
+        ->leftJoin('pay_slips', 'pay_slips.employee_id', '=', 'employees.id')
+        ->leftJoin('users as creater', 'creater.id', '=', 'employees.user_id') // Fixed alias reference
+        ->where('employees.user_id', $request->id)
+        ->get();
+    
+        $data=[
+            'EmployeeDetails' => $EmployeeDetails,
+            'pay_slips' => $Employee,
+        ];
         return response()->json([
             'status' => 'success',
             'data' => $data,
