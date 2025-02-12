@@ -191,7 +191,7 @@ class UserController extends Controller
     }
     public function EmployeeDetails(Request $request)
     {
-        $EmployeeDetails = User::where('id',$request->id)->first();
+        $EmployeeDetails = User::with('deals','leads','clientDeals')->where('id',$request->id)->first();
 
         return response()->json([
             'status' => 'success',

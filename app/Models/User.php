@@ -194,4 +194,19 @@ class User extends Authenticatable
             return $this->created_by;
         }
     }
+
+    public function deals()
+    {
+        return $this->belongsToMany('App\Models\Deal', 'user_deals', 'user_id', 'deal_id');
+    }
+
+    public function leads()
+    {
+        return $this->belongsToMany('App\Models\Lead', 'user_leads', 'user_id', 'lead_id');
+    }
+
+    public function clientDeals()
+    {
+        return $this->belongsToMany('App\Models\Deal', 'client_deals', 'client_id', 'deal_id');
+    }
 }
