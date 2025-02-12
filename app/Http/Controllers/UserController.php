@@ -193,7 +193,7 @@ class UserController extends Controller
     {
         $EmployeeDetails = User::select(
             'users.*',
-            'assignedUser.name as assigned_user_id',
+            'assignedUser.name as brand_name',
             'regions.name as region_name',
             'branches.name as branch_name'
         )
