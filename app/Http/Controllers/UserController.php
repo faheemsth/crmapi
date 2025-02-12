@@ -191,7 +191,17 @@ class UserController extends Controller
     }
     public function EmployeeDetails(Request $request)
     {
-        $EmployeeDetails = User::with('deals','leads','clientDeals')->where('id',$request->id)->first();
+        $EmployeeDetails = User::select(
+            'users.*',
+            'assignedUser.id as assigned_user_id',
+            'regions.name as region_name',
+            'branches.name as branch_name'
+        )
+        ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'users.brand_id')
+        ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+        ->where('users.id', $request->id)
+        ->first();
 
         return response()->json([
             'status' => 'success',
