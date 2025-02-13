@@ -130,4 +130,9 @@ class Lead extends Model
     {
         return $this->hasMany('App\Models\LeadEmail', 'lead_id', 'id')->orderByDesc('id');
     }
+
+    public function getTagsAttribute()
+    {
+        return LeadTag::whereRaw("FIND_IN_SET(id, ?)", [$this->tag_ids])->get();
+    }
 }

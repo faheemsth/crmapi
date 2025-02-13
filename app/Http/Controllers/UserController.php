@@ -189,6 +189,35 @@ class UserController extends Controller
             'perPage' => $employees->perPage()
         ], 200);
     }
+    public function EmployeeDetails(Request $request)
+    {
+        $EmployeeDetails = User::with('employee')->select(
+            'users.*',
+            'assignedUser.name as brand_name',
+            'regions.name as region_name',
+            'branches.name as branch_name'
+        )
+        ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'users.brand_id')
+        ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+        ->where('users.id', $request->id)
+        ->first();
 
+        $Employee = Employee::select('pay_slips.*', 'creater.name as created_by')
+        ->leftJoin('pay_slips', 'pay_slips.employee_id', '=', 'employees.id')
+        ->leftJoin('users as creater', 'creater.id', '=', 'employees.user_id') // Fixed alias reference
+        ->where('employees.user_id', $request->id)
+        ->get();
+    
+        $data=[
+            'EmployeeDetails' => $EmployeeDetails,
+            'pay_slips' => $Employee,
+        ];
+        return response()->json([
+            'status' => 'success',
+            'data' => $data,
+        ], 200);
+    }
+    
 
 }

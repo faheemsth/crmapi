@@ -180,13 +180,19 @@ class LeadController extends Controller
         }
 
         // Apply Pagination
+        // Apply Pagination
         $leads = $leadsQuery
             ->orderBy('leads.created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
+            
+            $leadsWithTags = $leads->getCollection()->map(function ($lead) {
+            $lead->tags = LeadTag::whereRaw("FIND_IN_SET(id, ?)", [$lead->tag_ids])->get();
+            return $lead;
+        });
 
         return response()->json([
             'status' => 'success',
-            'data' => $leads->items(),
+            'data' => $leads->setCollection($leadsWithTags),
             'current_page' => $leads->currentPage(),
             'last_page' => $leads->lastPage(),
             'total_records' => $leads->total(),
