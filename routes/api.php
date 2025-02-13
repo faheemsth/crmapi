@@ -4,19 +4,25 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AllowanceOptionController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
+use App\Http\Controllers\DeductionOptionController;
 use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PayslipTypeController;
+use App\Http\Controllers\TrainingTypeController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
 use App\Models\TaskFile;
+use App\Models\TrainingType;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,10 +36,11 @@ use App\Models\TaskFile;
 */
 
 // Public routes of authtication
-Route::controller(LoginRegisterController::class)->group(function() {
+Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/register', 'register');
     Route::post('/registerAgent', 'registerAgent');
     Route::post('/login', 'login');
+    Route::post('/validateEmpId', 'validateEmpId');
     Route::post('/googlelogin', 'googlelogin');
     Route::post('/changePassword', 'changePassword');
 });
@@ -44,7 +51,7 @@ Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 
 
 // Protected routes of product and logout
-Route::middleware('auth:sanctum')->group( function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
     Route::get('/agentRequestGet', [AgentController::class, 'agentRequestGet']);
@@ -86,6 +93,38 @@ Route::middleware('auth:sanctum')->group( function () {
 
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
+
+    // Training type
+    Route::post('/addTrainingType', [TrainingTypeController::class, 'addTrainingType']);
+    Route::get('/getTrainingTypes', [TrainingTypeController::class, 'getTrainingTypes']);
+    Route::post('/updateTrainType', [TrainingTypeController::class, 'updateTrainType']);
+    Route::post('/deleteTrainingType', [TrainingTypeController::class, 'deleteTrainingType']);
+
+    // Department
+    Route::post('/addDepartment', [DepartmentController::class, 'addDepartment']);
+    Route::get('/getDepartments', [DepartmentController::class, 'getDepartments']);
+    Route::post('/updateDepartment', [DepartmentController::class, 'updateDepartment']);
+    Route::post('/deleteDepartment', [DepartmentController::class, 'deleteDepartment']);
+
+
+
+    // AllowanceOption
+    Route::post('/addAllowanceOption', [AllowanceOptionController::class, 'addAllowanceOption']);
+    Route::get('/getAllowanceOptions', [AllowanceOptionController::class, 'getAllowanceOptions']);
+    Route::post('/updateAllowanceOption', [AllowanceOptionController::class, 'updateAllowanceOption']);
+    Route::post('/deleteAllowanceOption', [AllowanceOptionController::class, 'deleteAllowanceOption']);
+
+    // LoanOption
+    Route::post('/addLoanOption', [LoanOptionController::class, 'addLoanOption']);
+    Route::get('/getLoanOptions', [LoanOptionController::class, 'getLoanOptions']);
+    Route::post('/updateLoanOption', [LoanOptionController::class, 'updateLoanOption']);
+    Route::post('/deleteLoanOption', [LoanOptionController::class, 'deleteLoanOption']);
+
+    // DeductionOption
+    Route::post('/addDeductionOption', [DeductionOptionController::class, 'addDeductionOption']);
+    Route::get('/getDeductionOptions', [DeductionOptionController::class, 'getDeductionOptions']);
+    Route::post('/updateDeductionOption', [DeductionOptionController::class, 'updateDeductionOption']);
+    Route::post('/deleteDeductionOption', [DeductionOptionController::class, 'deleteDeductionOption']);
 
     // Branches
     Route::post('/getInterviews', [InterviewScheduleController::class, 'getInterviews']);
@@ -145,5 +184,4 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::get('/getStages', [GeneralController::class, 'getStages']);
     Route::get('/getTags', [GeneralController::class, 'getTags']);
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
-
 });
