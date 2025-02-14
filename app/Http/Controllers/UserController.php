@@ -209,11 +209,9 @@ class UserController extends Controller
         ->where('employees.user_id', $request->id)
         ->get();
     
-        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)->get();
         $data=[
             'EmployeeDetails' => $EmployeeDetails,
             'pay_slips' => $Employee,
-            'InternalEmployeeNotes' => $InternalEmployeeNotes,
         ];
         return response()->json([
             'status' => 'success',
@@ -314,4 +312,14 @@ class UserController extends Controller
             'message' => 'Internal Employee Note successfully updated.',
         ]);
     }
+
+    public function HrmInternalEmployeeNoteGet(Request $request)
+    {
+        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $InternalEmployeeNotes,
+        ]);
+    }
+    
 }
