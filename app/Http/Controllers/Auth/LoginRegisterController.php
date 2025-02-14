@@ -20,10 +20,72 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Validation\Rules;
 use Illuminate\Support\Facades\Mail;
 
+use Illuminate\Support\Facades\Crypt;
+
 use Validator;
 
 class LoginRegisterController extends Controller
 {
+
+
+
+    public function validateEmpId(Request $request)
+    {
+        // Validate the request
+        $validate = Validator::make($request->all(), [
+            'emp_id' => 'required|string'
+        ]);
+
+        if ($validate->fails()) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Validation Error',
+                'data' => $validate->errors(),
+            ], 403);
+        }
+
+        // try {
+        //     // Decrypt the emp_id
+        //     $encryptedId = base64_decode($request->emp_id);
+        //     $decryptedId = Crypt::decryptString($encryptedId);
+        // } catch (\Exception $e) {
+
+        //     dd( $e);
+        //     return response()->json([
+        //         'status' => 'failed',
+        //         'message' => 'Invalid Employee ID format ssss   '.$request->emp_id,
+        //     ], 400);
+        // }
+
+        // Find the user
+        $user = User::find(decryptData($request->emp_id));
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'Employee not found.'
+            ], 404);
+        }
+
+        // Generate token
+        $data['token'] = $user->createToken($user->email)->plainTextToken;
+
+        // Prepare user data
+        $userArray = $user->toArray();
+        unset($userArray['roles']);
+
+        $data['user'] = $userArray;
+        $data['roles'] = $user->getRoleNames(); // Get user roles
+        $data['permissions'] = $user->getAllPermissions()->pluck('name'); // Get user permissions
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Employee ID validated successfully.',
+            'data' => $data,
+        ], 200);
+    }
+
+
      /**
      * Register a new user.
      *
