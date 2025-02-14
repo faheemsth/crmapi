@@ -209,9 +209,11 @@ class UserController extends Controller
         ->where('employees.user_id', $request->id)
         ->get();
     
+        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)->get();
         $data=[
             'EmployeeDetails' => $EmployeeDetails,
             'pay_slips' => $Employee,
+            'InternalEmployeeNotes' => $InternalEmployeeNotes,
         ];
         return response()->json([
             'status' => 'success',
