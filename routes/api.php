@@ -92,9 +92,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
 
     // Hrm Internal Employee Note Create
-    Route::get('/EmployeeNoteCreate', [UserController::class, 'HrmInternalEmployeeNoteCreate'])->name('EmployeeNoteCreate')->middleware(['auth', 'XSS', 'revalidate']);
-    Route::post('/EmployeeNoteStore/{id}', [UserController::class, 'HrmInternalEmployeeNoteStore'])->name('EmployeeNoteStore')->middleware(['auth', 'XSS', 'revalidate']);
-    Route::get('/EmployeeNoteDelete/{id}', [UserController::class, 'HrmInternalEmployeeNoteDelete'])->name('EmployeeNoteDelete')->middleware(['auth', 'XSS', 'revalidate']);
+    Route::post('/EmployeeNoteUpdate', [UserController::class, 'HrmInternalEmployeeNoteUpdate'])->name('EmployeeNoteUpdate')->middleware(['auth', 'XSS', 'revalidate']);
+    Route::post('/EmployeeNoteStore', [UserController::class, 'HrmInternalEmployeeNoteStore'])->name('EmployeeNoteStore')->middleware(['auth', 'XSS', 'revalidate']);
+    Route::post('/EmployeeNoteDelete', [UserController::class, 'HrmInternalEmployeeNoteDelete'])->name('EmployeeNoteDelete')->middleware(['auth', 'XSS', 'revalidate']);
 
 
     // Branches

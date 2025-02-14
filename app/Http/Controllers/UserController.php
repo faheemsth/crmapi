@@ -255,9 +255,9 @@ class UserController extends Controller
         ], 201);
     }
 
-    public function HrmInternalEmployeeNoteDelete($id)
+    public function HrmInternalEmployeeNoteDelete(Request $request)
     {
-        $internalEmployeeNotes = InternalEmployeeNotes::find($id);
+        $internalEmployeeNotes = InternalEmployeeNotes::find($request->id);
 
         if (!$internalEmployeeNotes) {
             return response()->json([
@@ -274,7 +274,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function HrmInternalEmployeeNoteUpdate(Request $request, $id)
+    public function HrmInternalEmployeeNoteUpdate(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'brand_id' => 'required|integer|min:1',
@@ -291,7 +291,7 @@ class UserController extends Controller
             ], 422);
         }
 
-        $internalEmployeeNotes = InternalEmployeeNotes::find($id);
+        $internalEmployeeNotes = InternalEmployeeNotes::find($request->id);
 
         if (!$internalEmployeeNotes) {
             return response()->json([
