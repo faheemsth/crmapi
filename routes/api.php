@@ -92,9 +92,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
 
     // Hrm Internal Employee Note Create
-    Route::post('/EmployeeNoteUpdate', [UserController::class, 'HrmInternalEmployeeNoteUpdate'])->name('EmployeeNoteUpdate')->middleware(['auth', 'XSS', 'revalidate']);
-    Route::post('/EmployeeNoteStore', [UserController::class, 'HrmInternalEmployeeNoteStore'])->name('EmployeeNoteStore')->middleware(['auth', 'XSS', 'revalidate']);
-    Route::post('/EmployeeNoteDelete', [UserController::class, 'HrmInternalEmployeeNoteDelete'])->name('EmployeeNoteDelete')->middleware(['auth', 'XSS', 'revalidate']);
+    Route::post('/EmployeeNoteUpdate', [UserController::class, 'HrmInternalEmployeeNoteUpdate']);
+    Route::post('/EmployeeNoteStore', [UserController::class, 'HrmInternalEmployeeNoteStore']);
+    Route::post('/EmployeeNoteDelete', [UserController::class, 'HrmInternalEmployeeNoteDelete']);
 
 
     // Branches
