@@ -5,10 +5,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\AwardTypeController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\CompetenciesController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
 use App\Http\Controllers\DeductionOptionController;
@@ -17,7 +19,12 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PayslipTypeController;
 use App\Http\Controllers\TrainingTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\GoalTypeController;
+use App\Http\Controllers\JobCategoryController;
+use App\Http\Controllers\JobStageController;
 use App\Http\Controllers\LoanOptionController;
+use App\Http\Controllers\PerformanceTypeController;
+use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
@@ -94,6 +101,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
+    Route::post('/getBranches', [BranchController::class, 'getBranches']);
+    Route::post('/addBranch', [BranchController::class, 'addBranch']);
+    Route::post('/updateBranch', [BranchController::class, 'updateBranch']);
+    Route::post('/deleteBranch', [BranchController::class, 'deleteBranch']);
 
     // Training type
     Route::post('/addTrainingType', [TrainingTypeController::class, 'addTrainingType']);
@@ -126,6 +137,50 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getDeductionOptions', [DeductionOptionController::class, 'getDeductionOptions']);
     Route::post('/updateDeductionOption', [DeductionOptionController::class, 'updateDeductionOption']);
     Route::post('/deleteDeductionOption', [DeductionOptionController::class, 'deleteDeductionOption']);
+
+    // GoalType
+    Route::post('/addGoalType', [GoalTypeController::class, 'addGoalType']);
+    Route::get('/getGoalTypes', [GoalTypeController::class, 'getGoalTypes']);
+    Route::post('/updateGoalType', [GoalTypeController::class, 'updateGoalType']);
+    Route::post('/deleteGoalType', [GoalTypeController::class, 'deleteGoalType']);
+
+    // AwardType
+    Route::post('/addAwardType', [AwardTypeController::class, 'addAwardType']);
+    Route::get('/getAwardTypes', [AwardTypeController::class, 'getAwardTypes']);
+    Route::post('/updateAwardType', [AwardTypeController::class, 'updateAwardType']);
+    Route::post('/deleteAwardType', [AwardTypeController::class, 'deleteAwardType']);
+
+    // TerminationType
+    Route::post('/addTerminationType', [TerminationTypeController::class, 'addTerminationType']);
+    Route::get('/getTerminationTypes', [TerminationTypeController::class, 'getTerminationTypes']);
+    Route::post('/updateTerminationType', [TerminationTypeController::class, 'updateTerminationType']);
+    Route::post('/deleteTerminationType', [TerminationTypeController::class, 'deleteTerminationType']);
+
+    // JobCategory
+    Route::post('/addJobCategory', [JobCategoryController::class, 'addJobCategory']);
+    Route::get('/getJobCategorieslist', [JobCategoryController::class, 'getJobCategories']);
+    Route::post('/updateJobCategory', [JobCategoryController::class, 'updateJobCategory']);
+    Route::post('/deleteJobCategory', [JobCategoryController::class, 'deleteJobCategory']);
+
+    // JobStage
+    Route::post('/addJobStage', [JobStageController::class, 'addJobStage']);
+    Route::get('/getJobStages', [JobStageController::class, 'getJobStages']);
+    Route::post('/updateJobStage', [JobStageController::class, 'updateJobStage']);
+    Route::post('/deleteJobStage', [JobStageController::class, 'deleteJobStage']);
+
+
+    // PerformanceType
+    Route::post('/addPerformanceType', [PerformanceTypeController::class, 'addPerformanceType']);
+    Route::get('/getPerformanceTypes', [PerformanceTypeController::class, 'getPerformanceTypes']);
+    Route::post('/updatePerformanceType', [PerformanceTypeController::class, 'updatePerformanceType']);
+    Route::post('/deletePerformanceType', [PerformanceTypeController::class, 'deletePerformanceType']);
+
+
+    // Competency
+    Route::post('/addCompetency', [CompetenciesController::class, 'addCompetency']);
+    Route::get('/getCompetencies', [CompetenciesController::class, 'getCompetencies']);
+    Route::post('/updateCompetency', [CompetenciesController::class, 'updateCompetency']);
+    Route::post('/deleteCompetency', [CompetenciesController::class, 'deleteCompetency']);
 
     // Branches
     Route::post('/getInterviews', [InterviewScheduleController::class, 'getInterviews']);

@@ -326,7 +326,7 @@ public function getFilterBranchUsers(Request $request)
 
     public function getJobCategories()
     {
-        $categories = JobCategory::get()->pluck('title', 'id');
+        $categories = JobCategory::get()->pluck('name', 'id');
         return response()->json([
             'status' => 'success',
             'data' => $categories,

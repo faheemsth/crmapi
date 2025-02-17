@@ -16,6 +16,10 @@ class Branch extends Model
     {
         return $this->belongsTo(User::class, 'branch_manager_id');
     }
+    public function brand()
+    {
+        return $this->belongsTo(User::class, 'brands');
+    }
 
     public function region()
     {
