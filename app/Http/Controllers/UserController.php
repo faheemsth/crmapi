@@ -220,4 +220,106 @@ class UserController extends Controller
     }
     
 
+    public function HrmInternalEmployeeNoteStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'brand_id' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'branch_id' => 'required|integer|min:1',
+            'lead_assigned_user' => 'required',
+            'employee_notes' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $internalEmployeeNotes = InternalEmployeeNotes::create([
+            'brand_id' => $request->brand_id,
+            'region_id' => $request->region_id,
+            'lead_branch' => $request->branch_id,
+            'lead_assigned_user' => $request->lead_assigned_user,
+            'notes' => $request->employee_notes,
+            'created_by' => \Auth::id(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Internal Employee Note successfully created.',
+            'data' => $internalEmployeeNotes,
+        ], 201);
+    }
+
+    public function HrmInternalEmployeeNoteDelete(Request $request)
+    {
+        $internalEmployeeNotes = InternalEmployeeNotes::find($request->id);
+
+        if (!$internalEmployeeNotes) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Record not found.',
+            ], 404);
+        }
+
+        $internalEmployeeNotes->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Internal Employee Note successfully deleted.',
+        ]);
+    }
+
+    public function HrmInternalEmployeeNoteUpdate(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'brand_id' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'branch_id' => 'required|integer|min:1',
+            'lead_assigned_user' => 'required',
+            'employee_notes' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $internalEmployeeNotes = InternalEmployeeNotes::find($request->id);
+
+        if (!$internalEmployeeNotes) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Record not found.',
+            ], 404);
+        }
+
+        $internalEmployeeNotes->update([
+            'brand_id' => $request->brand_id,
+            'region_id' => $request->region_id,
+            'lead_branch' => $request->branch_id,
+            'lead_assigned_user' => $request->lead_assigned_user,
+            'notes' => $request->employee_notes,
+            'created_by' => \Auth::id(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Internal Employee Note successfully updated.',
+        ]);
+    }
+
+    public function HrmInternalEmployeeNoteGet(Request $request)
+    {
+        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)->get();
+        return response()->json([
+            'status' => 'success',
+            'data' => $InternalEmployeeNotes,
+        ]);
+    }
+    
 }
