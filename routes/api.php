@@ -24,6 +24,7 @@ use App\Http\Controllers\JobCategoryController;
 use App\Http\Controllers\JobStageController;
 use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\PerformanceTypeController;
+use App\Http\Controllers\RegionController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
@@ -104,6 +105,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/EmployeeNoteStore', [UserController::class, 'HrmInternalEmployeeNoteStore']);
     Route::post('/EmployeeNoteDelete', [UserController::class, 'HrmInternalEmployeeNoteDelete']);
 
+
+    // Branches
+    Route::post('/getRegions', [RegionController::class, 'getRegions']);
+    Route::post('/addRegion', [RegionController::class, 'addRegion']);
+    Route::post('/updateRegion', [RegionController::class, 'updateRegion']);
+    Route::post('/deleteRegion', [RegionController::class, 'deleteRegion']);
+    Route::post('/deleteBulkRegions', [RegionController::class, 'deleteBulkRegions']);
 
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
