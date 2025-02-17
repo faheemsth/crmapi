@@ -70,7 +70,7 @@ class DepartmentController extends Controller
         $validator = \Validator::make(
             $request->all(),
             [
-                'id' => 'required|exists:training_types,id',
+                'id' => 'required|exists:departments,id',
                 'name' => 'required|string'
             ]
         );
@@ -113,7 +113,7 @@ class DepartmentController extends Controller
 
         $validator = \Validator::make(
             $request->all(),
-            ['id' => 'required|exists:training_types,id']
+            ['id' => 'required|exists:departments,id']
         );
 
         if ($validator->fails()) {

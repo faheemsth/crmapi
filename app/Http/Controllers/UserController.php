@@ -45,16 +45,16 @@ class UserController extends Controller
     public function employees(Request $request)
     {
         $user = \Auth::user();
-    
+
         // Ensure the user has permission to manage employees
         if (\Auth::user()->can('manage employee')) {
             $excludedTypes = ['company', 'team', 'client'];
             $usersQuery = User::select('users.*');
-    
+
             // Get company filters
             $companies = FiltersBrands();
             $brand_ids = array_keys($companies);
-    
+
             // Apply permissions based on user levels and attributes
             if (\Auth::user()->can('level 1')) {
                 // Permissions for level 1
@@ -69,27 +69,27 @@ class UserController extends Controller
             } else {
                 $usersQuery->where('id', \Auth::user()->id);
             }
-    
+
             // Apply exclusion of user types
             $usersQuery->whereNotIn('type', $excludedTypes);
-    
+
             // Fetch user data (e.g., 'name' and 'id')
             $users = $usersQuery->orderBy('users.name', 'ASC')->get(['name', 'id']);
-    
+
             // Return response with status and data
             return response()->json([
                 'status' => 'success',
                 'data' => $users
             ]);
         }
-    
+
         // Return an error if the user doesn't have permission
         return response()->json([
             'status' => 'error',
             'message' => 'Unauthorized'
         ], 403);
     }
-        
+
     public function getEmployees(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -208,7 +208,7 @@ class UserController extends Controller
         ->leftJoin('users as creater', 'creater.id', '=', 'employees.user_id') // Fixed alias reference
         ->where('employees.user_id', $request->id)
         ->get();
-    
+
         $data=[
             'EmployeeDetails' => $EmployeeDetails,
             'pay_slips' => $Employee,
@@ -218,7 +218,7 @@ class UserController extends Controller
             'data' => $data,
         ], 200);
     }
-    
+
 
     public function HrmInternalEmployeeNoteStore(Request $request)
     {
@@ -321,5 +321,80 @@ class UserController extends Controller
             'data' => $InternalEmployeeNotes,
         ]);
     }
-    
+
+
+    public function getBrands(Request $request)
+{
+    $user = \Auth::user();
+
+    $num_results_on_page = env("RESULTS_ON_PAGE", 50);
+
+    // Pagination parameters
+    $page = $request->get('page', 1);
+    $num_results_on_page = $request->get('num_results_on_page', $num_results_on_page);
+    $start = ($page - 1) * $num_results_on_page;
+
+    if (\Auth::user()->can('manage user')) {
+
+        $user_query = User::select(['users.id', 'users.name', 'users.website_link', 'project_director.name as project_director', 'users.email'])
+            ->where('users.type', 'company')
+            ->leftJoin('users as project_director', 'project_director.id', '=', 'users.project_director_id');
+
+        if (\Auth::user()->type != 'super admin' && \Auth::user()->type != 'Admin Team' && \Auth::user()->type != 'HR') {
+            $companies = FiltersBrands();
+            $brand_ids = array_keys($companies);
+            $user_query->whereIn('users.id', $brand_ids);
+        }
+
+        // Apply search filter if provided
+        if ($request->filled('search')) {
+            $g_search = $request->get('search');
+            $user_query->where(function ($query) use ($g_search) {
+                $query->where('users.name', 'like', '%' . $g_search . '%')
+                    ->orWhere('users.website_link', 'like', '%' . $g_search . '%')
+                    ->orWhere('project_director.name', 'like', '%' . $g_search . '%');
+            });
+        }
+
+        // Apply brand filter if provided
+        if ($request->filled('Brand')) {
+            $user_query->where('users.id', $request->get('Brand'));
+        }
+
+        // Apply director filter if provided
+        if ($request->filled('Director')) {
+            $user_query->where('users.project_director_id', $request->get('Director'));
+        }
+
+        $total_records = $user_query->count();
+        $users = $user_query->orderBy('users.name', 'ASC')
+            ->paginate($num_results_on_page);
+
+        $projectDirectors = allUsers();
+        $Brands = User::where('type', 'company')->pluck('name', 'id')->toArray();
+        $ProjectDirector = User::where('type', 'Project Director')->pluck('name', 'id')->toArray();
+
+        // Prepare API response
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'users' => $users->items(),
+                'total_records' => $total_records,
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'project_directors' => $projectDirectors,
+                'brands' => $Brands,
+                'project_director_list' => $ProjectDirector,
+            ]
+        ], 200);
+
+    } else {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Permission Denied.'
+        ], 403);
+    }
+}
+
 }

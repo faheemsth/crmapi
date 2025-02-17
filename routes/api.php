@@ -94,6 +94,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+    // user/brands
+    Route::post('/getBrands', [UserController::class, 'getBrands']);
+
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);
