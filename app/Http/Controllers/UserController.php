@@ -607,4 +607,38 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    public function brandDetail(Request $request)
+{
+    // Validate request
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|integer|exists:users,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+        // Fetch user
+        $user = User::with(['manager', 'director', 'created_by'])->findOrFail($request->id);
+
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $user
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('An error occurred while fetching user details.'),
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }

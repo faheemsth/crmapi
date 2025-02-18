@@ -61,6 +61,19 @@ class User extends Authenticatable
         }
     }
 
+    public function manager()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'project_manager_id');
+    }
+
+    public function director()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'project_director_id');
+    }
+    public function created_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
+    }
 
     public function companyPermissions()
     {

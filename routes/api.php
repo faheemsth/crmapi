@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/addBrand', [UserController::class, 'addBrand']);
     Route::post('/updateBrand', [UserController::class, 'updateBrand']);
     Route::post('/deleteBrand', [UserController::class, 'deleteBrand']);
+    Route::post('/brandDetail', [UserController::class, 'brandDetail']);
 
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
