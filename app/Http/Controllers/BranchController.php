@@ -26,20 +26,13 @@ class BranchController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        $Branch = Branch::findOrFail($request->branch_id);
-        $region = Region::findOrFail($Branch->region_id);
-        $manager = User::findOrFail($Branch->branch_manager_id);
-        $brands = User::findOrFail($Branch->brands);
+        $Branch = Branch::select(['branches.*'])
+        ->with(['region', 'brand', 'manager'])->where('branches.id',$request->branch_id)->first();
 
         // Return Complete Data as JSON
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'branch' => $Branch,       // Complete Branch Object
-                'region' => $region,       // Complete Region Object
-                'manager' => $manager,     // Complete Manager Object
-                'brands' => $brands        // Collection of Complete Brand Objects
-            ],
+            'data' => $Branch,
         ], 200);
     }
 
