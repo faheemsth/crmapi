@@ -357,13 +357,13 @@ class UserController extends Controller
             }
 
             // Apply brand filter if provided
-            if ($request->filled('Brand')) {
-                $user_query->where('users.id', $request->get('Brand'));
+            if ($request->filled('brand')) {
+                $user_query->where('users.id', $request->get('brand'));
             }
 
             // Apply director filter if provided
-            if ($request->filled('Director')) {
-                $user_query->where('users.project_director_id', $request->get('Director'));
+            if ($request->filled('director')) {
+                $user_query->where('users.project_director_id', $request->get('director'));
             }
 
             $total_records = $user_query->count();
