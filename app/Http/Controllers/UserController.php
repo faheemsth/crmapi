@@ -378,7 +378,7 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'success',
 
-                'userdatas' => $users->items(),
+                'data' => $users->items(),
                 'total_records' => $total_records,
                 'current_page' => $users->currentPage(),
                 'last_page' => $users->lastPage(),
