@@ -32,7 +32,7 @@ class BranchController extends Controller
         // Return Complete Data as JSON
         return response()->json([
             'status' => 'success',
-            'data' => [$Branch],
+            'data' => $Branch,
         ], 200);
     }
 
