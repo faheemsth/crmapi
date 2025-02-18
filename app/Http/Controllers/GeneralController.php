@@ -214,6 +214,32 @@ class GeneralController extends Controller
 }
 
 
+    public function getAllProjectDirectors(Request $request)
+{
+
+
+
+
+        $ProjectDirector = User::where('type', 'Project Director')->pluck('name', 'id')->toArray();
+
+        if ($ProjectDirector) {
+
+
+            // Return JSON response with brands
+            return response()->json([
+                'status' => 'success',
+                'data' => $ProjectDirector,
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'failure',
+                'message' => 'Brand not found.',
+            ]);
+        }
+
+}
+
+
 public function getFilterData(Request $request)
 {
     // Validate incoming request parameters
