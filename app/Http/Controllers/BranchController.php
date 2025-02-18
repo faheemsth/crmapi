@@ -27,7 +27,7 @@ class BranchController extends Controller
             ], 422);
         }
         $Branch = Branch::select(['branches.*'])
-        ->with(['region', 'brand', 'manager'])->findOrFail($request->branch_id);
+        ->with(['region', 'brand', 'manager'])->where('branches.id',$request->branch_id)->first();
 
         // Return Complete Data as JSON
         return response()->json([
