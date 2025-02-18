@@ -26,6 +26,7 @@ use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\TerminationTypeController;
+use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
@@ -100,6 +101,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateBrand', [UserController::class, 'updateBrand']);
     Route::post('/deleteBrand', [UserController::class, 'deleteBrand']);
     Route::post('/brandDetail', [UserController::class, 'brandDetail']);
+
+    // user/brands
+    Route::post('/getTrainers', [TrainerController::class, 'getTrainers']);
+    Route::post('/addTrainer', [TrainerController::class, 'addTrainer']);
+    Route::post('/updateTrainer', [TrainerController::class, 'updateTrainer']);
+    Route::post('/deleteTrainer', [TrainerController::class, 'deleteTrainer']);
+    Route::post('/trainerDetail', [TrainerController::class, 'trainerDetail']);
 
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);

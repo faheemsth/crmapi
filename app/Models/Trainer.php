@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Trainer extends Model
 {
     protected $fillable = [
-        'branch',
+        'branch_id',
+        'region_id',
+        'brand_id',
         'firstname',
         'lastname',
         'contact',
@@ -17,8 +19,25 @@ class Trainer extends Model
         'created_by',
     ];
 
-    public function branches()
+    public function branch()
     {
-        return $this->hasOne('App\Models\Branch', 'id', 'branch');
+        return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
     }
+
+    public function brand()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'brand_id');
+    }
+
+    public function region()
+    {
+        return $this->hasOne('App\Models\Region', 'id', 'region_id');
+    }
+
+    public function created_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
+    }
+
+
 }
