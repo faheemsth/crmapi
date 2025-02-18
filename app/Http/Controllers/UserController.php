@@ -336,9 +336,10 @@ class UserController extends Controller
 
         if (\Auth::user()->can('manage user')) {
 
-            $user_query = User::select(['users.id', 'users.name', 'users.website_link', 'project_director.name as project_director', 'users.email'])
+            $user_query = User::select(['users.*',  'project_director.name as project_director',  'project_manager.name as project_manager'])
                 ->where('users.type', 'company')
-                ->leftJoin('users as project_director', 'project_director.id', '=', 'users.project_director_id');
+                ->leftJoin('users as project_director', 'project_director.id', '=', 'users.project_director_id')
+                ->leftJoin('users as project_manager', 'project_manager.id', '=', 'users.project_manager_id');
 
             if (\Auth::user()->type != 'super admin' && \Auth::user()->type != 'Admin Team' && \Auth::user()->type != 'HR') {
                 $companies = FiltersBrands();
@@ -370,9 +371,7 @@ class UserController extends Controller
             $users = $user_query->orderBy('users.name', 'ASC')
                 ->paginate($num_results_on_page);
 
-            $projectDirectors = allUsers();
-            $Brands = User::where('type', 'company')->pluck('name', 'id')->toArray();
-            $ProjectDirector = User::where('type', 'Project Director')->pluck('name', 'id')->toArray();
+
 
             // Prepare API response
             return response()->json([
