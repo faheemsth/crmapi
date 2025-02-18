@@ -197,19 +197,19 @@ class UserController extends Controller
             'regions.name as region_name',
             'branches.name as branch_name'
         )
-        ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'users.brand_id')
-        ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
-        ->where('users.id', $request->id)
-        ->first();
+            ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'users.brand_id')
+            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+            ->where('users.id', $request->id)
+            ->first();
 
         $Employee = Employee::select('pay_slips.*', 'creater.name as created_by')
-        ->leftJoin('pay_slips', 'pay_slips.employee_id', '=', 'employees.id')
-        ->leftJoin('users as creater', 'creater.id', '=', 'employees.user_id') // Fixed alias reference
-        ->where('employees.user_id', $request->id)
-        ->get();
+            ->leftJoin('pay_slips', 'pay_slips.employee_id', '=', 'employees.id')
+            ->leftJoin('users as creater', 'creater.id', '=', 'employees.user_id') // Fixed alias reference
+            ->where('employees.user_id', $request->id)
+            ->get();
 
-        $data=[
+        $data = [
             'EmployeeDetails' => $EmployeeDetails,
             'pay_slips' => $Employee,
         ];
@@ -324,302 +324,288 @@ class UserController extends Controller
 
 
     public function getBrands(Request $request)
-{
-    $user = \Auth::user();
+    {
+        $user = \Auth::user();
 
-    $num_results_on_page = env("RESULTS_ON_PAGE", 50);
+        $num_results_on_page = env("RESULTS_ON_PAGE", 50);
 
-    // Pagination parameters
-    $page = $request->get('page', 1);
-    $num_results_on_page = $request->get('num_results_on_page', $num_results_on_page);
-    $start = ($page - 1) * $num_results_on_page;
+        // Pagination parameters
+        $page = $request->get('page', 1);
+        $num_results_on_page = $request->get('num_results_on_page', $num_results_on_page);
+        $start = ($page - 1) * $num_results_on_page;
 
-    if (\Auth::user()->can('manage user')) {
+        if (\Auth::user()->can('manage user')) {
 
-        $user_query = User::select(['users.id', 'users.name', 'users.website_link', 'project_director.name as project_director', 'users.email'])
-            ->where('users.type', 'company')
-            ->leftJoin('users as project_director', 'project_director.id', '=', 'users.project_director_id');
+            $user_query = User::select(['users.id', 'users.name', 'users.website_link', 'project_director.name as project_director', 'users.email'])
+                ->where('users.type', 'company')
+                ->leftJoin('users as project_director', 'project_director.id', '=', 'users.project_director_id');
 
-        if (\Auth::user()->type != 'super admin' && \Auth::user()->type != 'Admin Team' && \Auth::user()->type != 'HR') {
-            $companies = FiltersBrands();
-            $brand_ids = array_keys($companies);
-            $user_query->whereIn('users.id', $brand_ids);
-        }
+            if (\Auth::user()->type != 'super admin' && \Auth::user()->type != 'Admin Team' && \Auth::user()->type != 'HR') {
+                $companies = FiltersBrands();
+                $brand_ids = array_keys($companies);
+                $user_query->whereIn('users.id', $brand_ids);
+            }
 
-        // Apply search filter if provided
-        if ($request->filled('search')) {
-            $g_search = $request->get('search');
-            $user_query->where(function ($query) use ($g_search) {
-                $query->where('users.name', 'like', '%' . $g_search . '%')
-                    ->orWhere('users.website_link', 'like', '%' . $g_search . '%')
-                    ->orWhere('project_director.name', 'like', '%' . $g_search . '%');
-            });
-        }
+            // Apply search filter if provided
+            if ($request->filled('search')) {
+                $g_search = $request->get('search');
+                $user_query->where(function ($query) use ($g_search) {
+                    $query->where('users.name', 'like', '%' . $g_search . '%')
+                        ->orWhere('users.website_link', 'like', '%' . $g_search . '%')
+                        ->orWhere('project_director.name', 'like', '%' . $g_search . '%');
+                });
+            }
 
-        // Apply brand filter if provided
-        if ($request->filled('Brand')) {
-            $user_query->where('users.id', $request->get('Brand'));
-        }
+            // Apply brand filter if provided
+            if ($request->filled('Brand')) {
+                $user_query->where('users.id', $request->get('Brand'));
+            }
 
-        // Apply director filter if provided
-        if ($request->filled('Director')) {
-            $user_query->where('users.project_director_id', $request->get('Director'));
-        }
+            // Apply director filter if provided
+            if ($request->filled('Director')) {
+                $user_query->where('users.project_director_id', $request->get('Director'));
+            }
 
-        $total_records = $user_query->count();
-        $users = $user_query->orderBy('users.name', 'ASC')
-            ->paginate($num_results_on_page);
+            $total_records = $user_query->count();
+            $users = $user_query->orderBy('users.name', 'ASC')
+                ->paginate($num_results_on_page);
 
-        $projectDirectors = allUsers();
-        $Brands = User::where('type', 'company')->pluck('name', 'id')->toArray();
-        $ProjectDirector = User::where('type', 'Project Director')->pluck('name', 'id')->toArray();
+            $projectDirectors = allUsers();
+            $Brands = User::where('type', 'company')->pluck('name', 'id')->toArray();
+            $ProjectDirector = User::where('type', 'Project Director')->pluck('name', 'id')->toArray();
 
-        // Prepare API response
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'users' => $users->items(),
+            // Prepare API response
+            return response()->json([
+                'status' => 'success',
+
+                'userdatas' => $users->items(),
                 'total_records' => $total_records,
                 'current_page' => $users->currentPage(),
                 'last_page' => $users->lastPage(),
                 'per_page' => $users->perPage(),
-                'project_directors' => $projectDirectors,
-                'brands' => $Brands,
-                'project_director_list' => $ProjectDirector,
-            ]
-        ], 200);
 
-    } else {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Permission Denied.'
-        ], 403);
-    }
-}
-
-public function addBrand(Request $request)
-{
-    if (!Auth::user()->can('create user')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Permission Denied')
-        ], 403);
-    }
-
-    $default_language = DB::table('settings')
-        ->where('name', 'default_language')
-        ->value('value');
-
-
-    $validator = Validator::make($request->all(), [
-        'name' => 'required|string|max:120',
-        'email' => 'required|email|unique:users,email',
-        'website_link' => 'required|url',
-        'drive_link' => 'required|url',
-        'domain_link' => 'nullable|url',
-        'project_director' => 'nullable|integer|exists:users,id',
-    ]);
-
-    $request->role =    'company';
-
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors()
-        ], 422);
-    }
-
-    try {
-        DB::beginTransaction();
-
-        // Default Password
-        $password = '1234';
-
-        // Create User
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($password),
-            'type' => $request->role,
-            'default_pipeline' => 1,
-            'plan' => Plan::first()->id,
-            'lang' => $default_language ?? '',
-            'created_by' => Auth::user()->creatorId(),
-            'domain_link' => $request->domain_link,
-            'website_link' => $request->website_link,
-            'drive_link' => $request->drive_link,
-            'project_director_id' => $request->project_director,
-        ]);
-
-        // Assign Role
-        $role = Role::findByName($request->role, 'web');
-        $user->assignRole($role);
-
-        // Set Default Data
-        $user->userDefaultDataRegister($user->id);
-        $user->userWarehouseRegister($user->id);
-        $user->userDefaultBankAccount($user->id);
-
-        // Utility Configurations
-        Utility::chartOfAccountTypeData($user->id);
-        Utility::chartOfAccountData($user);
-        Utility::chartOfAccountData1($user->id);
-        Utility::pipeline_lead_deal_Stage($user->id);
-        Utility::project_task_stages($user->id);
-        Utility::labels($user->id);
-        Utility::sources($user->id);
-        Utility::jobStage($user->id);
-
-        // Default Certificates
-        GenerateOfferLetter::defaultOfferLetterRegister($user->id);
-        ExperienceCertificate::defaultExpCertificatRegister($user->id);
-        JoiningLetter::defaultJoiningLetterRegister($user->id);
-        NOC::defaultNocCertificateRegister($user->id);
-
-        // Assign Permission to Project Director
-        $p_dir = User::where('type', 'Project Director')->first();
-        $new_permission = new \App\Models\CompanyPermission();
-        $new_permission->user_id = $p_dir->id;
-        $new_permission->permitted_company_id = $user->id;
-        $new_permission->active = 'false';
-        $new_permission->created_by = \Auth::user()->id;
-        $new_permission->save();
-
-        // Send Email (If Enabled)
-        $settings = Utility::settings();
-        if ($settings['new_user'] == 1) {
-            Utility::sendEmailTemplate('new_user', [$user->id => $user->email], [
-                'email' => $user->email,
-                'password' => $password,
-            ]);
-        }
-
-        DB::commit();
-
-        return response()->json([
-            'status' => 'success',
-            'id' => $user->id,
-            'message' => __('User created successfully.')
-        ], 201);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'status' => 'error',
-            'message' => __('An error occurred while creating the user.'),
-            'error' => $e->getMessage()
-        ], 500);
-    }
-}
-
-public function updateBrand(Request $request)
-{
-    // Check permission
-    if (!Auth::user()->can('edit user')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Permission Denied')
-        ], 403);
-    }
-
-    // Validate request
-    $validator = Validator::make($request->all(), [
-        'id' => 'required|integer|exists:users,id',
-        'name' => 'required|string|max:120',
-        'email' => 'required|email|unique:users,email,' . $request->id,
-        'website_link' => 'required|url',
-        'drive_link' => 'required|url',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors()
-        ], 422);
-    }
-
-    try {
-        // Find user
-        $user = User::findOrFail($request->id);
-
-        // Update user details
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'website_link' => $request->website_link,
-            'drive_link' => $request->drive_link,
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'id' => $user,
-            'message' => __('User updated successfully.')
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('An error occurred while updating the user.'),
-            'error' => $e->getMessage()
-        ], 500);
-    }
-
-}
-
-public function deleteBrand(Request $request)
-{
-    // Check permission
-    if (!Auth::user()->can('delete user')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Permission Denied')
-        ], 403);
-    }
-
-    // Validate request
-    $validator = Validator::make($request->all(), [
-        'id' => 'required|integer|exists:users,id',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors()
-        ], 422);
-    }
-
-    try {
-        // Find user
-        $user = User::find($request->id);
-
-        if (!$user) {
+            ], 200);
+        } else {
             return response()->json([
                 'status' => 'error',
-                'message' => __('User not found.')
-            ], 404);
+                'message' => 'Permission Denied.'
+            ], 403);
+        }
+    }
+
+    public function addBrand(Request $request)
+    {
+        if (!Auth::user()->can('create user')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied')
+            ], 403);
         }
 
-        // Delete user
-        $user->delete();
+        $default_language = DB::table('settings')
+            ->where('name', 'default_language')
+            ->value('value');
 
-        return response()->json([
-            'status' => 'success',
-            'message' => __('User successfully deleted.')
-        ], 200);
 
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('An error occurred while deleting the user.'),
-            'error' => $e->getMessage()
-        ], 500);
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:120',
+            'email' => 'required|email|unique:users,email',
+            'website_link' => 'required|url',
+            'drive_link' => 'required|url',
+            'domain_link' => 'nullable|url',
+            'project_director' => 'nullable|integer|exists:users,id',
+        ]);
+
+        $request->role =    'company';
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Default Password
+            $password = '1234';
+
+            // Create User
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($password),
+                'type' => $request->role,
+                'default_pipeline' => 1,
+                'plan' => Plan::first()->id,
+                'lang' => $default_language ?? '',
+                'created_by' => Auth::user()->creatorId(),
+                'domain_link' => $request->domain_link,
+                'website_link' => $request->website_link,
+                'drive_link' => $request->drive_link,
+                'project_director_id' => $request->project_director,
+            ]);
+
+            // Assign Role
+            $role = Role::findByName($request->role, 'web');
+            $user->assignRole($role);
+
+            // Set Default Data
+            $user->userDefaultDataRegister($user->id);
+            $user->userWarehouseRegister($user->id);
+            $user->userDefaultBankAccount($user->id);
+
+            // Utility Configurations
+            Utility::chartOfAccountTypeData($user->id);
+            Utility::chartOfAccountData($user);
+            Utility::chartOfAccountData1($user->id);
+            Utility::pipeline_lead_deal_Stage($user->id);
+            Utility::project_task_stages($user->id);
+            Utility::labels($user->id);
+            Utility::sources($user->id);
+            Utility::jobStage($user->id);
+
+            // Default Certificates
+            GenerateOfferLetter::defaultOfferLetterRegister($user->id);
+            ExperienceCertificate::defaultExpCertificatRegister($user->id);
+            JoiningLetter::defaultJoiningLetterRegister($user->id);
+            NOC::defaultNocCertificateRegister($user->id);
+
+            // Assign Permission to Project Director
+            $p_dir = User::where('type', 'Project Director')->first();
+            $new_permission = new \App\Models\CompanyPermission();
+            $new_permission->user_id = $p_dir->id;
+            $new_permission->permitted_company_id = $user->id;
+            $new_permission->active = 'false';
+            $new_permission->created_by = \Auth::user()->id;
+            $new_permission->save();
+
+            // Send Email (If Enabled)
+            $settings = Utility::settings();
+            if ($settings['new_user'] == 1) {
+                Utility::sendEmailTemplate('new_user', [$user->id => $user->email], [
+                    'email' => $user->email,
+                    'password' => $password,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'id' => $user->id,
+                'message' => __('User created successfully.')
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => __('An error occurred while creating the user.'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
+    public function updateBrand(Request $request)
+    {
+        // Check permission
+        if (!Auth::user()->can('edit user')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied')
+            ], 403);
+        }
 
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+            'name' => 'required|string|max:120',
+            'email' => 'required|email|unique:users,email,' . $request->id,
+            'website_link' => 'required|url',
+            'drive_link' => 'required|url',
+        ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
+        try {
+            // Find user
+            $user = User::findOrFail($request->id);
 
+            // Update user details
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'website_link' => $request->website_link,
+                'drive_link' => $request->drive_link,
+            ]);
 
+            return response()->json([
+                'status' => 'success',
+                'id' => $user,
+                'message' => __('User updated successfully.')
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('An error occurred while updating the user.'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteBrand(Request $request)
+    {
+        // Check permission
+        if (!Auth::user()->can('delete user')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied')
+            ], 403);
+        }
+
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Find user
+            $user = User::find($request->id);
+
+            if (!$user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => __('User not found.')
+                ], 404);
+            }
+
+            // Delete user
+            $user->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => __('User successfully deleted.')
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('An error occurred while deleting the user.'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
