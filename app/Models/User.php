@@ -214,4 +214,82 @@ class User extends Authenticatable
     {
         return $this->hasOne('App\Models\Employee', 'user_id', 'id');
     }
+
+
+    public static function userDefaultData()
+    {
+
+        // Make Entry In User_Email_Template
+        $allEmail = EmailTemplate::all();
+        foreach ($allEmail as $email) {
+            UserEmailTemplate::create(
+                [
+                    'template_id' => $email->id,
+                    'user_id' => 2,
+                    'is_active' => 1,
+                ]
+            );
+        }
+    }
+
+    public function userDefaultDataRegister($user_id)
+    {
+
+        // Make Entry In User_Email_Template
+        $allEmail = EmailTemplate::all();
+
+        foreach ($allEmail as $email) {
+            UserEmailTemplate::create(
+                [
+                    'template_id' => $email->id,
+                    'user_id' => $user_id,
+                    'is_active' => 1,
+                ]
+            );
+        }
+    }
+
+    public static function userDefaultWarehouse()
+    {
+        warehouse::create(
+            [
+                'name' => 'North Warehouse',
+                'address' => '723 N. Tillamook Street Portland, OR Portland, United States',
+                'city' => 'Portland',
+                'city_zip' => 97227,
+                'created_by' => 2,
+            ]
+        );
+    }
+
+    public function userWarehouseRegister($user_id)
+    {
+        warehouse::create(
+            [
+                'name' => 'North Warehouse',
+                'address' => '723 N. Tillamook Street Portland, OR Portland, United States',
+                'city' => 'Portland',
+                'city_zip' => 97227,
+                'created_by' => $user_id,
+            ]
+        );
+    }
+
+    //default bank account for new company
+    public function userDefaultBankAccount($user_id)
+    {
+        BankAccount::create(
+            [
+                'holder_name' => 'cash',
+                'bank_name' => '',
+                'account_number' => '-',
+                'opening_balance' => '0.00',
+                'contact_number' => '-',
+                'bank_address' => '-',
+                'created_by' => $user_id,
+            ]
+        );
+    }
+
+
 }
