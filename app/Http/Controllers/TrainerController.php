@@ -42,7 +42,7 @@ class TrainerController extends Controller
         $page = $request->input('page', 1);
 
         // Build the query for trainers
-        $Trainer_query = Trainer::with(['created_by', 'brand','branch','region']);
+        $Trainer_query = Trainer::with(['created_by', 'brand', 'branch', 'region']);
 
         // Apply search filter if provided
         if ($request->filled('search')) {
@@ -58,7 +58,7 @@ class TrainerController extends Controller
         $user = Auth::user();
         $brand_ids = array_keys(FiltersBrands());
         if (\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team' || \Auth::user()->type == 'HR' || \Auth::user()->can('level 1')) {
-        }else if ($user->type === 'company') {
+        } else if ($user->type === 'company') {
             $Trainer_query->where('trainers.brand_id', $user->id);
         } elseif (in_array($user->type, ['Project Director', 'Project Manager']) || $user->can('level 2')) {
             $Trainer_query->whereIn('trainers.brand_id', $brand_ids);
@@ -106,7 +106,7 @@ class TrainerController extends Controller
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
-        $trainer = Trainer::with(['created_by', 'brand','branch','region'])->find($request->id);
+        $trainer = Trainer::with(['created_by', 'brand', 'branch', 'region'])->find($request->id);
         if (!$trainer) {
             return response()->json(['status' => 'error', 'message' => 'Trainer not found.'], 404);
         }
