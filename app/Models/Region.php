@@ -13,4 +13,8 @@ class Region extends Model
     {
         return $this->belongsTo(User::class, 'region_manager_id');
     }
+    public function brand()
+    {
+        return $this->belongsTo(User::class, 'brands');
+    }
 }

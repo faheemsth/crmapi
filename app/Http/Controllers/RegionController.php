@@ -214,4 +214,38 @@ class RegionController extends Controller
             ], 403);
         }
     }
+
+
+    public function regionDetail(Request $request)
+{
+    // Validate request
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|integer|exists:regions,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+        // Fetch region
+        $region = Region::with(['manager', 'brand'])->findOrFail($request->id);
+
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $region
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('An error occurred while fetching user details.'),
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 }

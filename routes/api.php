@@ -119,6 +119,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateRegion', [RegionController::class, 'updateRegion']);
     Route::post('/deleteRegion', [RegionController::class, 'deleteRegion']);
     Route::post('/deleteBulkRegions', [RegionController::class, 'deleteBulkRegions']);
+    Route::post('/regionDetail', [RegionController::class, 'regionDetail']);
 
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
