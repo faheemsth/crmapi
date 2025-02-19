@@ -20,6 +20,7 @@ use App\Http\Controllers\PayslipTypeController;
 use App\Http\Controllers\TrainingTypeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\GoalTypeController;
+use App\Http\Controllers\IndicatorController;
 use App\Http\Controllers\JobCategoryController;
 use App\Http\Controllers\JobStageController;
 use App\Http\Controllers\LoanOptionController;
@@ -116,6 +117,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateTraining', [TrainingController::class, 'updateTraining']);
     Route::post('/deleteTraining', [TrainingController::class, 'deleteTraining']);
     Route::post('/TrainingDetail', [TrainingController::class, 'TrainingDetail']);
+
+    // Training
+    Route::post('/getIndicators', [IndicatorController::class, 'getIndicators']);
+    Route::post('/addIndicator', [IndicatorController::class, 'addIndicator']);
+    Route::post('/updateIndicator', [IndicatorController::class, 'updateIndicator']);
+    Route::post('/deleteIndicator', [IndicatorController::class, 'deleteIndicator']);
+    Route::post('/indicatorDetail', [IndicatorController::class, 'indicatorDetail']);
 
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
@@ -219,6 +227,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getCompetencies', [CompetenciesController::class, 'getCompetencies']);
     Route::post('/updateCompetency', [CompetenciesController::class, 'updateCompetency']);
     Route::post('/deleteCompetency', [CompetenciesController::class, 'deleteCompetency']);
+    Route::post('/getCompetenciesByType', [CompetenciesController::class, 'getCompetenciesByType']);
 
     // Branches
     Route::post('/getInterviews', [InterviewScheduleController::class, 'getInterviews']);

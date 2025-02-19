@@ -42,6 +42,36 @@ class CompetenciesController extends Controller
             'data' => $competencies
         ], 200);
     }
+    public function getCompetenciesByType(Request $request)
+    {
+        if (!\Auth::user()->can('Manage Competencies')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'type' => 'required|integer'
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $competencies = Competencies::whereRaw("JSON_CONTAINS(type, '$request->type')")->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $competencies
+        ], 200);
+    }
 
     public function addCompetency(Request $request)
     {
