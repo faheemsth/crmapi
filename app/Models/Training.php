@@ -55,8 +55,27 @@ class Training extends Model
         return $this->hasOne('App\Models\Employee', 'id', 'employee');
     }
 
-    public function trainers()
+    public function trainer()
     {
         return $this->hasOne('App\Models\Trainer', 'id', 'trainer');
+    }
+    public function branch()
+    {
+        return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
+    }
+
+    public function brand()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'brand_id');
+    }
+
+    public function region()
+    {
+        return $this->hasOne('App\Models\Region', 'id', 'region_id');
+    }
+
+    public function created_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
     }
 }

@@ -27,6 +27,7 @@ use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
+use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
@@ -102,12 +103,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteBrand', [UserController::class, 'deleteBrand']);
     Route::post('/brandDetail', [UserController::class, 'brandDetail']);
 
-    // user/brands
+    // trainers
     Route::post('/getTrainers', [TrainerController::class, 'getTrainers']);
     Route::post('/addTrainer', [TrainerController::class, 'addTrainer']);
     Route::post('/updateTrainer', [TrainerController::class, 'updateTrainer']);
     Route::post('/deleteTrainer', [TrainerController::class, 'deleteTrainer']);
     Route::post('/trainerDetail', [TrainerController::class, 'trainerDetail']);
+
+    // Training
+    Route::post('/getTraining', [TrainingController::class, 'getTraining']);
+    Route::post('/addTraining', [TrainingController::class, 'addTraining']);
+    Route::post('/updateTraining', [TrainingController::class, 'updateTraining']);
+    Route::post('/deleteTraining', [TrainingController::class, 'deleteTraining']);
+    Route::post('/TrainingDetail', [TrainingController::class, 'TrainingDetail']);
 
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
