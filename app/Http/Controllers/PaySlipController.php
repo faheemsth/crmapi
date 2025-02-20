@@ -59,8 +59,11 @@ class PaySlipController extends Controller
 
         $this->generatePayslips($eligibleEmployees, $formattedMonthYear);
         $this->sendNotifications($formattedMonthYear);
-
-        return response()->json(['success' => 'Payslip successfully created.'], 201);
+        $payslips = PaySlip::with('employee', 'employee.salaryType')
+            ->where('salary_month', $formattedMonthYear)
+            ->where('created_by', Auth::id())
+            ->get();
+        return response()->json(['success' => 'Payslip successfully created.','data'=> $payslips], 201);
     }
 
     private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
