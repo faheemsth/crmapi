@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\API\PaySlipController;
 use App\Http\Controllers\AwardTypeController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
@@ -263,7 +264,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateQuestion', [CustomQuestionController::class, 'updateQuestion']);
     Route::post('/deleteQuestion', [CustomQuestionController::class, 'deleteQuestion']);
 
-    // paytype
+
+
+
+// API Routes
+Route::prefix('payslips')->group(function () {
+    Route::get('/', [PaySlipController::class, 'index']);
+    Route::get('/{id}', [PaySlipController::class, 'show']);
+    Route::post('/', [PaySlipController::class, 'store']);
+    Route::get('/search-json', [PaySlipController::class, 'searchJson']);
+    Route::match(['put', 'patch'], '/{id}', [PaySlipController::class, 'update']);
+    Route::delete('/{id}', [PaySlipController::class, 'destroy']);
+});
 
     Route::get('/payslip-types', [PayslipTypeController::class, 'index'])->middleware('can:manage payslip type');
     Route::get('/pluckPayslip', [PayslipTypeController::class, 'pluckPayslip'])->middleware('can:manage payslip type');
