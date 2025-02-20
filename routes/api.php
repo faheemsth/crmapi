@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceOptionController;
-use App\Http\Controllers\API\PaySlipController;
+use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\AwardTypeController;
 use App\Http\Controllers\GeneralController;
