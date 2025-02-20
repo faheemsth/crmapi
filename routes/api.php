@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceOptionController;
 use App\Http\Controllers\API\PaySlipController;
+use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\AwardTypeController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PayslipTypeController;
 use App\Http\Controllers\TrainingTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
 use App\Http\Controllers\IndicatorController;
 use App\Http\Controllers\JobCategoryController;
@@ -57,7 +59,7 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/changePassword', 'changePassword');
 });
 
-Route::get('/appMeta', [ProductController::class, 'appMeta']);
+//Route::get('/appMeta', [ProductController::class, 'appMeta']);
 Route::post('/jobRequirement', [JobController::class, 'jobRequirement']);
 Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 
@@ -125,6 +127,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateIndicator', [IndicatorController::class, 'updateIndicator']);
     Route::post('/deleteIndicator', [IndicatorController::class, 'deleteIndicator']);
     Route::post('/indicatorDetail', [IndicatorController::class, 'indicatorDetail']);
+
+    // Apraisals
+    Route::post('/getApraisals', [AppraisalController::class, 'getApraisals']);
+    Route::post('/addApraisal', [AppraisalController::class, 'addApraisal']);
+    Route::post('/updateAppraisal', [AppraisalController::class, 'updateAppraisal']);
+    Route::post('/deleteAppraisal', [AppraisalController::class, 'deleteAppraisal']);
+    Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
+
+    // Apraisals
+    Route::post('/getGoalTrackings', [GoalTrackingController::class, 'getGoalTrackings']);
+    Route::post('/addGoalTracking', [GoalTrackingController::class, 'addGoalTracking']);
+    Route::post('/updateGoalTracking', [GoalTrackingController::class, 'updateGoalTracking']);
+    Route::post('/deleteGoalTracking', [GoalTrackingController::class, 'deleteGoalTracking']);
+    Route::post('/goalTrackingDetail', [GoalTrackingController::class, 'goalTrackingDetail']);
 
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);

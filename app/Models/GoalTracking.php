@@ -27,6 +27,26 @@ class GoalTracking extends Model
     {
         return $this->hasOne('App\Models\Branch', 'id', 'branch');
     }
+    public function branch()
+    {
+        return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
+    }
+
+    public function brand()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'brand_id');
+    }
+
+    public function region()
+    {
+        return $this->hasOne('App\Models\Region', 'id', 'region_id');
+    }
+
+    public function created_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
+    }
+
 
     public static $status = [
         'Not Started',

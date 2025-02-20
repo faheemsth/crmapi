@@ -8,4 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class appraisalremark extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'appraisal_id',
+        'competencies_id',
+        'remarks',
+    ];
+
 }
