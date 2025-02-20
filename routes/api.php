@@ -281,18 +281,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteQuestion', [CustomQuestionController::class, 'deleteQuestion']);
 
 
+    // Pay slip
 
+    Route::get('payslips/', [PaySlipController::class, 'index']);
+    Route::get('payslips/{id}', [PaySlipController::class, 'show']);
+    Route::post('payslips/', [PaySlipController::class, 'store']);
+    Route::post('payslips-show', [PaySlipController::class, 'searchJson']);
+    Route::match(['put', 'patch'], 'payslips/{id}', [PaySlipController::class, 'update']);
+    Route::delete('payslips/{id}', [PaySlipController::class, 'destroy']);
 
-// API Routes
-Route::prefix('payslips')->group(function () {
-    Route::get('/', [PaySlipController::class, 'index']);
-    Route::get('/{id}', [PaySlipController::class, 'show']);
-    Route::post('/', [PaySlipController::class, 'store']);
-    Route::get('/search-json', [PaySlipController::class, 'searchJson']);
-    Route::match(['put', 'patch'], '/{id}', [PaySlipController::class, 'update']);
-    Route::delete('/{id}', [PaySlipController::class, 'destroy']);
-});
-
+    // Pay slip Type
     Route::get('/payslip-types', [PayslipTypeController::class, 'index'])->middleware('can:manage payslip type');
     Route::get('/pluckPayslip', [PayslipTypeController::class, 'pluckPayslip'])->middleware('can:manage payslip type');
     Route::post('/payslip-store', [PayslipTypeController::class, 'store'])->middleware('can:create payslip type');

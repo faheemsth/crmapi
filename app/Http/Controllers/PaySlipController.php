@@ -1,140 +1,229 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Employee;
 use App\Models\PaySlip;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
 
 class PaySlipController extends Controller
 {
     public function index()
     {
-        if (Auth::user()->can('manage pay slip')) {
-            $employees = Employee::all();
-
-            $month = [
-                '01' => 'JAN', '02' => 'FEB', '03' => 'MAR', '04' => 'APR', '05' => 'MAY',
-                '06' => 'JUN', '07' => 'JUL', '08' => 'AUG', '09' => 'SEP', '10' => 'OCT',
-                '11' => 'NOV', '12' => 'DEC',
-            ];
-
-            $year = range(date('Y'), date('Y') - 9);
-
+        // Check user permissions
+        if (!$this->canManagePaySlips()) {
             return response()->json([
-                'employees' => $employees,
-                'months' => $month,
-                'years' => $year,
-            ]);
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
         }
 
-        return response()->json(['error' => 'Permission denied.'], 403);
+        // Fetch employees and prepare month/year options
+        $payslips = PaySlip::with('employees', 'employee.salaryType')
+            ->where('created_by', Auth::id())
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $payslips,
+        ], 201);
     }
 
     public function store(Request $request)
     {
+        // Check user permissions
+        if (!$this->canManagePaySlips()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        // Validate request input
         $validator = Validator::make($request->all(), [
-            'month' => 'required',
-            'year' => 'required',
+            'month' => 'required|string|size:2|in:' . implode(',', array_keys($this->getMonths())),
+            'year' => 'required|string|size:4|regex:/^\d{4}$/',
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()->first()], 422);
+            return $this->errorResponse($validator->errors()->first(), 422);
         }
 
         $formattedMonthYear = $request->year . '-' . $request->month;
 
-        $existingPayslips = PaySlip::where('salary_month', $formattedMonthYear)
-            ->where('created_by', Auth::id())
-            ->pluck('employee_id');
+        // Check for existing payslips
+        $existingPayslips = $this->getExistingPayslips($formattedMonthYear);
 
+        // Get eligible employees
         $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips);
 
         if ($eligibleEmployees->isEmpty()) {
-            return response()->json(['error' => 'Please set employee salary.'], 400);
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Payslips have already been created.')
+            ], 400);
         }
 
+        // Generate payslips and send notifications
         $this->generatePayslips($eligibleEmployees, $formattedMonthYear);
         $this->sendNotifications($formattedMonthYear);
-        $payslips = PaySlip::with('employee', 'employee.salaryType')
-            ->where('salary_month', $formattedMonthYear)
+
+        // Fetch and return generated payslips
+        $payslips = $this->fetchPayslips($formattedMonthYear);
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Payslips successfully created.'),
+            'data' => $payslips,
+        ], 201);
+    }
+
+    public function destroy($id)
+    {
+        // Check user permissions
+        if (!$this->canManagePaySlips()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        // Find and delete payslip
+        $payslip = PaySlip::where('id', $id)
             ->where('created_by', Auth::id())
-            ->get();
-        return response()->json(['success' => 'Payslip successfully created.','data'=> $payslips], 201);
+            ->first();
+
+        if (!$payslip) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Payslip not found.",
+            ], 404);
+        }
+
+        $payslip->delete();
+        return response()->json([
+            'status' => 'success',
+            'message' => "Payslip deleted.",
+        ], 200);
+    }
+
+    public function searchJson(Request $request)
+    {
+        // Validate request input
+        $validator = Validator::make($request->all(), [
+            'datePicker' => 'required|date_format:Y-m',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()->first()
+            ], 422);
+        }
+
+        // Fetch payslips for the given month
+        $payslips = $this->fetchPayslips($request->datePicker);
+        return response()->json([
+            'status' => 'success',
+            'data' => $payslips,
+        ], 201);
+    }
+
+    // Helper methods
+
+    private function canManagePaySlips()
+    {
+        return Auth::user()->can('manage pay slip');
+    }
+
+    private function errorResponse($message, $statusCode)
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => $message
+        ], $statusCode);
+    }
+
+    private function getMonths()
+    {
+        return [
+            '01' => 'JAN',
+            '02' => 'FEB',
+            '03' => 'MAR',
+            '04' => 'APR',
+            '05' => 'MAY',
+            '06' => 'JUN',
+            '07' => 'JUL',
+            '08' => 'AUG',
+            '09' => 'SEP',
+            '10' => 'OCT',
+            '11' => 'NOV',
+            '12' => 'DEC',
+        ];
+    }
+
+    private function getYears()
+    {
+        return range(date('Y'), date('Y') - 9);
+    }
+
+    private function getExistingPayslips($formattedMonthYear)
+    {
+        return PaySlip::where('salary_month', $formattedMonthYear)
+            ->where('created_by', Auth::id())
+            ->pluck('employee_id');
     }
 
     private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
     {
-        $query = Employee::where('company_doj', '<=', date($formattedMonthYear . '-t'))
+        return Employee::where('company_doj', '<=', date($formattedMonthYear . '-t'))
             ->whereNotIn('id', $existingPayslips)
             ->whereNotNull('salary')
-            ->whereNotNull('salary_type');
-
-        // Apply additional filters if required
-        return $query->get();
+            ->whereNotNull('salary_type')
+            ->get();
     }
 
     private function generatePayslips($employees, $formattedMonthYear)
     {
         foreach ($employees as $employee) {
-            $payslip = PaySlip::firstOrNew([
+            PaySlip::firstOrCreate([
                 'employee_id' => $employee->id,
                 'salary_month' => $formattedMonthYear,
                 'created_by' => Auth::id(),
+            ], [
+                'net_payble' => $employee->get_net_salary(),
+                'status' => 0,
+                'basic_salary' => $employee->salary ?? 0,
+                'allowance' => Employee::allowance($employee->id),
+                'commission' => Employee::commission($employee->id),
+                'loan' => Employee::loan($employee->id),
+                'saturation_deduction' => Employee::saturation_deduction($employee->id),
+                'other_payment' => Employee::other_payment($employee->id),
+                'overtime' => Employee::overtime($employee->id),
             ]);
-
-            if (!$payslip->exists) {
-                $payslip->fill([
-                $payslip->net_payble = $employee->get_net_salary(),
-                $payslip->status = 0,
-                $payslip->basic_salary = $employee->salary ?? 0,
-                $payslip->allowance = Employee::allowance($employee->id),
-                $payslip->commission = Employee::commission($employee->id),
-                $payslip->loan = Employee::loan($employee->id),
-                $payslip->saturation_deduction = Employee::saturation_deduction($employee->id),
-                $payslip->other_payment = Employee::other_payment($employee->id),
-                $payslip->overtime = Employee::overtime($employee->id),
-                $payslip->save(),
-                ]);
-                $payslip->save();
-            }
         }
     }
 
     private function sendNotifications($formattedMonthYear)
     {
-        $setting = Utility::settings(Auth::id());
+        $settings = Utility::settings(Auth::id());
 
-        if (!empty($setting['payslip_notification'])) {
+        if (!empty($settings['payslip_notification'])) {
             Utility::send_slack_msg("Payslip generated for $formattedMonthYear.");
         }
 
-        if (!empty($setting['telegram_payslip_notification'])) {
+        if (!empty($settings['telegram_payslip_notification'])) {
             Utility::send_telegram_msg("Payslip generated for $formattedMonthYear.");
         }
     }
 
-    public function destroy($id)
+    private function fetchPayslips($formattedMonthYear)
     {
-        $payslip = PaySlip::find($id);
-        if ($payslip) {
-            $payslip->delete();
-            return response()->json(['success' => 'Payslip deleted.']);
-        }
-        return response()->json(['error' => 'Payslip not found.'], 404);
-    }
-
-    public function searchJson(Request $request)
-    {
-        $formattedMonthYear = $request->datePicker;
-        $payslips = PaySlip::with('employee', 'employee.salaryType')
+        return PaySlip::with('employees', 'employee.salaryType')
             ->where('salary_month', $formattedMonthYear)
             ->where('created_by', Auth::id())
             ->get();
-
-        return response()->json($payslips);
     }
 }
