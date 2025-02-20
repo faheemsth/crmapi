@@ -7,6 +7,7 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceOptionController;
 use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
+use App\Http\Controllers\AttendanceEmployeeController;
 use App\Http\Controllers\AwardTypeController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\GoalTypeController;
 use App\Http\Controllers\IndicatorController;
 use App\Http\Controllers\JobCategoryController;
 use App\Http\Controllers\JobStageController;
+use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
@@ -134,6 +136,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateAppraisal', [AppraisalController::class, 'updateAppraisal']);
     Route::post('/deleteAppraisal', [AppraisalController::class, 'deleteAppraisal']);
     Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
+
+    // Leaves
+    Route::post('/getLeaves', [LeaveController::class, 'getLeaves']);
+    Route::post('/addLeave', [LeaveController::class, 'addLeave']);
+    Route::post('/updateLeave', [LeaveController::class, 'updateLeave']);
+    Route::post('/deleteLeave', [LeaveController::class, 'deleteLeave']);
+    // Leaves
+    Route::post('/getAttendances', [AttendanceEmployeeController::class, 'getAttendances']);
+    Route::post('/addAttendance', [AttendanceEmployeeController::class, 'addAttendance']);
+    Route::post('/updateAttendance', [AttendanceEmployeeController::class, 'updateAttendance']);
+    Route::post('/deleteAttendance', [AttendanceEmployeeController::class, 'deleteAttendance']);
 
     // Apraisals
     Route::post('/getGoalTrackings', [GoalTrackingController::class, 'getGoalTrackings']);
