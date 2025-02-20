@@ -1,8 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\API;
-
-use App\Http\Controllers\Controller;
+namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\PaySlip;
 use App\Models\Utility;
