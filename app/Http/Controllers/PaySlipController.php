@@ -85,15 +85,16 @@ class PaySlipController extends Controller
 
             if (!$payslip->exists) {
                 $payslip->fill([
-                    'net_payble' => $employee->get_net_salary(),
-                    'status' => 0,
-                    'basic_salary' => $employee->salary,
-                    'allowance' => $employee->get_allowance(),
-                    'commission' => $employee->get_commission(),
-                    'loan' => $employee->get_loan(),
-                    'saturation_deduction' => $employee->get_saturation_deduction(),
-                    'other_payment' => $employee->get_other_payment(),
-                    'overtime' => $employee->get_overtime(),
+                $payslip->net_payble = $employee->get_net_salary(),
+                $payslip->status = 0,
+                $payslip->basic_salary = $employee->salary ?? 0,
+                $payslip->allowance = Employee::allowance($employee->id),
+                $payslip->commission = Employee::commission($employee->id),
+                $payslip->loan = Employee::loan($employee->id),
+                $payslip->saturation_deduction = Employee::saturation_deduction($employee->id),
+                $payslip->other_payment = Employee::other_payment($employee->id),
+                $payslip->overtime = Employee::overtime($employee->id),
+                $payslip->save(),
                 ]);
                 $payslip->save();
             }
