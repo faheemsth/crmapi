@@ -41,7 +41,7 @@ class RegionController extends Controller
         $page = $request->input('page', 1);
 
         // No need for query() here, just use the model's builder directly
-        $query = Region::with('manager');
+        $query = Region::with('manager','brand');
 
         if ($request->filled('search')) {
             $search = $request->input('search');
