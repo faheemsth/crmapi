@@ -290,6 +290,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['put', 'patch'], 'payslips/{id}', [PaySlipController::class, 'update']);
     Route::delete('payslips/{id}', [PaySlipController::class, 'destroy']);
 
+
+    // 
+    Route::post('updateEmployeeSalary/{id}', [PaySlipController::class, 'updateEmployeeSalary']);
+    
     // Pay slip Type
     Route::get('/payslip-types', [PayslipTypeController::class, 'index'])->middleware('can:manage payslip type');
     Route::get('/pluckPayslip', [PayslipTypeController::class, 'pluckPayslip'])->middleware('can:manage payslip type');
