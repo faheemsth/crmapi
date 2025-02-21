@@ -226,4 +226,43 @@ class PaySlipController extends Controller
             ->where('created_by', Auth::id())
             ->get();
     }
+
+
+    public function updateEmployeeSalary(Request $request, $id)
+    {
+        // Validate the request data
+        $validator = \Validator::make($request->all(), [
+            'salary_type' => 'required|integer', // Ensure it's an integer
+            'salary' => 'required|numeric',      // Ensure it's numeric
+        ]);        
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+    
+        // Find the employee or return a 404 error if not found
+        $employee = Employee::where('user_id',$id)->first();
+        if (!$employee) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Employee not found.',
+            ], 404);
+        }
+    
+        // Update the employee's salary details
+        $employee->salary_type = $request->salary_type;
+        $employee->salary = $request->salary;
+        $employee->save();
+    
+        // Return a success response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Employee salary updated successfully.',
+            'data' => $employee,
+        ], 200);
+    }
+    
 }
