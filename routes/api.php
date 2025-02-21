@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AllowanceOptionController;
 use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
@@ -147,6 +148,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/addAttendance', [AttendanceEmployeeController::class, 'addAttendance']);
     Route::post('/updateAttendance', [AttendanceEmployeeController::class, 'updateAttendance']);
     Route::post('/deleteAttendance', [AttendanceEmployeeController::class, 'deleteAttendance']);
+
+    // AllowanceController
+    Route::post('/getAllowances', [AllowanceController::class, 'getAllowances']);
+    Route::post('/addEmpoyeeAllowance', [AllowanceController::class, 'addEmpoyeeAllowance']);
+    Route::post('/updateEmployeeAllowance', [AllowanceController::class, 'updateEmployeeAllowance']);
+    Route::post('/deleteEmployeeAllownce', [AllowanceController::class, 'deleteEmployeeAllownce']);
 
     // Apraisals
     Route::post('/getGoalTrackings', [GoalTrackingController::class, 'getGoalTrackings']);

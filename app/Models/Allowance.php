@@ -21,7 +21,7 @@ class Allowance extends Model
 
     public function allowance_option()
     {
-        return $this->hasOne('App\Models\AllowanceOption', 'id', 'allowance_option')->first();
+        return $this->hasOne('App\Models\AllowanceOption', 'id', 'allowance_option');
     }
 
     public static $Allowancetype =[

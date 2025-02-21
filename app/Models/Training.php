@@ -45,7 +45,7 @@ class Training extends Model
         return $this->hasOne('App\Models\Branch', 'id', 'branch');
     }
 
-    public function types()
+    public function training_type()
     {
         return $this->hasOne('App\Models\TrainingType', 'id', 'training_type');
     }
