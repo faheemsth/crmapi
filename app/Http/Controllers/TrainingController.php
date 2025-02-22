@@ -178,12 +178,7 @@ class TrainingController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        $training = Training::with(['created_by', 'brand', 'branch', 'region', 'trainer','training_type'])->select('trainings.id', 'regions.name as region', 'branches.name as branch', 'users.name as brand', 'trainings.id', 'trainings.training_cost', 'trainings.created_by', 'trainings.status', 'trainings.training_type', 'trainings.trainer', 'assigned_to.name as assignName', 'trainings.created_at', 'trainings.updated_at')
-            ->leftJoin('users', 'users.id', '=', 'trainings.brand_id')
-            ->leftJoin('branches', 'branches.id', '=', 'trainings.branch_id')
-            ->leftJoin('regions', 'regions.id', '=', 'trainings.region_id')
-            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'trainings.employee')
-            ->where('trainings.id', $request->id)->first();
+        $training = Training::with(['created_by', 'brand', 'branch', 'region', 'trainer','training_type'])->where('id', $request->id)->first();
 
         $status = Training::$Status;
 
