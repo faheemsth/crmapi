@@ -156,8 +156,9 @@ class TrainerController extends Controller
 
         // Apply sorting and pagination
         $trainers = $Trainer_query->orderBy('trainers.firstname', 'ASC')
-    ->pluck(\DB::raw("CONCAT(trainers.firstname, ' ', trainers.lastname)"), 'id')
-    ->toArray();
+        ->select('trainers.id', \DB::raw("CONCAT(trainers.firstname, ' ', trainers.lastname) as fullname"))
+        ->pluck('fullname', 'id')
+        ->toArray();
 
 
         // Return the paginated data
