@@ -50,7 +50,7 @@ class LeaveController extends Controller
         $page = $request->input('page', 1);
 
         // Base query with necessary joins
-        $query = Leave::with(['brand', 'branch', 'region', 'created_by']);
+        $query = Leave::with(['brand', 'branch', 'region', 'created_by','leaveType','employees']);
 
         // Apply role-based filtering
         $query = RoleBaseTableGet($query, 'leaves.brand_id', 'leaves.region_id', 'leaves.branch_id', 'leaves.created_by');

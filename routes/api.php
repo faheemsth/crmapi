@@ -133,7 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/indicatorDetail', [IndicatorController::class, 'indicatorDetail']);
 
     // Apraisals
-    Route::post('/getApraisals', [AppraisalController::class, 'getApraisals']);
+    Route::post('/getAppraisals', [AppraisalController::class, 'getAppraisals']);
     Route::post('/addApraisal', [AppraisalController::class, 'addApraisal']);
     Route::post('/updateAppraisal', [AppraisalController::class, 'updateAppraisal']);
     Route::post('/deleteAppraisal', [AppraisalController::class, 'deleteAppraisal']);
@@ -192,7 +192,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Training type
     Route::post('/addTrainingType', [TrainingTypeController::class, 'addTrainingType']);
-    
+
     Route::get('/TrainingTypes', [TrainingTypeController::class, 'TrainingTypes']);
     Route::get('/getTrainingTypes', [TrainingTypeController::class, 'getTrainingTypes']);
     Route::post('/updateTrainType', [TrainingTypeController::class, 'updateTrainType']);
@@ -314,9 +314,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('payslips/{id}', [PaySlipController::class, 'destroy']);
 
 
-    // 
+    //
     Route::post('updateEmployeeSalary/{id}', [PaySlipController::class, 'updateEmployeeSalary']);
-    
+
     // Pay slip Type
     Route::get('/payslip-types', [PayslipTypeController::class, 'index'])->middleware('can:manage payslip type');
     Route::get('/pluckPayslip', [PayslipTypeController::class, 'pluckPayslip'])->middleware('can:manage payslip type');
