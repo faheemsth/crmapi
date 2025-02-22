@@ -192,6 +192,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Training type
     Route::post('/addTrainingType', [TrainingTypeController::class, 'addTrainingType']);
+    
+    Route::get('/TrainingTypes', [TrainingTypeController::class, 'TrainingTypes']);
     Route::get('/getTrainingTypes', [TrainingTypeController::class, 'getTrainingTypes']);
     Route::post('/updateTrainType', [TrainingTypeController::class, 'updateTrainType']);
     Route::post('/deleteTrainingType', [TrainingTypeController::class, 'deleteTrainingType']);

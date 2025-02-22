@@ -7,6 +7,22 @@ use Illuminate\Http\Request;
 
 class TrainingTypeController extends Controller
 {
+    public function TrainingTypes()
+    {
+        if (!\Auth::user()->can('manage training type')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        $trainingTypes = TrainingType::pluck('name', 'id')->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $trainingTypes
+        ], 200);
+    }
     public function getTrainingTypes()
     {
         if (!\Auth::user()->can('manage training type')) {
