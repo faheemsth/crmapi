@@ -178,7 +178,7 @@ class TrainingController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-        $training = Training::with(['created_by', 'brand', 'branch', 'region', 'trainer','training_type'])->where('id', $request->id)->first();
+        $training = Training::with(['employees','created_by', 'brand', 'branch', 'region', 'trainer','training_type'])->where('id', $request->id)->first();
 
         $status = Training::$Status;
 
