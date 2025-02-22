@@ -207,6 +207,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getDepartments', [DepartmentController::class, 'getDepartments']);
     Route::post('/updateDepartment', [DepartmentController::class, 'updateDepartment']);
     Route::post('/deleteDepartment', [DepartmentController::class, 'deleteDepartment']);
+    Route::post('/departmentsPluck', [DepartmentController::class, 'departmentsPluck']);
 
 
 
@@ -333,6 +334,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // general routes
+    Route::get('/getRolesPluck', [GeneralController::class, 'getRolesPluck']);
     Route::get('/getAllBrands', [GeneralController::class, 'getAllBrands']);
     Route::post('/getDefaultFiltersData', [GeneralController::class, 'getDefaultFiltersData']);
     Route::get('/getAllProjectDirectors', [GeneralController::class, 'getAllProjectDirectors']);

@@ -7,6 +7,17 @@ use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
 {
+
+    public function departmentsPluck()
+    {
+
+        $Departments = Department::pluck('name', 'id')->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $Departments
+        ], 200);
+    }
     public function getDepartments()
     {
         if (!\Auth::user()->can('manage department')) {
