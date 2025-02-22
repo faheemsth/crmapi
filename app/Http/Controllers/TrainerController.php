@@ -97,6 +97,73 @@ class TrainerController extends Controller
             'per_page' => $trainers->perPage(),
         ], 200);
     }
+    
+    public function Trainers(Request $request)
+    {
+        // Permission check
+        if (!Auth::user()->can('manage trainer')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        // Validate incoming request
+        $validator = Validator::make($request->all(), [
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'search' => 'nullable|string',
+            'brand_id' => 'nullable|integer|exists:brands,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Pagination settings
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
+
+        // Build the query for trainers
+        $Trainer_query = Trainer::query();
+
+        // Apply search filter if provided
+
+
+        // Apply user-specific filters
+        $user = Auth::user();
+        $brand_ids = array_keys(FiltersBrands());
+        if (\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team' || \Auth::user()->type == 'HR' || \Auth::user()->can('level 1')) {
+        } else if ($user->type === 'company') {
+            $Trainer_query->where('trainers.brand_id', $user->id);
+        } elseif (in_array($user->type, ['Project Director', 'Project Manager']) || $user->can('level 2')) {
+            $Trainer_query->whereIn('trainers.brand_id', $brand_ids);
+        } elseif ($user->type === 'Region Manager' && !empty($user->region_id)) {
+            $Trainer_query->where('trainers.region_id', $user->region_id);
+        } elseif (($user->type === 'Branch Manager' || in_array($user->type, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) && !empty($user->branch_id)) {
+            $Trainer_query->where('trainers.branch_id', $user->branch_id);
+        } else {
+            $Trainer_query->where('trainers.created_by', $user->id);
+        }
+
+        // Apply additional filters
+
+
+        // Apply sorting and pagination
+        $trainers = $Trainer_query->orderBy('trainers.firstname', 'ASC')->pluck('trainers.firstname', 'id')->toArray();
+
+
+        // Return the paginated data
+        return response()->json([
+            'status' => 'success',
+            'data' => $trainers,
+        ], 200);
+    }
     public function trainerDetail(Request $request)
     {
         $validator = Validator::make($request->all(), [

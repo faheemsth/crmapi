@@ -112,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // trainers
     Route::post('/getTrainers', [TrainerController::class, 'getTrainers']);
+    Route::post('/Trainers', [TrainerController::class, 'Trainers']);
     Route::post('/addTrainer', [TrainerController::class, 'addTrainer']);
     Route::post('/updateTrainer', [TrainerController::class, 'updateTrainer']);
     Route::post('/deleteTrainer', [TrainerController::class, 'deleteTrainer']);
