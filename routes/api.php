@@ -32,6 +32,7 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
@@ -138,6 +139,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateAppraisal', [AppraisalController::class, 'updateAppraisal']);
     Route::post('/deleteAppraisal', [AppraisalController::class, 'deleteAppraisal']);
     Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
+
+    // SetSalaries
+    Route::post('/getSetSalaries', [SetSalaryController::class, 'getSetSalaries']);
 
     // Leaves
     Route::post('/getLeaves', [LeaveController::class, 'getLeaves']);
