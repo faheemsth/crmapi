@@ -41,7 +41,7 @@ class IndicatorController extends Controller
         $page = $request->input('page', 1);
 
         // Build the query for indicators
-        $indicator_query = Indicator::with(['created_by', 'brand', 'branch', 'region','updated_by']);
+        $indicator_query = Indicator::with(['created_by', 'brand', 'branch', 'region','updated_by','designations','departments']);
 
         // Apply search filter if provided
         if ($request->filled('search')) {
@@ -57,7 +57,10 @@ class IndicatorController extends Controller
             if ($column == 'created_at') {
                 $indicator_query->whereDate('indicators.created_at', 'LIKE', '%' . substr($value, 0, 10) . '%');
             } elseif ($column == 'brand') {
+                if(!is_null($value)){
+
                 $indicator_query->where('indicators.brand_id', $value);
+                }
             } elseif ($column == 'region_id') {
                 $indicator_query->where('indicators.region_id', $value);
             } elseif ($column == 'branch_id') {
@@ -96,7 +99,7 @@ class IndicatorController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-        $indicator = Indicator::with(['created_by', 'brand', 'branch', 'region','updated_by'])->find($request->id);
+        $indicator = Indicator::with(['created_by', 'brand', 'branch', 'region','updated_by','designations','departments'])->find($request->id);
         if (!$indicator) {
             return response()->json(['status' => 'error', 'message' => 'Indicator not found.'], 404);
         }

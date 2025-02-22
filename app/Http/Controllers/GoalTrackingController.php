@@ -47,7 +47,7 @@ class GoalTrackingController extends Controller
         $page = $request->input('page', 1);
 
         // Base query with necessary joins
-        $query = GoalTracking::with(['created_by', 'brand', 'branch', 'region']);
+        $query = GoalTracking::with(['created_by', 'brand', 'branch', 'region','goalType']);
 
         // Apply role-based filtering
         $query = RoleBaseTableGet($query, 'goal_trackings.brand_id', 'goal_trackings.region_id', 'goal_trackings.branch_id', 'goal_trackings.created_by');
@@ -122,7 +122,7 @@ class GoalTrackingController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'brand_id'   => 'required|integer|exists:brands,id',
+            'brand_id'   => 'required|integer|exists:users,id',
             'region_id'  => 'required|integer|exists:regions,id',
             'lead_branch' => 'required|integer|exists:branches,id',
             'goal_type'  => 'required|string',
@@ -183,7 +183,7 @@ class GoalTrackingController extends Controller
         }
 
         $goalTracking = GoalTracking::where('id', $request->id)
-            ->with(['brand:id,name', 'branch:id,name', 'region:id,name'])
+            ->with(['brand:id,name', 'branch:id,name', 'region:id,name','goalType'])
             ->first();
 
         if (!$goalTracking) {

@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Auth;
 class AppraisalController extends Controller
 {
 
-    public function getApraisals(Request $request)
+    public function getAppraisals(Request $request)
     {
         // Validation rules
         $validator = Validator::make($request->all(), [
@@ -64,6 +64,7 @@ class AppraisalController extends Controller
             'users.name as brand',
             'assigned_to.name as created_user'
         )
+        ->with('employees')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -364,6 +365,7 @@ class AppraisalController extends Controller
         'users.name as brand',
         'assigned_to.name as created_user'
     )
+    ->with('employees')
     ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
     ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
     ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -398,14 +400,14 @@ class AppraisalController extends Controller
 
     return response()->json([
         'status' => 'success',
-        'data' => [
-            'appraisal' => $appraisal,
+
+            'data' => $appraisal,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
             'rating' => $rating,
             'user' => $user,
             'employee' => $employee,
-        ]
+
     ]);
 }
 
