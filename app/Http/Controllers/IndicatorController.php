@@ -99,7 +99,7 @@ class IndicatorController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-        $indicator = Indicator::with(['created_by', 'brand', 'branch', 'region','updated_by'])->find($request->id);
+        $indicator = Indicator::with(['created_by', 'brand', 'branch', 'region','updated_by','designations'])->find($request->id);
         if (!$indicator) {
             return response()->json(['status' => 'error', 'message' => 'Indicator not found.'], 404);
         }
