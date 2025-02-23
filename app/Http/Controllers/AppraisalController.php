@@ -144,16 +144,13 @@ class AppraisalController extends Controller
             'lead_branch' => 'required|integer|min:1',
             'lead_assigned_user' => 'required|integer|min:1',
             'appraisal_date' => 'required|date',
-            'admission_rate' => 'nullable|string',
-            'admission_remarks' => 'nullable|string',
-            'application_rate' => 'nullable|string',
-            'application_remarks' => 'nullable|string',
-            'deposit_rate' => 'nullable|string',
-            'deposit_remarks' => 'nullable|string',
-            'visa_rate' => 'nullable|string',
-            'visa_remarks' => 'nullable|string',
-            'remark' => 'nullable|string',
+            'rating' => 'nullable|array',
+            'admission_rate' => 'nullable|numeric',
+            'application_rate' => 'nullable|numeric',
+            'deposit_rate' => 'nullable|numeric',
+            'visa_rate' => 'nullable|numeric',
             'competencyRemarks' => 'nullable|array',
+            'competencyRemarks.*' => 'string',
         ]);
     
         if ($validator->fails()) {
@@ -188,13 +185,13 @@ class AppraisalController extends Controller
         $appraisal->appraisal_date = $request->appraisal_date;
         $appraisal->rating = json_encode($request->rating, true);
         $appraisal->remark = $request->remark;
-        $appraisal->admission_rate = $request->admission_rate;
+        $appraisal->admission_rate = $request->admission_rate ?: 0;
         $appraisal->admission_remarks = $request->admission_remarks;
-        $appraisal->application_rate = $request->application_rate;
+        $appraisal->application_rate = $request->application_rate ?: 0;
         $appraisal->application_remarks = $request->application_remarks;
-        $appraisal->deposit_rate = $request->deposit_rate;
+        $appraisal->deposit_rate = $request->deposit_rate ?: 0;
         $appraisal->deposit_remarks = $request->deposit_remarks;
-        $appraisal->visa_rate = $request->visa_rate;
+        $appraisal->visa_rate = $request->visa_rate ?: 0; // Ensure visa_rate is a numeric value
         $appraisal->visa_remarks = $request->visa_remarks;
         $appraisal->created_by = $request->emp_id ?? Auth::id();
         $appraisal->save();
@@ -216,6 +213,7 @@ class AppraisalController extends Controller
             'data' => $appraisal,
         ], 201);
     }
+    
     
     public function updateAppraisal(Request $request)
     {
