@@ -129,45 +129,57 @@ class AppraisalController extends Controller
     public function addApraisal(Request $request)
     {
         $user = Auth::user();
-
+    
         if (!$user->can('create appraisal')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied'),
             ], 403);
         }
-
+    
         // Validation rules
         $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:appraisals,id',
             'brand_id' => 'required|integer|min:1',
             'region_id' => 'required|integer|min:1',
             'lead_branch' => 'required|integer|min:1',
-            'lead_assigned_user' => 'required',
+            'lead_assigned_user' => 'required|integer|min:1',
+            'appraisal_date' => 'required|date',
+            'admission_rate' => 'nullable|string',
+            'admission_remarks' => 'nullable|string',
+            'application_rate' => 'nullable|string',
+            'application_remarks' => 'nullable|string',
+            'deposit_rate' => 'nullable|string',
+            'deposit_remarks' => 'nullable|string',
+            'visa_rate' => 'nullable|string',
+            'visa_remarks' => 'nullable|string',
+            'remark' => 'nullable|string',
+            'competencyRemarks' => 'nullable|array',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
-
+    
         // Check for duplicate appraisal
         $existingAppraisal = Appraisal::where('employee', $request->lead_assigned_user)
             ->where('appraisal_date', $request->appraisal_date)
             ->first();
-
+    
         if ($existingAppraisal) {
             $employee = User::find($existingAppraisal->employee);
             return response()->json([
                 'status' => 'duplicate',
                 'message' => __('Related to :user on :date, an appraisal already exists.', [
                     'user' => $employee->name ?? 'User',
-                    'date' => $request->appraisal_date
+                    'date' => $request->appraisal_date,
                 ]),
             ], 409);
         }
-
+    
         // Create a new Appraisal instance
         $appraisal = new Appraisal();
         $appraisal->brand_id = $request->brand_id;
@@ -187,64 +199,72 @@ class AppraisalController extends Controller
         $appraisal->visa_remarks = $request->visa_remarks;
         $appraisal->created_by = $request->emp_id ?? Auth::id();
         $appraisal->save();
-
+    
         // Insert competency remarks if provided
-        if (!empty($request->Competencies_id) && is_array($request->Competencies_id)) {
-            foreach ($request->Competencies_id as $key => $competency_id) {
-                $appraisalRemark = new AppraisalRemark();
-                $appraisalRemark->appraisal_id = $appraisal->id;
-                $appraisalRemark->competencies_id = $competency_id;
-                $appraisalRemark->remarks = $request->Competencies_remark[$key] ?? null;
-                $appraisalRemark->save();
+        if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
+            foreach ($request->competencyRemarks as $competencyId => $remark) {
+                AppraisalRemark::create([
+                    'appraisal_id' => $appraisal->id,
+                    'competencies_id' => $competencyId,
+                    'remarks' => $remark,
+                ]);
             }
         }
-
+    
         return response()->json([
             'status' => 'success',
             'message' => __('Appraisal successfully created.'),
             'data' => $appraisal,
         ], 201);
     }
-
+    
     public function updateAppraisal(Request $request)
     {
         $user = Auth::user();
-
+    
         if (!$user->can('edit appraisal')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied'),
             ], 403);
         }
-
+    
         // Validate request data
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:appraisals,id',
             'brand_id' => 'required|integer|min:1',
             'region_id' => 'required|integer|min:1',
             'lead_branch' => 'required|integer|min:1',
-            'lead_assigned_user' => 'required',
+            'lead_assigned_user' => 'required|integer|min:1',
+            'appraisal_date' => 'required|date',
+            'admission_rate' => 'nullable|string',
+            'admission_remarks' => 'nullable|string',
+            'application_rate' => 'nullable|string',
+            'application_remarks' => 'nullable|string',
+            'deposit_rate' => 'nullable|string',
+            'deposit_remarks' => 'nullable|string',
+            'visa_rate' => 'nullable|string',
+            'visa_remarks' => 'nullable|string',
+            'remark' => 'nullable|string',
+            'competencyRemarks' => 'nullable|array',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()->first(),
             ], 422);
         }
-
+    
         // Retrieve the Appraisal
         $appraisal = Appraisal::findOrFail($request->id);
-
-
-
+    
         // Update appraisal details
         $appraisal->brand_id = $request->brand_id;
         $appraisal->region_id = $request->region_id;
         $appraisal->branch = $request->lead_branch;
         $appraisal->employee = $request->lead_assigned_user;
         $appraisal->appraisal_date = $request->appraisal_date;
-        $appraisal->rating = json_encode($request->rating, true);
         $appraisal->remark = $request->remark;
         $appraisal->admission_rate = $request->admission_rate;
         $appraisal->admission_remarks = $request->admission_remarks;
@@ -256,17 +276,17 @@ class AppraisalController extends Controller
         $appraisal->visa_remarks = $request->visa_remarks;
         $appraisal->status = $request->save_type === 'Submit' ? 2 : 1;
         $appraisal->save();
-
-        // Handle Competencies remarks
-        if (!empty($request->Competencies_id) && is_array($request->Competencies_id)) {
-            foreach ($request->Competencies_id as $key => $competencyId) {
-                $appraisalRemark = AppraisalRemark::updateOrCreate(
+    
+        // Handle competency remarks
+        if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
+            foreach ($request->competencyRemarks as $competencyId => $remarks) {
+                AppraisalRemark::updateOrCreate(
                     ['appraisal_id' => $appraisal->id, 'competencies_id' => $competencyId],
-                    ['remarks' => $request->Competencies_remark[$key] ?? '']
+                    ['remarks' => $remarks]
                 );
             }
         }
-
+    
         // Log activity if appraisal is submitted
         if ($request->save_type === 'Submit') {
             LogActivity::create([
@@ -283,13 +303,14 @@ class AppraisalController extends Controller
                 'created_by' => $appraisal->created_by,
             ]);
         }
-
+    
         return response()->json([
             'status' => 'success',
             'message' => __('Appraisal successfully updated.'),
             'data' => $appraisal,
         ]);
     }
+    
 
     public function deleteAppraisal(Request $request)
     {
