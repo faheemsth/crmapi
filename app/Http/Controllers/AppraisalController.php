@@ -65,7 +65,7 @@ class AppraisalController extends Controller
             'assigned_to.name as created_user',
             'branches.name as branch_id',
         )
-        ->with('employees')
+            ->with('employees')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -322,59 +322,59 @@ class AppraisalController extends Controller
     }
 
     public function appraisalDetails(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'id' => 'required|exists:appraisals,id',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:appraisals,id',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
-    }
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
 
-    $appraisal = Appraisal::select(
-        'appraisals.*',
-        'regions.name as region',
-        'branches.name as branch',
-        'users.name as brand',
-        'assigned_to.name as created_user',
-        'branches.id as branch_id',
-        'assigned_to.id as created_id',
-    )
-    ->with('employees')
-    ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
-    ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
-    ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
-    ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'appraisals.employee')
-    ->where('appraisals.id', $request->id)
-    ->first();
+        $appraisal = Appraisal::select(
+            'appraisals.*',
+            'regions.name as region',
+            'branches.name as branch',
+            'users.name as brand',
+            'assigned_to.name as created_user',
+            'branches.id as branch_id',
+            'assigned_to.id as created_id',
+        )
+            ->with('employees')
+            ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
+            ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'appraisals.employee')
+            ->where('appraisals.id', $request->id)
+            ->first();
 
-    if (!$appraisal) {
+        if (!$appraisal) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Data Not Found'
+            ], 404);
+        }
+
+        $user = User::find($appraisal->employee);
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Employee not found'
+            ], 404);
+        }
+
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $user->type)->get();
+
+        $employee = Employee::where('user_id', $appraisal->employee)->first();
+        $user_type = Role::where('name', $user->type)->first();
+        $indicator = Indicator::where('designation', $user_type->id)->first();
+
+        $rating = !empty($appraisal->rating) ? json_decode($appraisal->rating, true) : [];
+        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Data Not Found'
-        ], 404);
-    }
-
-    $user = User::find($appraisal->employee);
-    if (!$user) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Employee not found'
-        ], 404);
-    }
-
-    $excludedTypes = ['super admin', 'company', 'team', 'client'];
-    $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $user->type)->get();
-
-    $employee = Employee::where('user_id', $appraisal->employee)->first();
-    $user_type = Role::where('name', $user->type)->first();
-    $indicator = Indicator::where('designation', $user_type->id)->first();
-
-    $rating = !empty($appraisal->rating) ? json_decode($appraisal->rating, true) : [];
-    $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
-
-    return response()->json([
-        'status' => 'success',
+            'status' => 'success',
 
             'data' => $appraisal,
             'performance_types' => $performance_types,
@@ -383,10 +383,10 @@ class AppraisalController extends Controller
             'user' => $user,
             'employee' => $employee,
 
-    ]);
-}
+        ]);
+    }
 
-public function fetchperformance(Request $request)
+    public function fetchperformance(Request $request)
     {
         $userget = User::find($request->employee);
         $user_type = Role::where('name', $userget->type)->first();
@@ -405,6 +405,46 @@ public function fetchperformance(Request $request)
             'userget' => $userget,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
+        ]);
+    }
+
+    public function fetchperformanceedit(Request $request)
+    {
+        // Fetch appraisal data
+        $appraisal = Appraisal::find($request->appraisal);
+
+        // Fetch user data
+        $userget = User::find($request->employee);
+
+        // Fetch user role
+        $user_type = Role::where('name', $userget->type)->first();
+
+        // Fetch indicator data
+        $indicator = Indicator::where('designation', $user_type->id)->first();
+
+        // Exclude certain roles
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $performance_types = Role::whereNotIn('name', $excludedTypes)
+            ->where('name', $userget->type)
+            ->get();
+
+        // Decode ratings
+        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
+        $rating = !empty($appraisal) ? json_decode($appraisal->rating, true) : [];
+
+        // Add competencies to each performance type
+        foreach ($performance_types as $performance_type) {
+            $performance_type->competencies = Competencies::whereRaw("FIND_IN_SET(?, type)", [$performance_type->id])->get();
+        }
+
+        // Return JSON response
+        return response()->json([
+            'success' => true,
+            'userget' => $userget,
+            'performance_types' => $performance_types,
+            'ratings' => $ratings,
+            'rating' => $rating,
+            'appraisal' => $appraisal,
         ]);
     }
 }
