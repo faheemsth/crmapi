@@ -53,6 +53,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Spatie\Permission\Models\Role;
 
 class GeneralController extends Controller
 {
@@ -365,6 +366,15 @@ class GeneralController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $stages,
+        ], 200);
+    }
+    public function getRolesPluck()
+    {
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $roles = Role::whereNotIn('name', $excludedTypes)->get()->unique('name')->pluck('name', 'id');
+        return response()->json([
+            'status' => 'success',
+            'data' => $roles,
         ], 200);
     }
 

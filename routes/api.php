@@ -32,6 +32,7 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
@@ -139,6 +140,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteAppraisal', [AppraisalController::class, 'deleteAppraisal']);
     Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
 
+    // SetSalaries
+    Route::post('/getSetSalaries', [SetSalaryController::class, 'getSetSalaries']);
+
     // Leaves
     Route::post('/getLeaves', [LeaveController::class, 'getLeaves']);
     Route::post('/addLeave', [LeaveController::class, 'addLeave']);
@@ -203,6 +207,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getDepartments', [DepartmentController::class, 'getDepartments']);
     Route::post('/updateDepartment', [DepartmentController::class, 'updateDepartment']);
     Route::post('/deleteDepartment', [DepartmentController::class, 'deleteDepartment']);
+    Route::post('/departmentsPluck', [DepartmentController::class, 'departmentsPluck']);
 
 
 
@@ -329,6 +334,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // general routes
+    Route::get('/getRolesPluck', [GeneralController::class, 'getRolesPluck']);
     Route::get('/getAllBrands', [GeneralController::class, 'getAllBrands']);
     Route::post('/getDefaultFiltersData', [GeneralController::class, 'getDefaultFiltersData']);
     Route::get('/getAllProjectDirectors', [GeneralController::class, 'getAllProjectDirectors']);

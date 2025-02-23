@@ -37,10 +37,11 @@ class Employee extends Model
         return $this->hasMany('App\Models\EmployeeDocument', 'employee_id', 'employee_id')->get();
     }
 
-    public function salary_type()
+        public function salary_type()
     {
-        return $this->hasOne('App\Models\PayslipType', 'id', 'salary_type')->pluck('name')->first();
+        return $this->hasOne('App\Models\PayslipType', 'id', 'salary_type');
     }
+
 
     public function get_net_salary()
     {
@@ -148,6 +149,28 @@ class Employee extends Model
         return $net_salary;
 
     }
+    public function getNetSalaryAttribute()
+{
+    $employeeSalary = $this->salary ?? 0;
+
+    $allowances = Allowance::where('employee_id', $this->id)->get();
+    $commissions = Commission::where('employee_id', $this->id)->get();
+    $loans = Loan::where('employee_id', $this->id)->get();
+    $saturation_deductions = SaturationDeduction::where('employee_id', $this->id)->get();
+    $other_payments = OtherPayment::where('employee_id', $this->id)->get();
+    $over_times = Overtime::where('employee_id', $this->id)->get();
+
+    $total_allowance = $allowances->sum(fn($a) => $a->type == 'fixed' ? $a->amount : ($a->amount * $employeeSalary / 100));
+    $total_commission = $commissions->sum(fn($c) => $c->type == 'fixed' ? $c->amount : ($c->amount * $employeeSalary / 100));
+    $total_loan = $loans->sum(fn($l) => $l->type == 'fixed' ? $l->amount : ($l->amount * $employeeSalary / 100));
+    $total_saturation_deduction = $saturation_deductions->sum(fn($d) => $d->type == 'fixed' ? $d->amount : ($d->amount * $employeeSalary / 100));
+    $total_other_payment = $other_payments->sum(fn($o) => $o->type == 'fixed' ? $o->amount : ($o->amount * $employeeSalary / 100));
+    $total_over_time = $over_times->sum(fn($o) => ($o->number_of_days * $o->hours * $o->rate));
+
+    $advance_salary = $total_allowance + $total_commission - $total_loan - $total_saturation_deduction + $total_other_payment + $total_over_time;
+
+    return $employeeSalary + $advance_salary;
+}
 
     public static function allowance($id)
     {
