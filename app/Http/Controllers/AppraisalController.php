@@ -234,16 +234,13 @@ class AppraisalController extends Controller
             'lead_branch' => 'required|integer|min:1',
             'lead_assigned_user' => 'required|integer|min:1',
             'appraisal_date' => 'required|date',
-            'admission_rate' => 'nullable|string',
-            'admission_remarks' => 'nullable|string',
-            'application_rate' => 'nullable|string',
-            'application_remarks' => 'nullable|string',
-            'deposit_rate' => 'nullable|string',
-            'deposit_remarks' => 'nullable|string',
-            'visa_rate' => 'nullable|string',
-            'visa_remarks' => 'nullable|string',
-            'remark' => 'nullable|string',
+            'rating' => 'nullable|array',
+            'admission_rate' => 'nullable|numeric',
+            'application_rate' => 'nullable|numeric',
+            'deposit_rate' => 'nullable|numeric',
+            'visa_rate' => 'nullable|numeric',
             'competencyRemarks' => 'nullable|array',
+            'competencyRemarks.*' => 'string',
         ]);
     
         if ($validator->fails()) {
