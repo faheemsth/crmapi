@@ -139,7 +139,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateAppraisal', [AppraisalController::class, 'updateAppraisal']);
     Route::post('/deleteAppraisal', [AppraisalController::class, 'deleteAppraisal']);
     Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
-
+    Route::post('/fetchperformance', [AppraisalController::class, 'fetchperformance']);
+    
     // SetSalaries
     Route::post('/getSetSalaries', [SetSalaryController::class, 'getSetSalaries']);
 
