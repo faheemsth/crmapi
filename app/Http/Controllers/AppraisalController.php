@@ -138,24 +138,10 @@ class AppraisalController extends Controller
 
         // Validation rules
         $validator = Validator::make($request->all(), [
-            'brand_id' => 'required|integer|min:1|exists:users,id',
-            'region_id' => 'required|integer|min:1|exists:regions,id',
-            'lead_branch' => 'required|integer|min:1|exists:branches,id',
-            'lead_assigned_user' => 'required|integer|exists:users,id',
-            'appraisal_date' => 'required|date',
-            'rating' => 'required|array',
-            'remark' => 'required|string',
-            'admission_rate' => 'required|numeric',
-            'admission_remarks' => 'required|string',
-            'application_rate' => 'required|numeric',
-            'application_remarks' => 'required|string',
-            'deposit_rate' => 'required|numeric',
-            'deposit_remarks' => 'required|string',
-            'visa_rate' => 'required|numeric',
-            'visa_remarks' => 'required|string',
-            'Competencies_id' => 'required|array',
-            'Competencies_id.*' => 'integer|exists:competencies,id',
-            'Competencies_remark' => 'required|array',
+            'brand_id' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'lead_branch' => 'required|integer|min:1',
+            'lead_assigned_user' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -233,24 +219,10 @@ class AppraisalController extends Controller
         // Validate request data
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:appraisals,id',
-            'brand_id' => 'required|integer|exists:users,id',
-            'region_id' => 'required|integer|exists:regions,id',
-            'lead_branch' => 'required|integer|exists:branches,id',
-            'lead_assigned_user' => 'required|integer|exists:users,id',
-            'appraisal_date' => 'required|date',
-            'rating' => 'nullable|array',
-            'remark' => 'nullable|string',
-            'admission_rate' => 'nullable|numeric',
-            'admission_remarks' => 'nullable|string',
-            'application_rate' => 'nullable|numeric',
-            'application_remarks' => 'nullable|string',
-            'deposit_rate' => 'nullable|numeric',
-            'deposit_remarks' => 'nullable|string',
-            'visa_rate' => 'nullable|numeric',
-            'visa_remarks' => 'nullable|string',
-            'Competencies_id' => 'nullable|array',
-            'Competencies_remark' => 'nullable|array',
-            'save_type' => 'nullable|string|in:Save,Submit',
+            'brand_id' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'lead_branch' => 'required|integer|min:1',
+            'lead_assigned_user' => 'required',
         ]);
 
         if ($validator->fails()) {
