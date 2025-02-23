@@ -139,7 +139,6 @@ class AppraisalController extends Controller
     
         // Validation rules
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:appraisals,id',
             'brand_id' => 'required|integer|min:1',
             'region_id' => 'required|integer|min:1',
             'lead_branch' => 'required|integer|min:1',
