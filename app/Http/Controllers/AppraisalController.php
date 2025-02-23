@@ -401,7 +401,7 @@ class AppraisalController extends Controller
         }
 
         return response()->json([
-            'success' => true,
+            'status' => "success",
             'userget' => $userget,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
@@ -439,7 +439,7 @@ class AppraisalController extends Controller
 
         // Return JSON response
         return response()->json([
-            'success' => true,
+            'status' => "success",
             'userget' => $userget,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
