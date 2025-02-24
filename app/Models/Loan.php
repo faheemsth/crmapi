@@ -19,12 +19,12 @@ class Loan extends Model
 
     public function employee()
     {
-        return $this->hasOne('App\Models\Employee', 'id', 'employee_id')->first();
+        return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
     }
 
     public function loan_option()
     {
-        return $this->hasOne('App\Models\LoanOption', 'id', 'loan_option')->first();
+        return $this->hasOne('App\Models\LoanOption', 'id', 'loan_option');
     }
     public static $Loantypes=[
         'fixed'=>'Fixed',

@@ -14,9 +14,11 @@ use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\CommissionsController;
 use App\Http\Controllers\CompetenciesController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
+use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\DeductionOptionController;
 use App\Http\Controllers\InterviewScheduleController;
 use App\Http\Controllers\JobApplicationController;
@@ -31,6 +33,9 @@ use App\Http\Controllers\JobStageController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\LoanOptionController;
+use App\Http\Controllers\OtherPaymentController;
+use App\Http\Controllers\OvertimeController;
+use App\Http\Controllers\LoanController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\SetSalaryController;
@@ -142,7 +147,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
     Route::post('/fetchperformance', [AppraisalController::class, 'fetchperformance']);
     Route::post('/fetchperformanceedit', [AppraisalController::class, 'fetchperformanceedit']);
-    
+
     // SetSalaries
     Route::post('/getSetSalaries', [SetSalaryController::class, 'getSetSalaries']);
 
@@ -164,6 +169,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateEmployeeAllowance', [AllowanceController::class, 'updateEmployeeAllowance']);
     Route::post('/deleteEmployeeAllownce', [AllowanceController::class, 'deleteEmployeeAllownce']);
 
+
+    Route::post('/getDeductions', [DeductionController::class, 'getDeductions']);
+    Route::post('/addEmployeeDeduction', [DeductionController::class, 'addEmployeeDeduction']);
+    Route::post('/updateEmployeeDeduction', [DeductionController::class, 'updateEmployeeDeduction']);
+    Route::post('/deleteEmployeeDeduction', [DeductionController::class, 'deleteEmployeeDeduction']);
+
+    Route::post('/getOvertimes', [OvertimeController::class, 'getOvertimes']);
+    Route::post('/addEmployeeOvertime', [OvertimeController::class, 'addEmployeeOvertime']);
+    Route::post('/updateEmployeeOvertime', [OvertimeController::class, 'updateEmployeeOvertime']);
+    Route::post('/deleteEmployeeOvertime', [OvertimeController::class, 'deleteEmployeeOvertime']);
+
+    Route::post('/getLoans', [LoanController::class, 'getLoans']);
+    Route::post('/addEmployeeLoan', [LoanController::class, 'addEmployeeLoan']);
+    Route::post('/updateEmployeeLoan', [LoanController::class, 'updateEmployeeLoan']);
+    Route::post('/deleteEmployeeLoan', [LoanController::class, 'deleteEmployeeLoan']);
+
+
+    // CommissionsController
+    Route::post('/getCommissions', [CommissionsController::class, 'getCommissions']);
+    Route::post('/addEmpoyeeCommissions', [CommissionsController::class, 'addEmpoyeeCommissions']);
+    Route::post('/updateEmployeeCommissions', [CommissionsController::class, 'updateEmployeeCommissions']);
+    Route::post('/deleteEmployeeCommissions', [CommissionsController::class, 'deleteEmployeeCommissions']);
+
+    // OtherPaymentController
+    Route::post('/getOtherPayments', [OtherPaymentController::class, 'getOtherPayments']);
+    Route::post('/addEmpoyeeOtherPayment', [OtherPaymentController::class, 'addEmpoyeeOtherPayment']);
+    Route::post('/updateEmployeeOtherPayment', [OtherPaymentController::class, 'updateEmployeeOtherPayment']);
+    Route::post('/deleteEmployeeOtherPayment', [OtherPaymentController::class, 'deleteEmployeeOtherPayment']);
+
     // Apraisals
     Route::post('/getGoalTrackings', [GoalTrackingController::class, 'getGoalTrackings']);
     Route::post('/addGoalTracking', [GoalTrackingController::class, 'addGoalTracking']);
@@ -174,7 +208,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::resource('leavetype', LeaveTypeController::class);
     Route::post('/leavetype-pluck', [LeaveTypeController::class, 'plucktitle']);
 
-    
+
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);
