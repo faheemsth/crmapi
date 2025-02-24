@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class SaturationDeduction extends Model
+class Deduction extends Model
 {
     protected $fillable = [
         'employee_id',
@@ -13,6 +13,7 @@ class SaturationDeduction extends Model
         'amount',
         'created_by',
     ];
+    protected $table = 'saturation_deductions'; // Custom table name
 
     public function employee()
     {
@@ -21,7 +22,7 @@ class SaturationDeduction extends Model
 
     public function deduction_option()
     {
-        return $this->hasOne('App\Models\DeductionOption', 'id', 'deduction_option')->first();
+        return $this->hasOne('App\Models\DeductionOption', 'id', 'deduction_option');
     }
     public static $saturationDeductiontype = [
         'fixed'=>'Fixed',
