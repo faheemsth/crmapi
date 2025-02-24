@@ -50,9 +50,16 @@ class AttendanceEmployeeController extends Controller
         $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
         $page = $request->input('page', 1);
 
+
+
+        
+
+
         // Base query with necessary joins
         $query = AttendanceEmployee::with(['employee', 'employee.user']);
-
+        if(isset($request->emp_id)){
+            $query->where('employee.user',$request->emp_id);
+         }
         // Apply role-based filtering
        // $query = RoleBaseTableGet($query, 'employees.brand_id', 'employees.region_id', 'employees.branch_id', 'employees.created_by');
 
