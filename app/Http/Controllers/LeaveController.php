@@ -524,8 +524,8 @@ class LeaveController extends Controller
         }
 
         // Fetch the employee ID or use authenticated user ID
-        if(isset($_GET['emp_id'])){
-            $userId = $_GET['emp_id'];
+        if(isset($request->emp_id)){
+            $userId = $request->emp_id;
          }else{
              $userId = \Auth::id();
          }
