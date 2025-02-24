@@ -621,7 +621,7 @@ class LeaveController extends Controller
         // Return JSON responsest
         return response()->json([
             'status' => "success",
-            'data' => $data
+            'data' => $leaveDetails
         ]);
     }
 
