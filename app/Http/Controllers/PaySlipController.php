@@ -268,29 +268,49 @@ class PaySlipController extends Controller
     
     public function Payslip_fetch(Request $request)
     {
-        // Retrieve the payslip based on employee ID and month
-        $payslip = PaySlip::where('employee_id', $request->id)->first();
-
-        if (!$payslip) {
-            return response()->json([
-                'error' => 'Payslip not found for the specified employee and month.'
-            ], 404);
-        }
-
-        // Retrieve the employee data
-        $employee = Employee::find($payslip->employee_id);
-
-        if (!$employee) {
-            return response()->json([
-                'error' => 'Employee not found.'
-            ], 404);
-        }
-        $payslipDetail = Utility::employeePayslipDetail($request->id);
-        return response()->json([
-            'payslip' => $payslip,
-            'employee' => $employee,
-            'payslipDetail' => $payslipDetail
+        // Validate the request
+        $request->validate([
+            'id' => 'required|exists:users,id',
         ]);
+    
+        try {
+            // Retrieve the employee ID from the user
+            $userId = User::findOrFail($request->id)->employee->id;
+    
+            // Retrieve the payslip based on employee ID
+            $payslip = PaySlip::where('employee_id', $userId)->first();
+    
+            if (!$payslip) {
+                return response()->json([
+                    'error' => 'Payslip not found for the specified employee.'
+                ], 404);
+            }
+    
+            // Retrieve the employee data
+            $employee = Employee::find($payslip->employee_id);
+    
+            if (!$employee) {
+                return response()->json([
+                    'error' => 'Employee not found.'
+                ], 404);
+            }
+    
+            // Retrieve payslip details using a utility function
+            $payslipDetail = Utility::employeePayslipDetail($userId);
+    
+            return response()->json([
+                'payslip' => $payslip,
+                'employee' => $employee,
+                'payslipDetail' => $payslipDetail
+            ]);
+    
+        } catch (\Exception $e) {
+            // Handle unexpected errors
+            return response()->json([
+                'error' => 'An error occurred while fetching the payslip.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
     
 }
