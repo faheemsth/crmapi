@@ -24,6 +24,15 @@ class DeductionOptionController extends Controller
         ], 200);
     }
 
+
+    public function pluckDeductionOption()
+    {
+
+
+        $DeductionOption =    DeductionOption::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+        return response()->json(['status' => 'success', 'data' => $DeductionOption], 200);
+    }
+
     public function addDeductionOption(Request $request)
     {
         if (!\Auth::user()->can('create deduction option')) {
