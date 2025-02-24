@@ -641,4 +641,61 @@ class UserController extends Controller
     }
 }
 
+public function UserEmployeeFileUpdate(Request $request)
+{
+    if (!\Auth::user()->can('edit employee')) {
+        return response()->json([
+            'status' => 'error',
+            'msg' => 'Permission Denied',
+        ]);
+    }
+
+    // Validation rules
+    $validator = \Validator::make($request->all(), [
+        'resume' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:id_card,academic_documents,profile_picture',
+        'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:resume,academic_documents,profile_picture',
+        'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:resume,id_card,profile_picture',
+        'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:resume,id_card,academic_documents',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'msg' => $validator->errors()->first(),
+        ]);
+    }
+
+    // Upload files and assign file names
+    $files = ['profile_picture', 'resume', 'academic_documents', 'id_card'];
+    $uploadedFiles = [];
+
+    foreach ($files as $fileType) {
+        if ($request->hasFile($fileType)) {
+            $uploadedFiles[$fileType] = time() . '_' . uniqid() . '.' . $request->file($fileType)->extension();
+            $request->file($fileType)->move(public_path('EmployeeDocument'), $uploadedFiles[$fileType]);
+        } else {
+            $uploadedFiles[$fileType] = null;
+        }
+    }
+
+    // Retrieve or create the EmployeeDocument record
+    $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
+    $employeeDocument->fill([
+        'employee_id' => $request->id,
+        'profile_picture' => $uploadedFiles['profile_picture'] ?? $employeeDocument->profile_picture,
+        'resume' => $uploadedFiles['resume'] ?? $employeeDocument->resume,
+        'academic_documents' => $uploadedFiles['academic_documents'] ?? $employeeDocument->academic_documents,
+        'id_card' => $uploadedFiles['id_card'] ?? $employeeDocument->id_card,
+        'created_by' => \Auth::id(),
+    ]);
+
+    $employeeDocument->save();
+
+    return response()->json([
+        'status' => 'success',
+        'msg' => 'Employee updated successfully',
+    ]);
+}
+
+
 }

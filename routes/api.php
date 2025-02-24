@@ -117,6 +117,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteBrand', [UserController::class, 'deleteBrand']);
     Route::post('/brandDetail', [UserController::class, 'brandDetail']);
 
+    // UserEmployeeFileUpdate
+    Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
+
+
     // trainers
     Route::post('/getTrainers', [TrainerController::class, 'getTrainers']);
     Route::post('/Trainers', [TrainerController::class, 'Trainers']);
