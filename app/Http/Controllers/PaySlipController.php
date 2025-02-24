@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\PaySlip;
+use App\Models\User;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -263,6 +264,33 @@ class PaySlipController extends Controller
             'message' => 'Employee salary updated successfully.',
             'data' => $employee,
         ], 200);
+    }
+    
+    public function Payslip_fetch(Request $request)
+    {
+        // Retrieve the payslip based on employee ID and month
+        $payslip = PaySlip::where('employee_id', $request->id)->first();
+
+        if (!$payslip) {
+            return response()->json([
+                'error' => 'Payslip not found for the specified employee and month.'
+            ], 404);
+        }
+
+        // Retrieve the employee data
+        $employee = Employee::find($payslip->employee_id);
+
+        if (!$employee) {
+            return response()->json([
+                'error' => 'Employee not found.'
+            ], 404);
+        }
+        $payslipDetail = Utility::employeePayslipDetail($request->id);
+        return response()->json([
+            'payslip' => $payslip,
+            'employee' => $employee,
+            'payslipDetail' => $payslipDetail
+        ]);
     }
     
 }
