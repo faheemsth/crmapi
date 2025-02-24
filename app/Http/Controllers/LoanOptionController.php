@@ -24,6 +24,17 @@ class LoanOptionController extends Controller
         ], 200);
     }
 
+
+    public function pluckLoanOption()
+    {
+        if (!\Auth::user()->can('manage payslip type')) {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+
+        $LoanOption =    LoanOption::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+        return response()->json(['status' => 'success', 'data' => $LoanOption], 200);
+    }
+
     public function addLoanOption(Request $request)
     {
         if (!\Auth::user()->can('create loan option')) {

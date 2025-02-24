@@ -264,12 +264,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // LoanOption
     Route::post('/addLoanOption', [LoanOptionController::class, 'addLoanOption']);
     Route::get('/getLoanOptions', [LoanOptionController::class, 'getLoanOptions']);
+    Route::get('/pluckLoanOption', [LoanOptionController::class, 'pluckLoanOption']);
     Route::post('/updateLoanOption', [LoanOptionController::class, 'updateLoanOption']);
     Route::post('/deleteLoanOption', [LoanOptionController::class, 'deleteLoanOption']);
 
     // DeductionOption
     Route::post('/addDeductionOption', [DeductionOptionController::class, 'addDeductionOption']);
     Route::get('/getDeductionOptions', [DeductionOptionController::class, 'getDeductionOptions']);
+    Route::get('/pluckDeductionOption', [DeductionOptionController::class, 'pluckDeductionOption']);
     Route::post('/updateDeductionOption', [DeductionOptionController::class, 'updateDeductionOption']);
     Route::post('/deleteDeductionOption', [DeductionOptionController::class, 'deleteDeductionOption']);
 
