@@ -265,4 +265,57 @@ class PaySlipController extends Controller
         ], 200);
     }
     
+    public function Payslip_fetch(Request $request)
+    {
+        // Get the authenticated user
+        $user = \Auth::user();
+
+        // Check user type
+        if ($user->type != 'HR' && $user->type != 'super admin' && $user->type != 'Project Manager') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access Denied',
+            ], 403); // 403 Forbidden
+        }
+
+        // Get the employee ID from the request or use the authenticated user's ID
+        $userId = $request->query('emp_id', \Auth::id());
+
+        // Find the user by ID
+        $AuthUser = User::find($userId);
+
+        if (!$AuthUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+            ], 404); // 404 Not Found
+        }
+
+        // Find the employee record associated with the user
+        $employee = Employee::where('user_id', $userId)->first();
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee record not found',
+            ], 404); // 404 Not Found
+        }
+
+        // Get the payslips created by the user
+        $payslips = PaySlip::where('created_by', $userId)->get();
+
+        // Get the payslip details using a utility function
+        $payslipDetail = Utility::employeePayslipDetail($employee->id);
+
+        // Return the response as JSON
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $AuthUser,
+                'payslips' => $payslips,
+                'payslip_detail' => $payslipDetail,
+            ],
+        ], 200); // 200 OK
+    }
+    
 }

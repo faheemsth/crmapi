@@ -360,6 +360,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('payslips-show', [PaySlipController::class, 'searchJson']);
     Route::match(['put', 'patch'], 'payslips/{id}', [PaySlipController::class, 'update']);
     Route::delete('payslips/{id}', [PaySlipController::class, 'destroy']);
+    Route::get('Payslip/fetch', [PaySlipController::class, 'Payslip_fetch']);
 
 
     //
