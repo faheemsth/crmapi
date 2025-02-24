@@ -479,4 +479,113 @@ class LeaveController extends Controller
         return view('hrmhome.employee1');
 
     }
+
+
+    public function Balance(Request $request)
+    {
+        $user = \Auth::user();
+
+        // Authorization check
+        if (!in_array($user->type, ['HR', 'super admin', 'Project Manager'])) {
+            return response()->json(['error' => 'Access Denied'], 403);
+        }
+
+        // Fetch the employee ID or use authenticated user ID
+        $userId = $request->query('emp_id', \Auth::id());
+        $employee = Employee::where('user_id', $userId)->first();
+        $authUser = User::find($userId);
+
+        if (empty($employee)) {
+            return response()->json([
+                'leaves' => [],
+                'authUser' => $authUser,
+                'leaveFrequency' => [],
+                'leaveDetails' => []
+            ]);
+        }
+
+        // Build the leaves query
+        $leaveQuery = Leave::select(
+            'regions.name as region',
+            'branches.name as branch',
+            'users.name as brand',
+            'leaves.id',
+            'leaves.brand_id',
+            'leaves.branch_id',
+            'leaves.created_by',
+            'leaves.start_date',
+            'leaves.created_at',
+            'leaves.leave_reason',
+            'leaves.end_date',
+            'leaves.applied_on',
+            'leaves.leave_type_id',
+            'leaves.total_leave_days',
+            'leaves.status'
+        )
+            ->leftJoin('users', 'users.id', '=', 'leaves.brand_id')
+            ->leftJoin('users as leavedPerson', 'users.id', '=', 'leaves.employee_id')
+            ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'leaves.created_by')
+            ->where('leaves.employee_id', $employee->id);
+
+        $leaves = $leaveQuery->get();
+
+        // Calculate leave frequency
+        $leaveFrequency = [
+            'Sun' => 0,
+            'Mon' => 0,
+            'Tue' => 0,
+            'Wed' => 0,
+            'Thu' => 0,
+            'Fri' => 0,
+            'Sat' => 0,
+        ];
+
+        foreach ($leaves as $leave) {
+            $startDate = Carbon::parse($leave->start_date);
+            $endDate = Carbon::parse($leave->end_date)->addDay();
+            foreach ($startDate->toPeriod($endDate, '1 day') as $date) {
+                $weekday = $date->format('D'); // Get weekday abbreviation
+                $leaveFrequency[$weekday]++;
+            }
+        }
+
+        // Fetch leave details
+        $leaveTypes = LeaveType::all();
+        $leaveDetails = [];
+        foreach ($leaveTypes as $type) {
+            $allowance = $type->days;
+
+            $leaveBalanceCheck = Leave::where('leave_type_id', $type->id)
+                ->where('start_date', '>=', Carbon::now()->subMonths(12))
+                ->where('leaves.employee_id', $employee->id)
+                ->get();
+
+            $usedLeaves = $leaveBalanceCheck->where('status', 'Approved')->sum('total_leave_days');
+            $plannedLeaves = $leaveBalanceCheck->where('status', 'Pending')->sum('total_leave_days');
+            $balance = $allowance - $usedLeaves;
+            $available = $balance - $plannedLeaves;
+
+            $leaveDetails[] = [
+                'leave_type' => $type->title,
+                'allowance' => $allowance,
+                'balance' => $balance,
+                'planned' => $plannedLeaves,
+                'available' => $available,
+                'units' => 'Days',
+            ];
+        }
+     $data=['leaves' => $leaves,
+            'authUser' => $authUser,
+            'leaveFrequency' => $leaveFrequency,
+            'leaveDetails' => $leaveDetails,
+           ];
+        // Return JSON responsest
+        return response()->json([
+            'status' => "success",
+            'data' => $data
+        ]);
+    }
+
 }
