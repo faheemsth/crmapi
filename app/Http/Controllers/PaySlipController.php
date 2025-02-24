@@ -276,7 +276,11 @@ class PaySlipController extends Controller
         try {
             // Retrieve the employee ID from the user
             $userId = User::findOrFail($request->id)->employee->id;
-    
+            if (!$userId) {
+                return response()->json([
+                    'error' => 'User not found for the specified employee.'
+                ], 404);
+            }
             // Retrieve the payslip based on employee ID
             $payslip = PaySlip::where('employee_id', $userId)->first();
     
