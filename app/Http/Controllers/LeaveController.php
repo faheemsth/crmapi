@@ -303,58 +303,91 @@ class LeaveController extends Controller
         return view('leave.action', compact('employee', 'leavetype', 'leave'));
     }
 
-    public function changeaction(Request $request)
+    public function changeLeaveStatus(Request $request)
     {
+        // Validate input
+        $validator = Validator::make($request->all(), [
+            'leave_id' => 'required|exists:leaves,id',
+            'status'   => 'required|string|in:Pending,Approval,Rejected,Approved'
+        ]);
 
-        $leave = Leave::find($request->leave_id);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
 
+        // Fetch Leave Record
+        $leave = Leave::where('id', $request->leave_id)->first();
+
+        if (!$leave) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Leave record not found.'
+            ], 404);
+        }
+
+        // Update Status
         $leave->status = $request->status;
-        if($leave->status == 'Approval')
-        {
-            $startDate               = new \DateTime($leave->start_date);
-            $endDate                 = new \DateTime($leave->end_date);
-            $total_leave_days        = $startDate->diff($endDate)->days;
-            $leave->total_leave_days = $total_leave_days;
-            $leave->status           = 'Approved';
+
+        // If status is 'Approval', calculate total leave days and update status to 'Approved'
+        if ($request->status == 'Approval') {
+            $startDate = new \DateTime($leave->start_date);
+            $endDate = new \DateTime($leave->end_date);
+            $leave->total_leave_days = $startDate->diff($endDate)->days;
+            $leave->status = 'Approved';
         }
 
         $leave->save();
 
+        // Log Activity
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'Leave Status Updated',
+                'message' => "Leave status changed to {$leave->status}"
+            ]),
+            'module_id' => $leave->id,
+            'module_type' => 'leave',
+            'notification_type' => 'Leave Status Updated'
+        ]);
 
-       //Send Email
-        $setings = Utility::settings();
-        if(!empty($employee->id))
-        {
-            if($setings['leave_status'] == 1)
-            {
+        // Send Email if enabled
+        $settings = Utility::settings();
+        if (!empty($leave->employee_id) && isset($settings['leave_status']) && $settings['leave_status'] == 1) {
+            $employee = Employee::where('id', $leave->employee_id)->first();
 
-                $employee     = Employee::where('id', $leave->employee_id)->where('created_by', '=', \Auth::id())->first();
-                $leave->name  = !empty($employee->name) ? $employee->name : '';
-                $leave->email = !empty($employee->email) ? $employee->email : '';
-//            dd($leave);
-
+            if ($employee) {
                 $actionArr = [
-
-                    'leave_name'=> !empty($employee->name) ? $employee->name : '',
+                    'leave_name' => $employee->name ?? '',
                     'leave_status' => $leave->status,
-                    'leave_reason' =>  $leave->leave_reason,
+                    'leave_reason' => $leave->leave_reason,
                     'leave_start_date' => $leave->start_date,
                     'leave_end_date' => $leave->end_date,
-                    'total_leave_days' => $leave->total_leave_days,
-
+                    'total_leave_days' => $leave->total_leave_days
                 ];
-//            dd($actionArr);
-                $resp = Utility::sendEmailTemplate('leave_action_sent', [$employee->id => $employee->email], $actionArr);
 
+                $emailResponse = Utility::sendEmailTemplate('leave_action_sent', [$employee->id => $employee->email], $actionArr);
 
-                return redirect()->route('leave.index')->with('success', __('Leave status successfully updated.') .(($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
-
+                if (!$emailResponse['is_success'] && !empty($emailResponse['error'])) {
+                    return response()->json([
+                        'status' => 'success',
+                        'message' => 'Leave status successfully updated, but email failed to send.',
+                        'email_error' => $emailResponse['error'],
+                        'data' => $leave
+                    ], 200);
+                }
             }
-
         }
 
-        return redirect()->route('leave.index')->with('success', __('Leave status successfully updated.'));
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Leave status successfully updated.',
+            'data' => $leave
+        ], 200);
     }
+
 
 
     public function jsoncount(Request $request)
