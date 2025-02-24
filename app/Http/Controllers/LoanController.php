@@ -14,7 +14,7 @@ class LoanController extends Controller
     {
         // Validate input
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => 'required|exists:users,id',
         ]);
 
         // Fetch Loans
@@ -35,7 +35,7 @@ class LoanController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => 'required|exists:users,id',
             'loan_option' => 'required|exists:loan_options,id',
             'title' => 'required',
             'type' => 'required',

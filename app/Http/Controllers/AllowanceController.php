@@ -17,7 +17,7 @@ class AllowanceController extends Controller
 {
     // Validate input
     $validated = $request->validate([
-        'employee_id' => 'required|exists:employees,id',
+        'employee_id' => 'required|exists:users,id',
     ]);
 
     // Fetch allowances
@@ -53,7 +53,7 @@ class AllowanceController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'employee_id'      => 'required|integer|exists:employees,id',
+            'employee_id'      => 'required|integer|exists:users,id',
             'allowance_option' => 'required|integer|exists:allowance_options,id',
             'title'            => 'required|string|max:255',
             'type'             => 'nullable|string',
@@ -115,7 +115,7 @@ class AllowanceController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'allowance_id'     => 'required|exists:allowances,id',
+            'allowance_id'     => 'required|exists:users,id',
             'employee_id'      => 'nullable|integer|exists:employees,id',
             'allowance_option' => 'nullable|integer|exists:allowance_options,id',
             'title'            => 'nullable|string|max:255',

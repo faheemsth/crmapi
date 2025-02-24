@@ -15,7 +15,7 @@ class DeductionController extends Controller
     {
         // Validate input
         $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => 'required|exists:users,id',
         ]);
 
         // Fetch deductions
@@ -50,7 +50,7 @@ class DeductionController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'employee_id'      => 'required|integer|exists:employees,id',
+            'employee_id'      => 'required|integer|exists:users,id',
             'deduction_option' => 'required|integer|exists:deduction_options,id',
             'title'            => 'required|string|max:255',
             'type'             => 'nullable|string',
@@ -111,7 +111,7 @@ class DeductionController extends Controller
         // Validate input
         $validator = Validator::make($request->all(), [
             'deduction_id'     => 'required|exists:saturation_deductions,id',
-            'employee_id'      => 'nullable|integer|exists:employees,id',
+            'employee_id'      => 'nullable|integer|exists:users,id',
             'deduction_option' => 'nullable|integer|exists:deduction_options,id',
             'title'            => 'nullable|string|max:255',
             'type'             => 'nullable|string',
