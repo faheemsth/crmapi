@@ -117,6 +117,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteBrand', [UserController::class, 'deleteBrand']);
     Route::post('/brandDetail', [UserController::class, 'brandDetail']);
 
+    // emergency/contact
+    Route::post('/emergency-contact', [UserController::class, 'EmergencyContactPost']);
+    Route::put('/emergency-contact', [UserController::class, 'EmergencyContactUpdate']);
+    Route::delete('/emergency-contact', [UserController::class, 'EmergencyContactDelete']);
+
+    // additional/address
+    Route::post('/additional-address', [UserController::class, 'AdditionalAddressPost']);
+    Route::put('/additional-address', [UserController::class, 'AdditionalAddressUpdate']);
+    Route::delete('/additional-address', [UserController::class, 'AdditionalAddressDelete']);
+
+
     // UserEmployeeFileUpdate
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
 

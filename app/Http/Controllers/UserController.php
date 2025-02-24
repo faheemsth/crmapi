@@ -697,5 +697,134 @@ public function UserEmployeeFileUpdate(Request $request)
     ]);
 }
 
+    // Emergency Contact API Endpoints
+    public function EmergencyContactPost(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|integer',
+            'emerg_name' => 'required|string|max:255',
+            'emerg_phone' => 'required|string|max:20',
+        ]);
+
+        $EmergencyContact = new EmergencyContact();
+        $EmergencyContact->user_id = $request->id;
+        $EmergencyContact->emerg_name = $request->emerg_name;
+        $EmergencyContact->emerg_phone = $request->emerg_phone;
+        $EmergencyContact->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Emergency Contact added successfully!'),
+        ], 201);
+    }
+
+    public function EmergencyContactUpdate(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|integer',
+            'emerg_name' => 'required|string|max:255',
+            'emerg_phone' => 'required|string|max:20',
+        ]);
+
+        $EmergencyContact = EmergencyContact::find($request->id);
+        if (!$EmergencyContact) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Emergency Contact not found!'),
+            ], 404);
+        }
+
+        $EmergencyContact->emerg_name = $request->emerg_name;
+        $EmergencyContact->emerg_phone = $request->emerg_phone;
+        $EmergencyContact->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Emergency Contact updated successfully!'),
+        ]);
+    }
+
+    public function EmergencyContactDelete(Request $request)
+    {
+        $request->validate(['id' => 'required|integer']);
+
+        $EmergencyContact = EmergencyContact::find($request->id);
+        if (!$EmergencyContact) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Emergency Contact not found!'),
+            ], 404);
+        }
+
+        $EmergencyContact->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Emergency Contact deleted successfully!'),
+        ]);
+    }
+
+    // Additional Address API Endpoints
+    public function AdditionalAddressPost(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|integer',
+            'address' => 'required|string|max:500',
+        ]);
+
+        $AdditionalAddress = new AdditionalAddress();
+        $AdditionalAddress->user_id = $request->id;
+        $AdditionalAddress->address = $request->address;
+        $AdditionalAddress->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Additional Address added successfully!'),
+        ], 201);
+    }
+
+    public function AdditionalAddressUpdate(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|integer',
+            'address' => 'required|string|max:500',
+        ]);
+
+        $AdditionalAddress = AdditionalAddress::find($request->id);
+        if (!$AdditionalAddress) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Additional Address not found!'),
+            ], 404);
+        }
+
+        $AdditionalAddress->address = $request->address;
+        $AdditionalAddress->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Additional Address updated successfully!'),
+        ]);
+    }
+
+    public function AdditionalAddressDelete(Request $request)
+    {
+        $request->validate(['id' => 'required|integer']);
+
+        $AdditionalAddress = AdditionalAddress::find($request->id);
+        if (!$AdditionalAddress) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Additional Address not found!'),
+            ], 404);
+        }
+
+        $AdditionalAddress->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Additional Address deleted successfully!'),
+        ]);
+    }
 
 }
