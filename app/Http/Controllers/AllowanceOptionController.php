@@ -24,6 +24,17 @@ class AllowanceOptionController extends Controller
         ], 200);
     }
 
+    public function pluckAllowanceOptions()
+    {
+        if (!\Auth::user()->can('manage payslip type')) {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+
+        $AllowanceOption =    AllowanceOption::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+        return response()->json(['status' => 'success', 'data' => $AllowanceOption], 200);
+    }
+
+
     public function addAllowanceOption(Request $request)
     {
         if (!\Auth::user()->can('create allowance option')) {
