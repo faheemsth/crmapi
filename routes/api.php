@@ -29,6 +29,7 @@ use App\Http\Controllers\IndicatorController;
 use App\Http\Controllers\JobCategoryController;
 use App\Http\Controllers\JobStageController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
@@ -139,7 +140,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateAppraisal', [AppraisalController::class, 'updateAppraisal']);
     Route::post('/deleteAppraisal', [AppraisalController::class, 'deleteAppraisal']);
     Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
-
+    Route::post('/fetchperformance', [AppraisalController::class, 'fetchperformance']);
+    Route::post('/fetchperformanceedit', [AppraisalController::class, 'fetchperformanceedit']);
+    
     // SetSalaries
     Route::post('/getSetSalaries', [SetSalaryController::class, 'getSetSalaries']);
 
@@ -168,6 +171,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteGoalTracking', [GoalTrackingController::class, 'deleteGoalTracking']);
     Route::post('/goalTrackingDetail', [GoalTrackingController::class, 'goalTrackingDetail']);
 
+    Route::resource('leavetype', LeaveTypeController::class);
+    Route::post('/leavetype-pluck', [LeaveTypeController::class, 'plucktitle']);
+
+    
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);

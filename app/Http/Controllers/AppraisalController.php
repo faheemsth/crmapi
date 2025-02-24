@@ -62,9 +62,10 @@ class AppraisalController extends Controller
             'regions.name as region',
             'branches.name as branch',
             'users.name as brand',
-            'assigned_to.name as created_user'
+            'assigned_to.name as created_user',
+            'branches.name as branch_id',
         )
-        ->with('employees')
+            ->with('employees')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -128,59 +129,53 @@ class AppraisalController extends Controller
     public function addApraisal(Request $request)
     {
         $user = Auth::user();
-
+    
         if (!$user->can('create appraisal')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied'),
             ], 403);
         }
-
+    
         // Validation rules
         $validator = Validator::make($request->all(), [
-            'brand_id' => 'required|integer|min:1|exists:users,id',
-            'region_id' => 'required|integer|min:1|exists:regions,id',
-            'lead_branch' => 'required|integer|min:1|exists:branches,id',
-            'lead_assigned_user' => 'required|integer|exists:users,id',
+            'brand_id' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'lead_branch' => 'required|integer|min:1',
+            'lead_assigned_user' => 'required|integer|min:1',
             'appraisal_date' => 'required|date',
-            'rating' => 'required|array',
-            'remark' => 'required|string',
-            'admission_rate' => 'required|numeric',
-            'admission_remarks' => 'required|string',
-            'application_rate' => 'required|numeric',
-            'application_remarks' => 'required|string',
-            'deposit_rate' => 'required|numeric',
-            'deposit_remarks' => 'required|string',
-            'visa_rate' => 'required|numeric',
-            'visa_remarks' => 'required|string',
-            'Competencies_id' => 'required|array',
-            'Competencies_id.*' => 'integer|exists:competencies,id',
-            'Competencies_remark' => 'required|array',
+            'rating' => 'nullable|array',
+            'admission_rate' => 'nullable|numeric',
+            'application_rate' => 'nullable|numeric',
+            'deposit_rate' => 'nullable|numeric',
+            'visa_rate' => 'nullable|numeric',
+            'competencyRemarks' => 'nullable|array',
+            'competencyRemarks.*' => 'string',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
-
+    
         // Check for duplicate appraisal
         $existingAppraisal = Appraisal::where('employee', $request->lead_assigned_user)
             ->where('appraisal_date', $request->appraisal_date)
             ->first();
-
+    
         if ($existingAppraisal) {
             $employee = User::find($existingAppraisal->employee);
             return response()->json([
                 'status' => 'duplicate',
                 'message' => __('Related to :user on :date, an appraisal already exists.', [
                     'user' => $employee->name ?? 'User',
-                    'date' => $request->appraisal_date
+                    'date' => $request->appraisal_date,
                 ]),
             ], 409);
         }
-
+    
         // Create a new Appraisal instance
         $appraisal = new Appraisal();
         $appraisal->brand_id = $request->brand_id;
@@ -190,88 +185,80 @@ class AppraisalController extends Controller
         $appraisal->appraisal_date = $request->appraisal_date;
         $appraisal->rating = json_encode($request->rating, true);
         $appraisal->remark = $request->remark;
-        $appraisal->admission_rate = $request->admission_rate;
+        $appraisal->admission_rate = $request->admission_rate ?: 0;
         $appraisal->admission_remarks = $request->admission_remarks;
-        $appraisal->application_rate = $request->application_rate;
+        $appraisal->application_rate = $request->application_rate ?: 0;
         $appraisal->application_remarks = $request->application_remarks;
-        $appraisal->deposit_rate = $request->deposit_rate;
+        $appraisal->deposit_rate = $request->deposit_rate ?: 0;
         $appraisal->deposit_remarks = $request->deposit_remarks;
-        $appraisal->visa_rate = $request->visa_rate;
+        $appraisal->visa_rate = $request->visa_rate ?: 0; // Ensure visa_rate is a numeric value
         $appraisal->visa_remarks = $request->visa_remarks;
         $appraisal->created_by = $request->emp_id ?? Auth::id();
         $appraisal->save();
-
+    
         // Insert competency remarks if provided
-        if (!empty($request->Competencies_id) && is_array($request->Competencies_id)) {
-            foreach ($request->Competencies_id as $key => $competency_id) {
-                $appraisalRemark = new AppraisalRemark();
-                $appraisalRemark->appraisal_id = $appraisal->id;
-                $appraisalRemark->competencies_id = $competency_id;
-                $appraisalRemark->remarks = $request->Competencies_remark[$key] ?? null;
-                $appraisalRemark->save();
+        if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
+            foreach ($request->competencyRemarks as $competencyId => $remark) {
+                AppraisalRemark::create([
+                    'appraisal_id' => $appraisal->id,
+                    'competencies_id' => $competencyId,
+                    'remarks' => $remark,
+                ]);
             }
         }
-
+    
         return response()->json([
             'status' => 'success',
             'message' => __('Appraisal successfully created.'),
             'data' => $appraisal,
         ], 201);
     }
-
+    
+    
     public function updateAppraisal(Request $request)
     {
         $user = Auth::user();
-
+    
         if (!$user->can('edit appraisal')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied'),
             ], 403);
         }
-
+    
         // Validate request data
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:appraisals,id',
-            'brand_id' => 'required|integer|exists:users,id',
-            'region_id' => 'required|integer|exists:regions,id',
-            'lead_branch' => 'required|integer|exists:branches,id',
-            'lead_assigned_user' => 'required|integer|exists:users,id',
+            'brand_id' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'lead_branch' => 'required|integer|min:1',
+            'lead_assigned_user' => 'required|integer|min:1',
             'appraisal_date' => 'required|date',
             'rating' => 'nullable|array',
-            'remark' => 'nullable|string',
             'admission_rate' => 'nullable|numeric',
-            'admission_remarks' => 'nullable|string',
             'application_rate' => 'nullable|numeric',
-            'application_remarks' => 'nullable|string',
             'deposit_rate' => 'nullable|numeric',
-            'deposit_remarks' => 'nullable|string',
             'visa_rate' => 'nullable|numeric',
-            'visa_remarks' => 'nullable|string',
-            'Competencies_id' => 'nullable|array',
-            'Competencies_remark' => 'nullable|array',
-            'save_type' => 'nullable|string|in:Save,Submit',
+            'competencyRemarks' => 'nullable|array',
+            'competencyRemarks.*' => 'string',
         ]);
-
+    
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()->first(),
             ], 422);
         }
-
+    
         // Retrieve the Appraisal
         $appraisal = Appraisal::findOrFail($request->id);
-
-
-
+    
         // Update appraisal details
         $appraisal->brand_id = $request->brand_id;
         $appraisal->region_id = $request->region_id;
         $appraisal->branch = $request->lead_branch;
         $appraisal->employee = $request->lead_assigned_user;
         $appraisal->appraisal_date = $request->appraisal_date;
-        $appraisal->rating = json_encode($request->rating, true);
         $appraisal->remark = $request->remark;
         $appraisal->admission_rate = $request->admission_rate;
         $appraisal->admission_remarks = $request->admission_remarks;
@@ -283,17 +270,17 @@ class AppraisalController extends Controller
         $appraisal->visa_remarks = $request->visa_remarks;
         $appraisal->status = $request->save_type === 'Submit' ? 2 : 1;
         $appraisal->save();
-
-        // Handle Competencies remarks
-        if (!empty($request->Competencies_id) && is_array($request->Competencies_id)) {
-            foreach ($request->Competencies_id as $key => $competencyId) {
-                $appraisalRemark = AppraisalRemark::updateOrCreate(
+    
+        // Handle competency remarks
+        if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
+            foreach ($request->competencyRemarks as $competencyId => $remarks) {
+                AppraisalRemark::updateOrCreate(
                     ['appraisal_id' => $appraisal->id, 'competencies_id' => $competencyId],
-                    ['remarks' => $request->Competencies_remark[$key] ?? '']
+                    ['remarks' => $remarks]
                 );
             }
         }
-
+    
         // Log activity if appraisal is submitted
         if ($request->save_type === 'Submit') {
             LogActivity::create([
@@ -310,13 +297,14 @@ class AppraisalController extends Controller
                 'created_by' => $appraisal->created_by,
             ]);
         }
-
+    
         return response()->json([
             'status' => 'success',
             'message' => __('Appraisal successfully updated.'),
             'data' => $appraisal,
         ]);
     }
+    
 
     public function deleteAppraisal(Request $request)
     {
@@ -349,57 +337,59 @@ class AppraisalController extends Controller
     }
 
     public function appraisalDetails(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'id' => 'required|exists:appraisals,id',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:appraisals,id',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
-    }
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
 
-    $appraisal = Appraisal::select(
-        'appraisals.*',
-        'regions.name as region',
-        'branches.name as branch',
-        'users.name as brand',
-        'assigned_to.name as created_user'
-    )
-    ->with('employees')
-    ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
-    ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
-    ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
-    ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'appraisals.employee')
-    ->where('appraisals.id', $request->id)
-    ->first();
+        $appraisal = Appraisal::select(
+            'appraisals.*',
+            'regions.name as region',
+            'branches.name as branch',
+            'users.name as brand',
+            'assigned_to.name as created_user',
+            'branches.id as branch_id',
+            'assigned_to.id as created_id',
+        )
+            ->with('employees')
+            ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
+            ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'appraisals.employee')
+            ->where('appraisals.id', $request->id)
+            ->first();
 
-    if (!$appraisal) {
+        if (!$appraisal) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Data Not Found'
+            ], 404);
+        }
+
+        $user = User::find($appraisal->employee);
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Employee not found'
+            ], 404);
+        }
+
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $user->type)->get();
+
+        $employee = Employee::where('user_id', $appraisal->employee)->first();
+        $user_type = Role::where('name', $user->type)->first();
+        $indicator = Indicator::where('designation', $user_type->id)->first();
+
+        $rating = !empty($appraisal->rating) ? json_decode($appraisal->rating, true) : [];
+        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
+
         return response()->json([
-            'status' => 'error',
-            'message' => 'Data Not Found'
-        ], 404);
-    }
-
-    $user = User::find($appraisal->employee);
-    if (!$user) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Employee not found'
-        ], 404);
-    }
-
-    $excludedTypes = ['super admin', 'company', 'team', 'client'];
-    $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $user->type)->get();
-
-    $employee = Employee::where('user_id', $appraisal->employee)->first();
-    $user_type = Role::where('name', $user->type)->first();
-    $indicator = Indicator::where('designation', $user_type->id)->first();
-
-    $rating = !empty($appraisal->rating) ? json_decode($appraisal->rating, true) : [];
-    $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
-
-    return response()->json([
-        'status' => 'success',
+            'status' => 'success',
 
             'data' => $appraisal,
             'performance_types' => $performance_types,
@@ -408,8 +398,68 @@ class AppraisalController extends Controller
             'user' => $user,
             'employee' => $employee,
 
-    ]);
-}
+        ]);
+    }
 
+    public function fetchperformance(Request $request)
+    {
+        $userget = User::find($request->employee);
+        $user_type = Role::where('name', $userget->type)->first();
+        $indicator = Indicator::where('designation', $user_type->id)->first();
+        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $userget->type)->get();
 
+        // Add competencies to each performance type
+        foreach ($performance_types as $performance_type) {
+            $performance_type->competencies = Competencies::whereRaw("FIND_IN_SET(?, type)", [$performance_type->id])->get();
+        }
+
+        return response()->json([
+            'status' => "success",
+            'userget' => $userget,
+            'performance_types' => $performance_types,
+            'ratings' => $ratings,
+        ]);
+    }
+
+    public function fetchperformanceedit(Request $request)
+    {
+        // Fetch appraisal data
+        $appraisal = Appraisal::find($request->appraisal);
+
+        // Fetch user data
+        $userget = User::find($request->employee);
+
+        // Fetch user role
+        $user_type = Role::where('name', $userget->type)->first();
+
+        // Fetch indicator data
+        $indicator = Indicator::where('designation', $user_type->id)->first();
+
+        // Exclude certain roles
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $performance_types = Role::whereNotIn('name', $excludedTypes)
+            ->where('name', $userget->type)
+            ->get();
+
+        // Decode ratings
+        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
+        $rating = !empty($appraisal) ? json_decode($appraisal->rating, true) : [];
+
+        // Add competencies to each performance type
+        foreach ($performance_types as $performance_type) {
+            $performance_type->competencies = Competencies::whereRaw("FIND_IN_SET(?, type)", [$performance_type->id])->get();
+        }
+
+        // Return JSON response
+        return response()->json([
+            'status' => "success",
+            'userget' => $userget,
+            'performance_types' => $performance_types,
+            'ratings' => $ratings,
+            'rating' => $rating,
+            'appraisal' => $appraisal,
+        ]);
+    }
 }
