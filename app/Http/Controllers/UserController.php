@@ -208,10 +208,14 @@ class UserController extends Controller
             ->leftJoin('users as creater', 'creater.id', '=', 'employees.user_id') // Fixed alias reference
             ->where('employees.user_id', $request->id)
             ->get();
-
+        $EmergencyContact = EmergencyContact::where('user_id', $request->id)->get();
+        $AdditionalAddress = AdditionalAddress::where('user_id', $request->id)->get();
+        
         $data = [
             'EmployeeDetails' => $EmployeeDetails,
             'pay_slips' => $Employee,
+            'EmergencyContact' => $EmergencyContact,
+            'AdditionalAddress' => $AdditionalAddress,
         ];
         return response()->json([
             'status' => 'success',
