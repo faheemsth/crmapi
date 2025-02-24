@@ -524,9 +524,13 @@ class LeaveController extends Controller
         }
 
         // Fetch the employee ID or use authenticated user ID
-        $userId = $request->query('emp_id', \Auth::id());
-        $employee = Employee::where('user_id', $userId)->first();
-        $authUser = User::find($userId);
+        if(isset($_GET['emp_id'])){
+            $userId = $_GET['emp_id'];
+         }else{
+             $userId = \Auth::id();
+         }
+         $employee = Employee::where('user_id',$userId)->first();
+         $authUser = User::find($userId);
 
         if (empty($employee)) {
             return response()->json([
