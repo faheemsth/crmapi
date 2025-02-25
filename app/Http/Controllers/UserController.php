@@ -650,52 +650,75 @@ public function UserEmployeeFileUpdate(Request $request)
         ]);
     }
 
+    // Debugging: Check if request contains files
+    // dd($request->all(), $request->file());
+
     // Validation rules
     $validator = \Validator::make($request->all(), [
-        'resume' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:id_card,academic_documents,profile_picture',
-        'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:resume,academic_documents,profile_picture',
-        'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:resume,id_card,profile_picture',
-        'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048|required_without_all:resume,id_card,academic_documents',
+        'cv' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096', // Increased size limit to 4MB
+        'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        'id' => 'required|exists:users,id', // Ensure employee exists
     ]);
 
     if ($validator->fails()) {
         return response()->json([
             'status' => 'error',
-            'msg' => $validator->errors()->first(),
+            'message' => 'validation error',
+
+            'data' => $validator->errors(),
         ]);
     }
 
-    // Upload files and assign file names
-    $files = ['profile_picture', 'resume', 'academic_documents', 'id_card'];
+    // Define allowed file types
+    $files = ['profile_picture', 'cv', 'academic_documents', 'id_card'];
     $uploadedFiles = [];
 
     foreach ($files as $fileType) {
         if ($request->hasFile($fileType)) {
-            $uploadedFiles[$fileType] = time() . '_' . uniqid() . '.' . $request->file($fileType)->extension();
-            $request->file($fileType)->move(public_path('EmployeeDocument'), $uploadedFiles[$fileType]);
+            // Generate unique file name
+            $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
+            $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
+            $uploadedFiles[$fileType] = $filename; // ✅ Correct assignment
         } else {
             $uploadedFiles[$fileType] = null;
         }
     }
 
+    // Debugging output
+    // dd($uploadedFiles);
+
     // Retrieve or create the EmployeeDocument record
     $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
-    $employeeDocument->fill([
-        'employee_id' => $request->id,
-        'profile_picture' => $uploadedFiles['profile_picture'] ?? $employeeDocument->profile_picture,
-        'resume' => $uploadedFiles['resume'] ?? $employeeDocument->resume,
-        'academic_documents' => $uploadedFiles['academic_documents'] ?? $employeeDocument->academic_documents,
-        'id_card' => $uploadedFiles['id_card'] ?? $employeeDocument->id_card,
-        'created_by' => \Auth::id(),
-    ]);
+
+
+
+    if(!empty( $uploadedFiles['cv'])){
+        $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
+    }
+
+    if(!empty( $uploadedFiles['academic_documents'])){
+        $employeeDocument->resume = $uploadedFiles['academic_documents'];
+    }
+
+    if(!empty( $uploadedFiles['id_card'])){
+        $employeeDocument->resume = $uploadedFiles['id_card'];
+    }
+
+    if(!empty( $uploadedFiles['cv'])){
+        $employeeDocument->resume = $uploadedFiles['cv'];
+    }
 
     $employeeDocument->save();
 
     return response()->json([
         'status' => 'success',
-        'msg' => 'Employee updated successfully',
+        'message' => 'Employee updated successfully',
+        'data' => $employeeDocument,
     ]);
 }
+
 
 
 }
