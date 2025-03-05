@@ -177,13 +177,64 @@ class PaySlipController extends Controller
             ->pluck('employee_id');
     }
 
+    // private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
+    // {
+    //     return Employee::where('company_doj', '<=', date($formattedMonthYear . '-t'))
+    //         ->whereNotIn('id', $existingPayslips)
+    //         ->whereNotNull('salary')
+    //         ->whereNotNull('salary_type')
+    //         ->get();
+    // }
+
     private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
     {
-        return Employee::where('company_doj', '<=', date($formattedMonthYear . '-t'))
-            ->whereNotIn('id', $existingPayslips)
-            ->whereNotNull('salary')
-            ->whereNotNull('salary_type')
-            ->get();
+    $excludedTypes = ['super admin', 'company', 'team', 'client'];
+    
+    // Get the base user query
+    $usersQuery = User::whereNotIn('type', $excludedTypes);
+    
+    // Apply filters from request
+    if (!empty(request('brand'))) {
+        $usersQuery->where('brand_id', request('brand'));
+    }
+    if (!empty(request('region_id'))) {
+        $usersQuery->where('region_id', request('region_id'));
+    }
+    if (!empty(request('branch_id'))) {
+        $usersQuery->where('branch_id', request('branch_id'));
+    }
+    if (!empty(request('Name'))) {
+        $usersQuery->where('name', 'like', '%' . request('Name') . '%');
+    }
+    if (!empty(request('Designation'))) {
+        $usersQuery->where('type', 'like', '%' . request('Designation') . '%');
+    }
+    if (!empty(request('phone'))) {
+        $usersQuery->where('phone', 'like', '%' . request('phone') . '%');
+    }
+    
+    // Apply user type-specific filtering
+    $user = \Auth::user();
+    if ($user->type == 'super admin') {
+        // No additional filtering
+    } elseif ($user->type == 'company') {
+        $usersQuery->where('brand_id', $user->id);
+    } else {
+        $usersQuery->where('brand_id', $user->brand_id);
+    }
+    
+    // Get the filtered user IDs
+    $userIds = $usersQuery->pluck('id');
+    
+    // Fetch employees with conditions and related users
+    return Employee::where('company_doj', '<=', now()->endOfMonth())
+        ->whereNotIn('id', $existingPayslips)
+        ->whereNotNull('salary')
+        ->whereNotNull('salary_type')
+        ->whereIn('user_id', $userIds)
+        ->with('user') // Load related user data
+        ->get();
+
     }
 
     private function generatePayslips($employees, $formattedMonthYear)
