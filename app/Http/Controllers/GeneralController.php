@@ -434,4 +434,45 @@ class GeneralController extends Controller
             'message' => 'Unauthorized',
         ], 401);
     }
+    public function FilterSave(Request $request)
+    {
+        // Validate incoming request parameters
+        $validator = Validator::make($request->all(), [
+            'filter_name' => 'required|string|max:255',
+            'url' => 'required|url',
+            'module' => 'required|string|max:255',
+            'count' => 'required|integer|min:0',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'failure',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+    
+        // Save the filter data
+        try {
+            $filter = new SavedFilter();
+            $filter->filter_name = $request->filter_name;
+            $filter->url = $request->url;
+            $filter->module = $request->module;
+            $filter->count = $request->count;
+            $filter->created_by = auth()->id(); // Use the authenticated user's ID
+            $filter->save();
+    
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Filter saved successfully.',
+                'data' => $filter,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'failure',
+                'message' => 'An error occurred while saving the filter.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    
 }
