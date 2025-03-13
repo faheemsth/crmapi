@@ -130,6 +130,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UserEmployeeFileUpdate
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
+    Route::post('/employeeFileAttachments', [UserController::class, 'employeeFileAttachments']);
 
 
     // trainers

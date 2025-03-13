@@ -210,7 +210,7 @@ class UserController extends Controller
             ->get();
         $EmergencyContact = EmergencyContact::where('user_id', $request->id)->get();
         $AdditionalAddress = AdditionalAddress::where('user_id', $request->id)->get();
-        
+
         $data = [
             'EmployeeDetails' => $EmployeeDetails,
             'pay_slips' => $Employee,
@@ -644,6 +644,33 @@ class UserController extends Controller
         ], 500);
     }
 }
+
+public function employeeFileAttachments(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'employee_id' => 'required|exists:users,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+    }
+
+    $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)->first();
+
+    if (!$hrmFileAttachment) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Document not found.'
+        ], 404);
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'baseurl' =>  asset('/EmployeeDocument')        ,
+        'document' => $hrmFileAttachment
+    ]);
+}
+
 
 public function UserEmployeeFileUpdate(Request $request)
 {
