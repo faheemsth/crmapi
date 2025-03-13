@@ -75,6 +75,9 @@ class LeaveController extends Controller
         if ($request->filled('branch_id')) {
             $query->where('leaves.branch_id', $request->branch_id);
         }
+        if ($request->filled('employee_id')) {
+            $query->where('leaves.employee_id', $request->employee_id);
+        }
         if ($request->filled('created_at')) {
             $query->whereDate('leaves.created_at', substr($request->created_at, 0, 10));
         }
