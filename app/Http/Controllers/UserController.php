@@ -882,7 +882,7 @@ public function UserEmployeeFileUpdate(Request $request)
 
     public function getAdditionalAddresses(Request $request, $userId)
     {
-        $addresses = AdditionalAddress::where('user_id',$request->id)->first();
+        $addresses = AdditionalAddress::where('user_id',$userId)->first();
 
         if (!$addresses) {
             return response()->json([
