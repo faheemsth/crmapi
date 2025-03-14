@@ -32,6 +32,7 @@ class AppraisalController extends Controller
             'brand' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
+            'employee_id' => 'nullable|integer|exists:users,id',
             'created_at' => 'nullable|date',
             'search' => 'nullable|string',
         ]);
@@ -87,6 +88,10 @@ class AppraisalController extends Controller
             $appraisalQuery->where('appraisals.branch', $request->branch_id);
         }
 
+        if ($request->filled('employee_id')) {
+            $appraisalQuery->where('appraisals.employee', $request->employee_id);
+        }
+
         if ($request->filled('created_at')) {
             $appraisalQuery->whereDate('appraisals.created_at', '=', $request->created_at);
         }
@@ -129,14 +134,14 @@ class AppraisalController extends Controller
     public function addApraisal(Request $request)
     {
         $user = Auth::user();
-    
+
         if (!$user->can('create appraisal')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied'),
             ], 403);
         }
-    
+
         // Validation rules
         $validator = Validator::make($request->all(), [
             'brand_id' => 'required|integer|min:1',
@@ -152,19 +157,19 @@ class AppraisalController extends Controller
             'competencyRemarks' => 'nullable|array',
             'competencyRemarks.*' => 'string',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()->first(),
             ], 422);
         }
-    
+
         // Check for duplicate appraisal
         $existingAppraisal = Appraisal::where('employee', $request->lead_assigned_user)
             ->where('appraisal_date', $request->appraisal_date)
             ->first();
-    
+
         if ($existingAppraisal) {
             $employee = User::find($existingAppraisal->employee);
             return response()->json([
@@ -175,7 +180,7 @@ class AppraisalController extends Controller
                 ]),
             ], 409);
         }
-    
+
         // Create a new Appraisal instance
         $appraisal = new Appraisal();
         $appraisal->brand_id = $request->brand_id;
@@ -195,7 +200,7 @@ class AppraisalController extends Controller
         $appraisal->visa_remarks = $request->visa_remarks;
         $appraisal->created_by = $request->emp_id ?? Auth::id();
         $appraisal->save();
-    
+
         // Insert competency remarks if provided
         if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
             foreach ($request->competencyRemarks as $competencyId => $remark) {
@@ -206,26 +211,26 @@ class AppraisalController extends Controller
                 ]);
             }
         }
-    
+
         return response()->json([
             'status' => 'success',
             'message' => __('Appraisal successfully created.'),
             'data' => $appraisal,
         ], 201);
     }
-    
-    
+
+
     public function updateAppraisal(Request $request)
     {
         $user = Auth::user();
-    
+
         if (!$user->can('edit appraisal')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied'),
             ], 403);
         }
-    
+
         // Validate request data
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:appraisals,id',
@@ -242,17 +247,17 @@ class AppraisalController extends Controller
             'competencyRemarks' => 'nullable|array',
             'competencyRemarks.*' => 'string',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()->first(),
             ], 422);
         }
-    
+
         // Retrieve the Appraisal
         $appraisal = Appraisal::findOrFail($request->id);
-    
+
         // Update appraisal details
         $appraisal->brand_id = $request->brand_id;
         $appraisal->region_id = $request->region_id;
@@ -270,7 +275,7 @@ class AppraisalController extends Controller
         $appraisal->visa_remarks = $request->visa_remarks;
         $appraisal->status = $request->save_type === 'Submit' ? 2 : 1;
         $appraisal->save();
-    
+
         // Handle competency remarks
         if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
             foreach ($request->competencyRemarks as $competencyId => $remarks) {
@@ -280,7 +285,7 @@ class AppraisalController extends Controller
                 );
             }
         }
-    
+
         // Log activity if appraisal is submitted
         if ($request->save_type === 'Submit') {
             LogActivity::create([
@@ -297,14 +302,14 @@ class AppraisalController extends Controller
                 'created_by' => $appraisal->created_by,
             ]);
         }
-    
+
         return response()->json([
             'status' => 'success',
             'message' => __('Appraisal successfully updated.'),
             'data' => $appraisal,
         ]);
     }
-    
+
 
     public function deleteAppraisal(Request $request)
     {
