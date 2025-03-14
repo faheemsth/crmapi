@@ -882,16 +882,14 @@ public function UserEmployeeFileUpdate(Request $request)
 
     public function getAdditionalAddresses(Request $request, $userId)
     {
-        $user = User::find($userId);
+        $addresses = AdditionalAddress::where('user_id',$request->id)->first();
 
-        if (!$user) {
+        if (!$addresses) {
             return response()->json([
                 'status' => 'error',
-                'message' => __('User not found.')
+                'message' => __('Addresses not found.')
             ], 404);
         }
-
-        $addresses = $user->additionalAddresses;
 
         return response()->json([
             'status' => 'success',
