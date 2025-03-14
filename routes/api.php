@@ -126,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/additional-address', [UserController::class, 'AdditionalAddressPost']);
     Route::put('/additional-address', [UserController::class, 'AdditionalAddressUpdate']);
     Route::delete('/additional-address', [UserController::class, 'AdditionalAddressDelete']);
+    Route::post('/getAdditionalAddresses/{userId}', [UserController::class, 'getAdditionalAddresses']);
 
 
     // UserEmployeeFileUpdate

@@ -880,5 +880,24 @@ public function UserEmployeeFileUpdate(Request $request)
         ]);
     }
 
+    public function getAdditionalAddresses(Request $request, $userId)
+    {
+        $user = User::find($userId);
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('User not found.')
+            ], 404);
+        }
+
+        $addresses = $user->additionalAddresses;
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $addresses
+        ], 200);
+    }
+
 
 }
