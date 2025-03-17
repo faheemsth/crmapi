@@ -703,7 +703,7 @@ public function UserEmployeeFileUpdate(Request $request)
     }
 
     // Define allowed file types
-    $files = ['profile_picture', 'cv', 'academic_documents', 'id_card'];
+    $files = ['profile_picture', 'cv', 'academic_docs', 'id_card'];
     $uploadedFiles = [];
 
     foreach ($files as $fileType) {
@@ -725,22 +725,22 @@ public function UserEmployeeFileUpdate(Request $request)
 
 
 
-    if(!empty( $uploadedFiles['cv'])){
+    if(!empty( $uploadedFiles['profile_picture'])){
         $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
     }
 
-    if(!empty( $uploadedFiles['academic_documents'])){
-        $employeeDocument->resume = $uploadedFiles['academic_documents'];
+    if(!empty( $uploadedFiles['academic_docs'])){
+        $employeeDocument->academic_documents = $uploadedFiles['academic_docs'];
     }
 
     if(!empty( $uploadedFiles['id_card'])){
-        $employeeDocument->resume = $uploadedFiles['id_card'];
+        $employeeDocument->id_card = $uploadedFiles['id_card'];
     }
 
     if(!empty( $uploadedFiles['cv'])){
         $employeeDocument->resume = $uploadedFiles['cv'];
     }
-
+    $employeeDocument->created_by = \Auth::id();
     $employeeDocument->save();
 
     return response()->json([
