@@ -725,22 +725,22 @@ public function UserEmployeeFileUpdate(Request $request)
 
 
 
-    if(!empty( $uploadedFiles['cv'])){
+    if(!empty( $uploadedFiles['profile_picture'])){
         $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
     }
 
     if(!empty( $uploadedFiles['academic_documents'])){
-        $employeeDocument->resume = $uploadedFiles['academic_documents'];
+        $employeeDocument->academic_documents = $uploadedFiles['academic_documents'];
     }
 
     if(!empty( $uploadedFiles['id_card'])){
-        $employeeDocument->resume = $uploadedFiles['id_card'];
+        $employeeDocument->id_card = $uploadedFiles['id_card'];
     }
 
     if(!empty( $uploadedFiles['cv'])){
         $employeeDocument->resume = $uploadedFiles['cv'];
     }
-
+    $employeeDocument->created_by = \Auth::id();
     $employeeDocument->save();
 
     return response()->json([
