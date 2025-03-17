@@ -703,7 +703,7 @@ public function UserEmployeeFileUpdate(Request $request)
     }
 
     // Define allowed file types
-    $files = ['profile_picture', 'cv', 'academic_documents', 'id_card'];
+    $files = ['profile_picture', 'cv', 'academic_docs', 'id_card'];
     $uploadedFiles = [];
 
     foreach ($files as $fileType) {
@@ -729,8 +729,8 @@ public function UserEmployeeFileUpdate(Request $request)
         $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
     }
 
-    if(!empty( $uploadedFiles['academic_documents'])){
-        $employeeDocument->academic_documents = $uploadedFiles['academic_documents'];
+    if(!empty( $uploadedFiles['academic_docs'])){
+        $employeeDocument->academic_documents = $uploadedFiles['academic_docs'];
     }
 
     if(!empty( $uploadedFiles['id_card'])){
