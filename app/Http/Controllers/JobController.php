@@ -85,6 +85,10 @@ class JobController extends Controller
             $jobsQuery->where('jobs.branch', $request->branch_id);
         }
 
+        if ($request->filled('status')) {
+            $jobsQuery->where('jobs.status', $request->status);
+        }
+
         if ($request->filled('created_at')) {
             $jobsQuery->whereDate('jobs.created_at', '=', $request->created_at);
         }
@@ -214,10 +218,10 @@ class JobController extends Controller
             'category' => 'required|integer|exists:job_categories,id',
             'skill' => 'required|string|max:255',
             'position' => 'required|integer',
-            'start_date' => 'required|date|after_or_equal:today',
+            'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'description' => 'required|string',
-            'requirement' => 'required|string',
+            'requirement' => 'string',
             'status' => 'nullable|in:active,inactive',
             'applicant' => 'nullable|array',
             'visibility' => 'nullable|array',
@@ -368,6 +372,51 @@ class JobController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Job successfully updated.',
+            'data' => $job,
+        ], 200);
+    }
+    public function updateJobStatus(Request $request)
+    {
+        // Check if the user has permission to edit jobs
+        if (!\Auth::user()->can('edit job')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'jobID' => 'required|integer|exists:jobs,id',
+            'status' => 'required|in:active,inactive',
+        ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 422);
+        }
+
+        // Find the job using the jobID
+        $job = Job::find($request->jobID);
+
+        if (!$job) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Job not found.',
+            ], 404);
+        }
+
+        // Update job details
+
+        $job->status = $request->status ?? $job->status; // Retain existing status if not provided
+        $job->save();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Job Status successfully updated.',
             'data' => $job,
         ], 200);
     }
