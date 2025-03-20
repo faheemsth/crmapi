@@ -28,6 +28,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
 use App\Http\Controllers\IndicatorController;
+use App\Http\Controllers\InstituteController;
 use App\Http\Controllers\JobCategoryController;
 use App\Http\Controllers\JobStageController;
 use App\Http\Controllers\LeaveController;
@@ -363,6 +364,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/createJob', [JobController::class, 'createJob']);
     Route::post('/getJobDetails', [JobController::class, 'getJobDetails']);
     Route::post('/updateJob', [JobController::class, 'updateJob']);
+    Route::post('/updateJobStatus', [JobController::class, 'updateJobStatus']);
     Route::post('/deleteJob', [JobController::class, 'deleteJob']);
 
     // Custom Question
@@ -393,6 +395,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payslip-get/{id}', [PayslipTypeController::class, 'show'])->middleware('can:manage payslip type');
     Route::put('/payslip-update/{id}', [PayslipTypeController::class, 'update'])->middleware('can:edit payslip type');
     Route::post('/payslip-delete/{id}', [PayslipTypeController::class, 'destroy'])->middleware('can:delete payslip type');
+
+    Route::post('/getInstitutes', [InstituteController::class, 'getInstitutes']);
+    Route::post('/pluckInstitutes', [InstituteController::class, 'pluckInstitutes']);
+    Route::post('/addInstitute', [InstituteController::class, 'addInstitute']);
+    Route::post('/updateInstitute', [InstituteController::class, 'updateInstitute']);
+    Route::post('/deleteInstitute', [InstituteController::class, 'deleteInstitute']);
 
 
 
