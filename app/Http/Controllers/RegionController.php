@@ -26,7 +26,7 @@ class RegionController extends Controller
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
-            'brand_id' => 'nullable|integer|exists:brands,id',
+            'brand_id' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
         ]);
 

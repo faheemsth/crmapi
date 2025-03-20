@@ -76,22 +76,15 @@ class LeaveTypeController extends Controller
 
     public function show(LeaveType $leavetype)
     {
-        if (auth()->user()->can('view leave type') && $leavetype->created_by == auth()->id()) {
             return response()->json([
                 'status' => 'success',
                 'data' => $leavetype,
             ], 200);
-        }
-
-        return response()->json([
-            'status' => 'error',
-            'errors' =>  __('Permission denied.')
-        ], 422);
+        
     }
 
     public function update(Request $request, LeaveType $leavetype)
     {
-        if (auth()->user()->can('edit leave type') && $leavetype->created_by == auth()->id()) {
             $validator = Validator::make($request->all(), [
                 'title' => 'required',
                 'days' => 'required|integer',
@@ -115,26 +108,16 @@ class LeaveTypeController extends Controller
             ], 200);
         }
 
-        return response()->json([
-            'status' => 'error',
-            'errors' =>  __('Permission denied.')
-        ], 422);
     }
 
     public function destroy(LeaveType $leavetype)
     {
-        if (auth()->user()->can('delete leave type') && $leavetype->created_by == auth()->id()) {
             $leavetype->delete();
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'LeaveType successfully deleted.',
             ], 200);
-        }
-
-        return response()->json([
-            'status' => 'error',
-            'errors' =>  __('Permission denied.')
-        ], 422);
+    
     }
 }
