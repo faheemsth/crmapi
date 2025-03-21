@@ -11,9 +11,9 @@ class PayslipTypeController extends Controller
 {
     public function index()
     {
-        if (!\Auth::user()->can('manage payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        // if (!\Auth::user()->can('manage payslip type')) {
+        //     return response()->json(['error' => __('Permission denied.')], 403);
+        // }
 
         $paysliptypes = PayslipType::get();
         return response()->json(['status' => 'success', 'data' => $paysliptypes], 200);
@@ -30,9 +30,9 @@ class PayslipTypeController extends Controller
 
     public function store(Request $request)
     {
-        if (!\Auth::user()->can('create payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        // if (!\Auth::user()->can('create payslip type')) {
+        //     return response()->json(['error' => __('Permission denied.')], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|max:20',
@@ -52,13 +52,13 @@ class PayslipTypeController extends Controller
 
     public function update(Request $request, PayslipType $paysliptype)
     {
-        if (!\Auth::user()->can('edit payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        // if (!\Auth::user()->can('edit payslip type')) {
+        //     return response()->json(['error' => __('Permission denied.')], 403);
+        // }
 
-        if ($paysliptype->created_by != \Auth::id()) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        // if ($paysliptype->created_by != \Auth::id()) {
+        //     return response()->json(['error' => __('Permission denied.')], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|max:20',
@@ -76,13 +76,13 @@ class PayslipTypeController extends Controller
 
     public function destroy(PayslipType $paysliptype)
     {
-        if (!\Auth::user()->can('delete payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        // if (!\Auth::user()->can('delete payslip type')) {
+        //     return response()->json(['error' => __('Permission denied.')], 403);
+        // }
 
-        if ($paysliptype->created_by != \Auth::id()) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        // if ($paysliptype->created_by != \Auth::id()) {
+        //     return response()->json(['error' => __('Permission denied.')], 403);
+        // }
 
         $paysliptype->delete();
 
