@@ -9,13 +9,6 @@ class PerformanceTypeController extends Controller
 {
     public function getPerformanceTypes()
     {
-        if (!\Auth::user()->can('manage performance type')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
-
         $performanceTypes = PerformanceType::get();
 
         return response()->json([
@@ -26,13 +19,6 @@ class PerformanceTypeController extends Controller
 
     public function addPerformanceType(Request $request)
     {
-        if (!\Auth::user()->can('create performance type')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
-
         $validator = \Validator::make(
             $request->all(),
             ['name' => 'required|string']
@@ -59,13 +45,6 @@ class PerformanceTypeController extends Controller
 
     public function updatePerformanceType(Request $request)
     {
-        if (!\Auth::user()->can('edit performance type')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
-
         $validator = \Validator::make(
             $request->all(),
             [
@@ -101,13 +80,6 @@ class PerformanceTypeController extends Controller
 
     public function deletePerformanceType(Request $request)
     {
-        if (!\Auth::user()->can('delete performance type')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
-
         $validator = \Validator::make(
             $request->all(),
             ['id' => 'required|exists:performance_types,id']
