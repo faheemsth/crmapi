@@ -16,7 +16,7 @@ class OtherPaymentController extends Controller
 {
     // Validate input
     $validated = $request->validate([
-        'employee_id' => 'required|exists:users,id',
+        'employee_id' => 'required|exists:employees,id',
     ]);
 
     // Fetch OtherPayment
@@ -43,7 +43,7 @@ class OtherPaymentController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'employee_id'      => 'required|integer|exists:users,id',
+            'employee_id'      => 'required|integer|exists:employees,id',
             'title'            => 'required|string|max:255',
             'type'             => 'nullable|string',
             'amount'           => 'required|numeric|min:0',
@@ -104,7 +104,7 @@ class OtherPaymentController extends Controller
         // Validate input
         $validator = Validator::make($request->all(), [
             'OtherPayment_id'     => 'required|exists:Other_Payments,id',
-            'employee_id'      => 'nullable|integer|exists:users,id',
+            'employee_id'      => 'nullable|integer|exists:employees,id',
             'title'            => 'nullable|string|max:255',
             'type'             => 'nullable|string',
             'amount'           => 'nullable|numeric|min:0',

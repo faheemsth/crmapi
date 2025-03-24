@@ -14,7 +14,7 @@ class OvertimeController extends Controller
     {
         // Validate input
         $validated = $request->validate([
-            'employee_id' => 'required|exists:users,id',
+            'employee_id' => 'required|exists:employees,id',
         ]);
 
         // Fetch overtimes
@@ -39,7 +39,7 @@ class OvertimeController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'employee_id'    => 'required|integer|exists:users,id',
+            'employee_id'    => 'required|integer|exists:employees,id',
             'title'          => 'required|string|max:255',
             'number_of_days' => 'required|integer|min:1',
             'hours'          => 'required|numeric|min:0',
