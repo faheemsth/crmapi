@@ -34,10 +34,9 @@ class SetSalaryController extends Controller
         $validator = Validator::make($request->all(), [
             'perPage'   => 'nullable|integer|min:1',
             'page'      => 'nullable|integer|min:1',
-            'brand_id'  => 'nullable|integer|exists:brands,id',
+            'brand_id'  => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
-            'created_at' => 'nullable|date_format:Y-m-d',
         ]);
 
         if ($validator->fails()) {
@@ -79,6 +78,9 @@ class SetSalaryController extends Controller
         }
         if ($request->filled('branch_id')) {
             $query->where('users.branch_id', $request->branch_id);
+        }
+        if ($request->filled('employee_id') && $request->filled('employee_id') != "undefined"){
+            $query->where('users.id', $request->employee_id);
         }
         if ($request->filled('search')) {
             $search = $request->input('search');
