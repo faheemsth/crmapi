@@ -21,10 +21,11 @@ class PaySlip extends Model
         'created_by',
     ];
 
-    // public static function employee($id)
-    // {
-    //     return Employee::find($id);
-    // }
+    public function user()
+    {
+        return $this->hasOne(User::class, 'id', 'user_id');
+    }
+    
     public function employee()
     {
         return $this->hasOne('App\Models\Employee', 'id', 'employee_id');

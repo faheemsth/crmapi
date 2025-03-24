@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Validator;
 
 class PaySlipController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Check user permissions
         if (!$this->canManagePaySlips()) {
@@ -21,11 +21,73 @@ class PaySlipController extends Controller
                 'message' => __('Permission denied.')
             ], 403);
         }
-
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
         // Fetch employees and prepare month/year options
-        $payslips = PaySlip::with('employees', 'employee.salaryType')
-            ->where('created_by', Auth::id())
-            ->get();
+        $jobsQuery = PaySlip::select(
+            'pay_slips.*',
+            'brand.name as brandname',   // Renamed for better readability
+            'regions.name as regionname', // Renamed for better readability
+            'branches.name as branchname' // Renamed for better readability
+        )
+        ->with([
+            'employees', 
+            'employee.salaryType' // Assuming `employee` is a relationship; corrected casing
+        ])
+        ->leftJoin('employees', 'employees.id', '=', 'pay_slips.employee_id')
+        ->leftJoin('users', 'users.id', '=', 'employees.user_id') // Corrected column relation
+        ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id') // Referring to employees' brand_id
+        ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+        ->where('pay_slips.created_by', Auth::id()); // Filtering for the authenticated user
+        
+    
+    
+            if ($request->filled('brand')) {
+                $jobsQuery->where('users.brand_id', $request->brand);
+            }
+    
+            if ($request->filled('region_id')) {
+                $jobsQuery->where('users.region_id', $request->region_id);
+            }
+    
+            if ($request->filled('branch_id')) {
+                $jobsQuery->where('users.branch_id', $request->branch_id);
+            }
+
+            if ($request->filled('employee_id')) {
+                $jobsQuery->where('users.id', $request->employee_id);
+            }
+    
+            if ($request->filled('created_at')) {
+                $jobsQuery->whereDate('users.created_at', '=', $request->created_at);
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $jobsQuery->where(function ($query) use ($search) {
+                    $query->where('brand.name', 'like', "%$search%")
+                        ->orWhere('regions.name', 'like', "%$search%")
+                        ->orWhere('branches.name', 'like', "%$search%")
+                        ->orWhere('users.name', 'like', "%$search%")
+                        ->orWhere('pay_slips.net_payble', 'like', "%$search%");
+                });
+            }
+
+            // 
+            $payslips = $jobsQuery
+            ->orderBy('pay_slips.created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+    
+            return response()->json([
+                'status' => 'success',
+                'data' => $payslips->items(),
+                'current_page' => $payslips->currentPage(),
+                'last_page' => $payslips->lastPage(),
+                'total_records' => $payslips->total(),
+                'per_page' => $payslips->perPage(),
+                'message' => __('Payslips retrieved successfully'),
+            ]);
 
         return response()->json([
             'status' => 'success',

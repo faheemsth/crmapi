@@ -82,12 +82,6 @@ class BranchController extends Controller
                     ->orWhere('branches.phone', 'like', "%$search%")
                     ->orWhereHas('region', function ($q) use ($search) {
                         $q->where('name', 'like', "%$search%");
-                    })
-                    ->orWhereHas('users', function ($q) use ($search) {
-                        $q->where('name', 'like', "%$search%");
-                    })
-                    ->orWhereHas('users', function ($q) use ($search) {
-                        $q->where('name', 'like', "%$search%");
                     });
             });
         }

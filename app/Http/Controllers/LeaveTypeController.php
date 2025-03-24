@@ -77,12 +77,8 @@ class LeaveTypeController extends Controller
                 'status' => 'success',
                 'data' => $leavetype,
             ], 200);
-        }
-
-        return response()->json([
-            'status' => 'error',
-            'errors' =>  __('Permission denied.')
-        ], 422);
+        
+    }
     }
 
     public function update(Request $request, LeaveType $leavetype)
@@ -111,10 +107,6 @@ class LeaveTypeController extends Controller
             ], 200);
         }
 
-        return response()->json([
-            'status' => 'error',
-            'errors' =>  __('Permission denied.')
-        ], 422);
     }
 
     public function destroy(LeaveType $leavetype)
@@ -126,11 +118,7 @@ class LeaveTypeController extends Controller
                 'status' => 'success',
                 'message' => 'LeaveType successfully deleted.',
             ], 200);
-        }
-
-        return response()->json([
-            'status' => 'error',
-            'errors' =>  __('Permission denied.')
-        ], 422);
+    
+    }
     }
 }

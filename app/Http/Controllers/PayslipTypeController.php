@@ -11,29 +11,17 @@ class PayslipTypeController extends Controller
 {
     public function index()
     {
-        if (!\Auth::user()->can('manage payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
-
         $paysliptypes = PayslipType::get();
         return response()->json(['status' => 'success', 'data' => $paysliptypes], 200);
     }
     public function pluckPayslip()
     {
-        // if (!\Auth::user()->can('manage payslip type')) {
-        //     return response()->json(['error' => __('Permission denied.')], 403);
-        // }
-
         $paysliptypes =    PayslipType::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
         return response()->json(['status' => 'success', 'data' => $paysliptypes], 200);
     }
 
     public function store(Request $request)
     {
-        if (!\Auth::user()->can('create payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
-
         $validator = Validator::make($request->all(), [
             'name' => 'required|max:20',
         ]);
@@ -50,14 +38,12 @@ class PayslipTypeController extends Controller
         return response()->json(['status' => 'success', 'message' => __('PayslipType successfully created.')], 201);
     }
 
-    public function update(Request $request, PayslipType $paysliptype)
+    public function update(Request $request, PayslipType $paysliptype,$id)
     {
-        if (!\Auth::user()->can('edit payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        $paysliptype=PayslipType::find($id);
 
-        if ($paysliptype->created_by != \Auth::id()) {
-            return response()->json(['error' => __('Permission denied.')], 403);
+        if (empty($paysliptype)) {
+            return response()->json(['status' => 'error', 'message' => "Sorry Data Not Found"], 422);
         }
 
         $validator = Validator::make($request->all(), [
@@ -74,14 +60,12 @@ class PayslipTypeController extends Controller
         return response()->json(['status' => 'success', 'message' => __('PayslipType successfully updated.')], 200);
     }
 
-    public function destroy(PayslipType $paysliptype)
+    public function destroy(PayslipType $paysliptype,$id)
     {
-        if (!\Auth::user()->can('delete payslip type')) {
-            return response()->json(['error' => __('Permission denied.')], 403);
-        }
+        $paysliptype=PayslipType::find($id);
 
-        if ($paysliptype->created_by != \Auth::id()) {
-            return response()->json(['error' => __('Permission denied.')], 403);
+        if (empty($paysliptype)) {
+            return response()->json(['status' => 'error', 'message' => "Sorry Data Not Found"], 422);
         }
 
         $paysliptype->delete();
