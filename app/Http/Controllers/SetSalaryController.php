@@ -62,7 +62,7 @@ class SetSalaryController extends Controller
         ->leftJoin('users', 'users.id', '=', 'employees.user_id')
         ->leftJoin('users as BrandUsers', 'BrandUsers.id', '=', 'users.brand_id')
         ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
-        ->leftJoin('regions', 'regions.id', '=', 'users.region_id');
+        ->leftJoin('regions', 'regions.id', '=', 'users.region_id')->whereNotNull('BrandUsers.name');
 
         // Apply role-based filtering
         $query = RoleBaseTableGet($query, 'users.brand_id', 'users.region_id', 'users.branch_id', 'users.created_by');
@@ -80,7 +80,16 @@ class SetSalaryController extends Controller
         if ($request->filled('branch_id')) {
             $query->where('users.branch_id', $request->branch_id);
         }
-
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($query) use ($search) {
+                $query->where('users.created_at', 'like', "%$search%")
+                    ->orWhere('regions.name', 'like', "%$search%")
+                    ->orWhere('branches.name', 'like', "%$search%")
+                    ->orWhere('employees.name', 'like', "%$search%")
+                    ->orWhere('BrandUsers.name', 'like', "%$search%");
+            });
+        }
         // Get total count before pagination
         $totalRecords = $query->count();
 
