@@ -102,6 +102,7 @@ class UserController extends Controller
             'Designation' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
+            'download_csv' => 'nullable|boolean', // Add this parameter
         ]);
 
         if ($validator->fails()) {
@@ -175,6 +176,46 @@ class UserController extends Controller
             $employeesQuery->where('id', $user->id);
         }
 
+        // Check if CSV download is requested
+    if ($request->input('download_csv')) {
+        $employees = $employeesQuery->get(); // Fetch all records without pagination
+
+        // Generate CSV
+        $csvFileName = 'employees_' . time() . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+        ];
+
+        $callback = function () use ($employees) {
+            $file = fopen('php://output', 'w');
+
+            // Add CSV headers
+            fputcsv($file, [
+                'ID', 'Name', 'Email', 'Phone', 'Brand', 'Branch', 'Designation', 'Status', 'Last Login'
+            ]);
+
+            // Add rows
+            foreach ($employees as $employee) {
+                fputcsv($file, [
+                    $employee->id,
+                    $employee->name,
+                    $employee->email,
+                    $employee->phone,
+                    $employee->brand->name ?? '',
+                    $employee->branch->name ?? '',
+                    $employee->type,
+                    $employee->is_active == 1 ? 'Active' : 'Inactive',
+                    $employee->last_login_at  ,
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
         // Paginate results
         $employees = $employeesQuery
             ->orderBy('users.name', 'ASC')
@@ -189,6 +230,147 @@ class UserController extends Controller
             'perPage' => $employees->perPage()
         ], 200);
     }
+
+    public function getEmployees_download(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'page' => 'nullable|integer|min:1',
+        'perPage' => 'nullable|integer|min:1',
+        'brand' => 'nullable|integer|exists:users,id',
+        'region_id' => 'nullable|integer|exists:regions,id',
+        'branch_id' => 'nullable|integer|exists:branches,id',
+        'Name' => 'nullable|string',
+        'Designation' => 'nullable|string',
+        'phone' => 'nullable|string',
+        'search' => 'nullable|string',
+        'download_csv' => 'nullable|boolean', // Add this parameter
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    $user = \Auth::user();
+    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+    $page = $request->input('page', 1);
+
+    if (!$user->can('manage employee')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Unauthorized access'
+        ], 403);
+    }
+
+    $excludedTypes = ['super admin', 'company', 'team', 'client'];
+
+    $employeesQuery = User::select('users.*')
+        ->whereNotIn('type', $excludedTypes);
+
+    // Apply filters (same as before)
+    if ($request->filled('brand')) {
+        $employeesQuery->where('brand_id', $request->brand);
+    }
+    if ($request->filled('region_id')) {
+        $employeesQuery->where('region_id', $request->region_id);
+    }
+    if ($request->filled('branch_id')) {
+        $employeesQuery->where('branch_id', $request->branch_id);
+    }
+    if ($request->filled('Name')) {
+        $employeesQuery->where('name', 'like', '%' . $request->Name . '%');
+    }
+    if ($request->filled('Designation')) {
+        $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
+    }
+    if ($request->filled('phone')) {
+        $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
+    }
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $employeesQuery->where(function ($query) use ($search) {
+            $query->where('users.name', 'like', "%$search%")
+                ->orWhere('users.email', 'like', "%$search%")
+                ->orWhere('users.phone', 'like', "%$search%")
+                ->orWhere('users.type', 'like', "%$search%")
+                ->orWhere(DB::raw('(SELECT name FROM branches WHERE branches.id = users.branch_id)'), 'like', "%$search%")
+                ->orWhere(DB::raw('(SELECT name FROM regions WHERE regions.id = users.region_id)'), 'like', "%$search%")
+                ->orWhere(DB::raw('(SELECT name FROM users AS brands WHERE brands.id = users.brand_id)'), 'like', "%$search%");
+        });
+    }
+
+    // Apply user-specific restrictions (same as before)
+    if ($user->can('level 1') || $user->type === 'super admin') {
+        // Level 1 permissions
+    } elseif ($user->type === 'company') {
+        $employeesQuery->where('brand_id', $user->id);
+    } elseif ($user->can('level 2')) {
+        $brandIds = array_keys(FiltersBrands());
+        $employeesQuery->whereIn('brand_id', $brandIds);
+    } elseif ($user->can('level 3') && $user->region_id) {
+        $employeesQuery->where('region_id', $user->region_id);
+    } elseif ($user->can('level 4') && $user->branch_id) {
+        $employeesQuery->where('branch_id', $user->branch_id);
+    } else {
+        $employeesQuery->where('id', $user->id);
+    }
+
+    // Check if CSV download is requested
+    if ($request->input('download_csv')) {
+        $employees = $employeesQuery->get(); // Fetch all records without pagination
+
+        // Generate CSV
+        $csvFileName = 'employees_' . time() . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+        ];
+
+        $callback = function () use ($employees) {
+            $file = fopen('php://output', 'w');
+
+            // Add CSV headers
+            fputcsv($file, [
+                'ID', 'Name', 'Email', 'Phone', 'Brand', 'Branch', 'Designation', 'Status', 'Last Login'
+            ]);
+
+            // Add rows
+            foreach ($employees as $employee) {
+                fputcsv($file, [
+                    $employee->id,
+                    $employee->name,
+                    $employee->email,
+                    $employee->phone,
+                    $employee->brand->name ?? '',
+                    $employee->branch->name ?? '',
+                    $employee->type,
+                    $employee->is_active == 1 ? 'Active' : 'Inactive',
+                    $employee->last_login_at  ,
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // Paginate results (if CSV download is not requested)
+    $employees = $employeesQuery
+        ->orderBy('users.name', 'ASC')
+        ->paginate($perPage, ['*'], 'page', $page);
+
+    return response()->json([
+        'status' => 'success',
+        'data' => $employees->items(),
+        'current_page' => $employees->currentPage(),
+        'last_page' => $employees->lastPage(),
+        'total_records' => $employees->total(),
+        'perPage' => $employees->perPage()
+    ], 200);
+}
     public function EmployeeDetails(Request $request)
     {
         $EmployeeDetails = User::with('employee')->select(
