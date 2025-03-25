@@ -149,6 +149,7 @@ class GoalTrackingController extends Controller
         $goalTracking->subject = $request->subject;
         $goalTracking->target_achievement = $request->target_achievement;
         $goalTracking->description = $request->description;
+        $goalTracking->status = $request->status;
         $goalTracking->created_by = Auth::user()->creatorId();
         $goalTracking->save();
 
@@ -253,6 +254,8 @@ class GoalTrackingController extends Controller
         $goalTracking->subject = $request->subject ?? $goalTracking->subject;
         $goalTracking->target_achievement = $request->target_achievement ?? $goalTracking->target_achievement;
         $goalTracking->description = $request->description ?? $goalTracking->description;
+        $goalTracking->status = $request->status ?? $goalTracking->status;
+
 
         $goalTracking->save();
 
