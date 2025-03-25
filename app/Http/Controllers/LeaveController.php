@@ -46,7 +46,7 @@ class LeaveController extends Controller
         }
 
         // Pagination settings
-        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 10));
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
         $page = $request->input('page', 1);
 
         // Base query with necessary joins
