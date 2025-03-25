@@ -475,4 +475,14 @@ class GeneralController extends Controller
         }
     }
     
+    public function Country()
+    {
+        $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $Country,
+        ], 200);
+
+    }
 }

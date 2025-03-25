@@ -423,4 +423,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getTags', [GeneralController::class, 'getTags']);
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
+    Route::post('/Country', [GeneralController::class, 'Country']);
+
+    
 });
