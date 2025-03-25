@@ -37,7 +37,8 @@ class InterviewScheduleController extends Controller
 
         // Build the query
         $query = InterviewSchedule::with('applications.jobs', 'users', 'scheduled_by')
-            ->where('created_by', Auth::id());
+        ->whereHas('applications.jobs') // Ensures related jobs exist
+        ->where('created_by', Auth::id());
 
         // Apply date filter
         if ($request->filled('startDate')) {

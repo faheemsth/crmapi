@@ -546,14 +546,11 @@ class JobApplicationController extends Controller
 
     public function candidate()
     {
-        if (\Auth::user()->can('manage job onBoard')) {
-            $archive_application = JobApplication::where('created_by', \Auth::id())->where('is_archive', 1)->get();
+        $JobApplications = JobApplication::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
 
-            return view('jobApplication.candidate', compact('archive_application'));
-        } else {
-            return redirect()->back()->with('error', __('Permission denied.'));
-        }
+        return response()->json(['status' => 'success', 'data' => $JobApplications], 200);
     }
+
 
 
     public function getjobBoardStore(Request $request)
