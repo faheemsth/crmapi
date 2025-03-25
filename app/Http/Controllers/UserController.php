@@ -177,44 +177,52 @@ class UserController extends Controller
         }
 
         // Check if CSV download is requested
-    if ($request->input('download_csv')) {
-        $employees = $employeesQuery->get(); // Fetch all records without pagination
+        if ($request->input('download_csv')) {
+            $employees = $employeesQuery->get(); // Fetch all records without pagination
 
-        // Generate CSV
-        $csvFileName = 'employees_' . time() . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
-        ];
+            // Generate CSV
+            $csvFileName = 'employees_' . time() . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+            ];
 
-        $callback = function () use ($employees) {
-            $file = fopen('php://output', 'w');
+            $callback = function () use ($employees) {
+                $file = fopen('php://output', 'w');
 
-            // Add CSV headers
-            fputcsv($file, [
-                'ID', 'Name', 'Email', 'Phone', 'Brand', 'Branch', 'Designation', 'Status', 'Last Login'
-            ]);
-
-            // Add rows
-            foreach ($employees as $employee) {
+                // Add CSV headers
                 fputcsv($file, [
-                    $employee->id,
-                    $employee->name,
-                    $employee->email,
-                    $employee->phone,
-                    $employee->brand->name ?? '',
-                    $employee->branch->name ?? '',
-                    $employee->type,
-                    $employee->is_active == 1 ? 'Active' : 'Inactive',
-                    $employee->last_login_at  ,
+                    'ID',
+                    'Name',
+                    'Email',
+                    'Phone',
+                    'Brand',
+                    'Branch',
+                    'Designation',
+                    'Status',
+                    'Last Login'
                 ]);
-            }
 
-            fclose($file);
-        };
+                // Add rows
+                foreach ($employees as $employee) {
+                    fputcsv($file, [
+                        $employee->id,
+                        $employee->name,
+                        $employee->email,
+                        $employee->phone,
+                        $employee->brand->name ?? '',
+                        $employee->branch->name ?? '',
+                        $employee->type,
+                        $employee->is_active == 1 ? 'Active' : 'Inactive',
+                        $employee->last_login_at,
+                    ]);
+                }
 
-        return response()->stream($callback, 200, $headers);
-    }
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
 
         // Paginate results
         $employees = $employeesQuery
@@ -232,145 +240,153 @@ class UserController extends Controller
     }
 
     public function getEmployees_download(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'page' => 'nullable|integer|min:1',
-        'perPage' => 'nullable|integer|min:1',
-        'brand' => 'nullable|integer|exists:users,id',
-        'region_id' => 'nullable|integer|exists:regions,id',
-        'branch_id' => 'nullable|integer|exists:branches,id',
-        'Name' => 'nullable|string',
-        'Designation' => 'nullable|string',
-        'phone' => 'nullable|string',
-        'search' => 'nullable|string',
-        'download_csv' => 'nullable|boolean', // Add this parameter
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'page' => 'nullable|integer|min:1',
+            'perPage' => 'nullable|integer|min:1',
+            'brand' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'Name' => 'nullable|string',
+            'Designation' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'search' => 'nullable|string',
+            'download_csv' => 'nullable|boolean', // Add this parameter
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors()
-        ], 422);
-    }
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-    $user = \Auth::user();
-    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
-    $page = $request->input('page', 1);
+        $user = \Auth::user();
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
 
-    if (!$user->can('manage employee')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Unauthorized access'
-        ], 403);
-    }
+        if (!$user->can('manage employee')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
 
-    $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
 
-    $employeesQuery = User::select('users.*')
-        ->whereNotIn('type', $excludedTypes);
+        $employeesQuery = User::select('users.*')
+            ->whereNotIn('type', $excludedTypes);
 
-    // Apply filters (same as before)
-    if ($request->filled('brand')) {
-        $employeesQuery->where('brand_id', $request->brand);
-    }
-    if ($request->filled('region_id')) {
-        $employeesQuery->where('region_id', $request->region_id);
-    }
-    if ($request->filled('branch_id')) {
-        $employeesQuery->where('branch_id', $request->branch_id);
-    }
-    if ($request->filled('Name')) {
-        $employeesQuery->where('name', 'like', '%' . $request->Name . '%');
-    }
-    if ($request->filled('Designation')) {
-        $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
-    }
-    if ($request->filled('phone')) {
-        $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
-    }
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $employeesQuery->where(function ($query) use ($search) {
-            $query->where('users.name', 'like', "%$search%")
-                ->orWhere('users.email', 'like', "%$search%")
-                ->orWhere('users.phone', 'like', "%$search%")
-                ->orWhere('users.type', 'like', "%$search%")
-                ->orWhere(DB::raw('(SELECT name FROM branches WHERE branches.id = users.branch_id)'), 'like', "%$search%")
-                ->orWhere(DB::raw('(SELECT name FROM regions WHERE regions.id = users.region_id)'), 'like', "%$search%")
-                ->orWhere(DB::raw('(SELECT name FROM users AS brands WHERE brands.id = users.brand_id)'), 'like', "%$search%");
-        });
-    }
+        // Apply filters (same as before)
+        if ($request->filled('brand')) {
+            $employeesQuery->where('brand_id', $request->brand);
+        }
+        if ($request->filled('region_id')) {
+            $employeesQuery->where('region_id', $request->region_id);
+        }
+        if ($request->filled('branch_id')) {
+            $employeesQuery->where('branch_id', $request->branch_id);
+        }
+        if ($request->filled('Name')) {
+            $employeesQuery->where('name', 'like', '%' . $request->Name . '%');
+        }
+        if ($request->filled('Designation')) {
+            $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
+        }
+        if ($request->filled('phone')) {
+            $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
+        }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $employeesQuery->where(function ($query) use ($search) {
+                $query->where('users.name', 'like', "%$search%")
+                    ->orWhere('users.email', 'like', "%$search%")
+                    ->orWhere('users.phone', 'like', "%$search%")
+                    ->orWhere('users.type', 'like', "%$search%")
+                    ->orWhere(DB::raw('(SELECT name FROM branches WHERE branches.id = users.branch_id)'), 'like', "%$search%")
+                    ->orWhere(DB::raw('(SELECT name FROM regions WHERE regions.id = users.region_id)'), 'like', "%$search%")
+                    ->orWhere(DB::raw('(SELECT name FROM users AS brands WHERE brands.id = users.brand_id)'), 'like', "%$search%");
+            });
+        }
 
-    // Apply user-specific restrictions (same as before)
-    if ($user->can('level 1') || $user->type === 'super admin') {
-        // Level 1 permissions
-    } elseif ($user->type === 'company') {
-        $employeesQuery->where('brand_id', $user->id);
-    } elseif ($user->can('level 2')) {
-        $brandIds = array_keys(FiltersBrands());
-        $employeesQuery->whereIn('brand_id', $brandIds);
-    } elseif ($user->can('level 3') && $user->region_id) {
-        $employeesQuery->where('region_id', $user->region_id);
-    } elseif ($user->can('level 4') && $user->branch_id) {
-        $employeesQuery->where('branch_id', $user->branch_id);
-    } else {
-        $employeesQuery->where('id', $user->id);
-    }
+        // Apply user-specific restrictions (same as before)
+        if ($user->can('level 1') || $user->type === 'super admin') {
+            // Level 1 permissions
+        } elseif ($user->type === 'company') {
+            $employeesQuery->where('brand_id', $user->id);
+        } elseif ($user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $employeesQuery->whereIn('brand_id', $brandIds);
+        } elseif ($user->can('level 3') && $user->region_id) {
+            $employeesQuery->where('region_id', $user->region_id);
+        } elseif ($user->can('level 4') && $user->branch_id) {
+            $employeesQuery->where('branch_id', $user->branch_id);
+        } else {
+            $employeesQuery->where('id', $user->id);
+        }
 
-    // Check if CSV download is requested
-    if ($request->input('download_csv')) {
-        $employees = $employeesQuery->get(); // Fetch all records without pagination
+        // Check if CSV download is requested
+        if ($request->input('download_csv')) {
+            $employees = $employeesQuery->get(); // Fetch all records without pagination
 
-        // Generate CSV
-        $csvFileName = 'employees_' . time() . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
-        ];
+            // Generate CSV
+            $csvFileName = 'employees_' . time() . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+            ];
 
-        $callback = function () use ($employees) {
-            $file = fopen('php://output', 'w');
+            $callback = function () use ($employees) {
+                $file = fopen('php://output', 'w');
 
-            // Add CSV headers
-            fputcsv($file, [
-                'ID', 'Name', 'Email', 'Phone', 'Brand', 'Branch', 'Designation', 'Status', 'Last Login'
-            ]);
-
-            // Add rows
-            foreach ($employees as $employee) {
+                // Add CSV headers
                 fputcsv($file, [
-                    $employee->id,
-                    $employee->name,
-                    $employee->email,
-                    $employee->phone,
-                    $employee->brand->name ?? '',
-                    $employee->branch->name ?? '',
-                    $employee->type,
-                    $employee->is_active == 1 ? 'Active' : 'Inactive',
-                    $employee->last_login_at  ,
+                    'ID',
+                    'Name',
+                    'Email',
+                    'Phone',
+                    'Brand',
+                    'Branch',
+                    'Designation',
+                    'Status',
+                    'Last Login'
                 ]);
-            }
 
-            fclose($file);
-        };
+                // Add rows
+                foreach ($employees as $employee) {
+                    fputcsv($file, [
+                        $employee->id,
+                        $employee->name,
+                        $employee->email,
+                        $employee->phone,
+                        $employee->brand->name ?? '',
+                        $employee->branch->name ?? '',
+                        $employee->type,
+                        $employee->is_active == 1 ? 'Active' : 'Inactive',
+                        $employee->last_login_at,
+                    ]);
+                }
 
-        return response()->stream($callback, 200, $headers);
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
+        // Paginate results (if CSV download is not requested)
+        $employees = $employeesQuery
+            ->orderBy('users.name', 'ASC')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $employees->items(),
+            'current_page' => $employees->currentPage(),
+            'last_page' => $employees->lastPage(),
+            'total_records' => $employees->total(),
+            'perPage' => $employees->perPage()
+        ], 200);
     }
-
-    // Paginate results (if CSV download is not requested)
-    $employees = $employeesQuery
-        ->orderBy('users.name', 'ASC')
-        ->paginate($perPage, ['*'], 'page', $page);
-
-    return response()->json([
-        'status' => 'success',
-        'data' => $employees->items(),
-        'current_page' => $employees->currentPage(),
-        'last_page' => $employees->lastPage(),
-        'total_records' => $employees->total(),
-        'perPage' => $employees->perPage()
-    ], 200);
-}
     public function EmployeeDetails(Request $request)
     {
         $EmployeeDetails = User::with('employee')->select(
@@ -795,142 +811,141 @@ class UserController extends Controller
     }
 
     public function brandDetail(Request $request)
-{
-    // Validate request
-    $validator = Validator::make($request->all(), [
-        'id' => 'required|integer|exists:users,id',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors()
-        ], 422);
-    }
-
-    try {
-        // Fetch user
-        $user = User::with(['manager', 'director', 'created_by'])->findOrFail($request->id);
-
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $user
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('An error occurred while fetching user details.'),
-            'error' => $e->getMessage()
-        ], 500);
-    }
-}
-
-public function employeeFileAttachments(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'employee_id' => 'required|exists:users,id',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
-    }
-
-    $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)->first();
-
-    if (!$hrmFileAttachment) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Document not found.'
-        ], 404);
-    }
-
-    return response()->json([
-        'status' => 'success',
-        'baseurl' =>  asset('/EmployeeDocument')        ,
-        'document' => $hrmFileAttachment
-    ]);
-}
-
-
-public function UserEmployeeFileUpdate(Request $request)
-{
-    if (!\Auth::user()->can('edit employee')) {
-        return response()->json([
-            'status' => 'error',
-            'msg' => 'Permission Denied',
+    {
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
         ]);
-    }
 
-    // Debugging: Check if request contains files
-    // dd($request->all(), $request->file());
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-    // Validation rules
-    $validator = \Validator::make($request->all(), [
-        'cv' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096', // Increased size limit to 4MB
-        'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-        'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-        'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-        'id' => 'required|exists:users,id', // Ensure employee exists
-    ]);
+        try {
+            // Fetch user
+            $user = User::with(['manager', 'director', 'created_by'])->findOrFail($request->id);
 
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'validation error',
 
-            'data' => $validator->errors(),
-        ]);
-    }
-
-    // Define allowed file types
-    $files = ['profile_picture', 'cv', 'academic_docs', 'id_card'];
-    $uploadedFiles = [];
-
-    foreach ($files as $fileType) {
-        if ($request->hasFile($fileType)) {
-            // Generate unique file name
-            $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
-            $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
-            $uploadedFiles[$fileType] = $filename; // ✅ Correct assignment
-        } else {
-            $uploadedFiles[$fileType] = null;
+            return response()->json([
+                'status' => 'success',
+                'data' => $user
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('An error occurred while fetching user details.'),
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
-    // Debugging output
-    // dd($uploadedFiles);
+    public function employeeFileAttachments(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|exists:users,id',
+        ]);
 
-    // Retrieve or create the EmployeeDocument record
-    $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
 
+        $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)->first();
 
+        if (!$hrmFileAttachment) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Document not found.'
+            ], 404);
+        }
 
-    if(!empty( $uploadedFiles['profile_picture'])){
-        $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
+        return response()->json([
+            'status' => 'success',
+            'baseurl' =>  asset('/EmployeeDocument'),
+            'document' => $hrmFileAttachment
+        ]);
     }
 
-    if(!empty( $uploadedFiles['academic_docs'])){
-        $employeeDocument->academic_documents = $uploadedFiles['academic_docs'];
-    }
 
-    if(!empty( $uploadedFiles['id_card'])){
-        $employeeDocument->id_card = $uploadedFiles['id_card'];
-    }
+    public function UserEmployeeFileUpdate(Request $request)
+    {
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ]);
+        }
 
-    if(!empty( $uploadedFiles['cv'])){
-        $employeeDocument->resume = $uploadedFiles['cv'];
-    }
-    $employeeDocument->created_by = \Auth::id();
-    $employeeDocument->save();
+        // Debugging: Check if request contains files
+        // dd($request->all(), $request->file());
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Employee updated successfully',
-        'data' => $employeeDocument,
-    ]);
-}
+        // Validation rules
+        $validator = \Validator::make($request->all(), [
+            'cv' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096', // Increased size limit to 4MB
+            'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'id' => 'required|exists:users,id', // Ensure employee exists
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'validation error',
+
+                'data' => $validator->errors(),
+            ]);
+        }
+
+        // Define allowed file types
+        $files = ['profile_picture', 'cv', 'academic_docs', 'id_card'];
+        $uploadedFiles = [];
+
+        foreach ($files as $fileType) {
+            if ($request->hasFile($fileType)) {
+                // Generate unique file name
+                $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
+                $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
+                $uploadedFiles[$fileType] = $filename; // ✅ Correct assignment
+            } else {
+                $uploadedFiles[$fileType] = null;
+            }
+        }
+
+        // Debugging output
+        // dd($uploadedFiles);
+
+        // Retrieve or create the EmployeeDocument record
+        $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
+
+
+
+        if (!empty($uploadedFiles['profile_picture'])) {
+            $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
+        }
+
+        if (!empty($uploadedFiles['academic_docs'])) {
+            $employeeDocument->academic_documents = $uploadedFiles['academic_docs'];
+        }
+
+        if (!empty($uploadedFiles['id_card'])) {
+            $employeeDocument->id_card = $uploadedFiles['id_card'];
+        }
+
+        if (!empty($uploadedFiles['cv'])) {
+            $employeeDocument->resume = $uploadedFiles['cv'];
+        }
+        $employeeDocument->created_by = \Auth::id();
+        $employeeDocument->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Employee updated successfully',
+            'data' => $employeeDocument,
+        ]);
+    }
 
     // Emergency Contact API Endpoints
     public function EmergencyContactPost(Request $request)
@@ -1064,7 +1079,7 @@ public function UserEmployeeFileUpdate(Request $request)
 
     public function getAdditionalAddresses(Request $request, $userId)
     {
-        $addresses = AdditionalAddress::where('user_id',$userId)->get();
+        $addresses = AdditionalAddress::where('user_id', $userId)->get();
 
         if (!$addresses) {
             return response()->json([
@@ -1079,5 +1094,144 @@ public function UserEmployeeFileUpdate(Request $request)
         ], 200);
     }
 
+    public function createEmployee(Request $request)
+    {
+        if (!\Auth::user()->can('create employee')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Permission denied.',
+            ], 403);
+        }
 
+        $validator = \Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'dob' => 'required|date',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'role' => 'required|exists:roles,id',  // Updated validation to check role ID
+            'branch_id' => 'required|exists:branches,id',
+            'region_id' => 'required|exists:regions,id',
+            'brand_id' => 'required|exists:users,id',
+            'company_doj' => 'required|date',
+            'gender' => 'nullable|string',
+            'account_holder_name' => 'nullable|string',
+            'account_number' => 'nullable|string',
+            'bank_name' => 'nullable|string',
+            'bank_identifier_code' => 'nullable|string',
+            'branch_location' => 'nullable|string',
+            'tax_payer_id' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        \DB::beginTransaction();
+        try {
+            $password = Hash::make($request->password);
+
+            // Create User
+            $user = new User();
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->password = $password;
+            $user->type = $request->role; // Storing role ID
+            $user->branch_id = $request->branch_id;
+            $user->region_id = $request->region_id;
+            $user->brand_id = $request->brand_id;
+            $user->default_pipeline = 1;
+            $user->plan = Plan::first()->id;
+            $user->lang = 'en';
+            $user->created_by = \Auth::user()->id;
+            $user->date_of_birth = $request->dob;
+            $user->phone = $request->phone;
+            $user->save();
+
+            // Assign Role using Role ID
+            $role = Role::find($request->role);
+            $user->assignRole($role);
+
+            // Assign Project/Region/Branch Manager based on Role ID
+            switch ($role->name) {
+                case 'Project Director':
+                    User::where('id', $request->brand_id)->update(['project_director_id' => $user->id]);
+                    break;
+                case 'Project Manager':
+                    User::where('id', $request->brand_id)->update(['project_manager_id' => $user->id]);
+                    break;
+                case 'Region Manager':
+                    Region::where('id', $request->region_id)->update(['region_manager_id' => $user->id]);
+                    break;
+                case 'Branch Manager':
+                    Branch::where('id', $request->branch_id)->update(['branch_manager_id' => $user->id]);
+                    break;
+            }
+
+            // Create Employee
+            $employee = new Employee();
+            $employee->user_id = $user->id;
+            $employee->name = $request->name;
+            $employee->dob = $request->dob;
+            $employee->gender = $request->gender;
+            $employee->phone = $request->phone;
+            $employee->address = $request->address;
+            $employee->email = $request->email;
+            $employee->password = $password;
+            $employee->employee_id = $this->employeeNumber();
+            $employee->branch_id = $request->branch_id;
+            $employee->company_doj = $request->company_doj;
+            $employee->documents = $request->document ? implode(',', array_keys($request->document)) : null;
+            $employee->account_holder_name = $request->account_holder_name;
+            $employee->account_number = $request->account_number;
+            $employee->bank_name = $request->bank_name;
+            $employee->bank_identifier_code = $request->bank_identifier_code;
+            $employee->branch_location = $request->branch_location;
+            $employee->tax_payer_id = $request->tax_payer_id;
+            $employee->created_by = \Auth::user()->id;
+            $employee->save();
+
+            // Log Activity
+            addLogActivity([
+                'type' => 'success',
+                'note' => json_encode([
+                    'title' => 'Employee Created',
+                    'message' => 'A new employee record has been created successfully',
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employee',
+                'notification_type' => 'Employee Created',
+            ]);
+
+            \DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Employee successfully created.',
+                'data' => [
+                    'user' => $user,
+                    'employee' => $employee,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    function employeeNumber()
+    {
+        $latest = Employee::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        if (!$latest) {
+            return 1;
+        }
+
+        return $latest->employee_id + 1;
+    }
 }
