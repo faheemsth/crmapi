@@ -361,6 +361,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/job-board/update', [JobApplicationController::class, 'jobBoardUpdate']);
     // Jobs
     Route::post('/getJobs', [JobController::class, 'getJobs']);
+    Route::post('/PluckJobs', [JobController::class, 'PluckJobs']);
     Route::post('/createJob', [JobController::class, 'createJob']);
     Route::post('/getJobDetails', [JobController::class, 'getJobDetails']);
     Route::post('/updateJob', [JobController::class, 'updateJob']);
