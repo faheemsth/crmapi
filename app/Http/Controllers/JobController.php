@@ -625,4 +625,14 @@ class JobController extends Controller
             ],
         ]);
     }
+
+    public function PluckJobs(Request $request)
+    {
+        $query = Job::query();
+        $query = RoleBaseTableGet($query, 'brand_id', 'region_id', 'branch', 'created_by');
+        $Jobs = $query->orderBy('title', 'ASC')->pluck('title', 'id')->toArray();
+
+        return response()->json(['status' => 'success', 'data' => $Jobs], 200);
+    }
+
 }
