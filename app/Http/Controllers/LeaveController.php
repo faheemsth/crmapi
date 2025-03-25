@@ -50,8 +50,20 @@ class LeaveController extends Controller
         $page = $request->input('page', 1);
 
         // Base query with necessary joins
-        $query = Leave::with(['brand', 'branch', 'region', 'created_by','leaveType','employees']);
-
+        $query = Leave::select(
+            'leaves.*',
+            'users.name as username',
+            'branches.name as branch_name',
+            'brands.name as brand_name',
+            'regions.name as region_name'
+        )
+            ->with(['brand', 'branch', 'region', 'created_by', 'leaveType', 'employees'])
+            ->leftJoin('employees', 'employees.id', '=', 'leaves.employee_id')
+            ->leftJoin('users', 'users.id', '=', 'employees.user_id')
+            ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
+            ->leftJoin('users as brands', 'brands.id', '=', 'leaves.brand_id')
+            ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id');
+        
         // Apply role-based filtering
         $query = RoleBaseTableGet($query, 'leaves.brand_id', 'leaves.region_id', 'leaves.branch_id', 'leaves.created_by');
 
@@ -59,9 +71,11 @@ class LeaveController extends Controller
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($subQuery) use ($search) {
-                $subQuery->where('leaves.firstname', 'like', "%$search%")
-                    ->orWhere('leaves.stage_id', 'like', "%$search%")
-                    ->orWhere('leaves.created_by', 'like', "%$search%");
+                $subQuery->where('users.name', 'like', "%$search%")
+                    ->orWhere('employees.name', 'like', "%$search%")
+                    ->orWhere('brands.name', 'like', "%$search%")
+                    ->orWhere('regions.name', 'like', "%$search%")
+                    ->orWhere('branches.name', 'like', "%$search%");
             });
         }
 
@@ -75,8 +89,8 @@ class LeaveController extends Controller
         if ($request->filled('branch_id')) {
             $query->where('leaves.branch_id', $request->branch_id);
         }
-        if ($request->filled('employee_id')) {
-            $query->where('leaves.employee_id', $request->employee_id);
+        if ($request->filled('employee_id') && $request->filled('employee_id') != "undefined"){
+            $query->where('users.id', $request->employee_id);
         }
         if ($request->filled('created_at')) {
             $query->whereDate('leaves.created_at', substr($request->created_at, 0, 10));
