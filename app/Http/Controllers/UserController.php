@@ -1134,13 +1134,13 @@ class UserController extends Controller
         \DB::beginTransaction();
         try {
             $password = Hash::make($request->password);
-
+            $role = Role::find($request->role);
             // Create User
             $user = new User();
             $user->name = $request->name;
             $user->email = $request->email;
             $user->password = $password;
-            $user->type = $request->role; // Storing role ID
+            $user->type = $role->name ?? 'Client'; // Storing role ID
             $user->branch_id = $request->branch_id;
             $user->region_id = $request->region_id;
             $user->brand_id = $request->brand_id;
@@ -1153,7 +1153,7 @@ class UserController extends Controller
             $user->save();
 
             // Assign Role using Role ID
-            $role = Role::find($request->role);
+            
             $user->assignRole($role);
 
             // Assign Project/Region/Branch Manager based on Role ID
