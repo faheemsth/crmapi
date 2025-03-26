@@ -41,7 +41,6 @@ class JobApplicationController extends Controller
         if (\Auth::user()->can('manage job application')) {
             $stages = JobStage::orderBy('order', 'asc')
                 ->with('application.jobs')
-                ->where('id', '<', 6)
                 ->get();
 
             $jobs = Job::all()->pluck('title', 'id');
