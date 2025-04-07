@@ -297,6 +297,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // GoalType
     Route::post('/addGoalType', [GoalTypeController::class, 'addGoalType']);
     Route::get('/getGoalTypes', [GoalTypeController::class, 'getGoalTypes']);
+    Route::get('/pluckGoalTypes', [GoalTypeController::class, 'pluckGoalTypes']);
     Route::post('/updateGoalType', [GoalTypeController::class, 'updateGoalType']);
     Route::post('/deleteGoalType', [GoalTypeController::class, 'deleteGoalType']);
 

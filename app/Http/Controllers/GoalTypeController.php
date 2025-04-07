@@ -7,6 +7,12 @@ use Illuminate\Http\Request;
 
 class GoalTypeController extends Controller
 {
+    public function pluckGoalTypes()
+    {
+        $GoalType = GoalType::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+        return response()->json(['status' => 'success', 'data' => $GoalType], 200);
+    }
+
     public function getGoalTypes()
     {
         if (!\Auth::user()->can('manage goal type')) {
