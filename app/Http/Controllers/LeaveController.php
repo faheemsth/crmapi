@@ -63,7 +63,7 @@ class LeaveController extends Controller
             ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
             ->leftJoin('users as brands', 'brands.id', '=', 'leaves.brand_id')
             ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id');
-        
+
         // Apply role-based filtering
         $query = RoleBaseTableGet($query, 'leaves.brand_id', 'leaves.region_id', 'leaves.branch_id', 'leaves.created_by');
 
@@ -89,8 +89,12 @@ class LeaveController extends Controller
         if ($request->filled('branch_id')) {
             $query->where('leaves.branch_id', $request->branch_id);
         }
-        if ($request->filled('employee_id') && $request->filled('employee_id') != "undefined"){
-            $query->where('users.id', $request->employee_id);
+        if (
+            $request->filled('employee_id') &&
+            $request->employee_id !== 'undefined'
+        ) {
+            $query->where('leaves.employee_id', $request->employee_id);
+
         }
         if ($request->filled('created_at')) {
             $query->whereDate('leaves.created_at', substr($request->created_at, 0, 10));

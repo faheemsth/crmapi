@@ -34,6 +34,7 @@ class TrainingController extends Controller
             'brand_id' => 'nullable|integer|exists:brands,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
+            'employee_id' => 'nullable|integer|exists:users,id',
         ]);
 
         if ($validator->fails()) {
@@ -87,6 +88,9 @@ class TrainingController extends Controller
         if ($request->filled('branch_id')) {
             $Training_query->where('trainings.branch_id', $request->branch_id);
         }
+        if ($request->filled('employee_id')) {
+            $Training_query->where('trainings.employee', $request->employee_id);
+        }
 
         // Apply sorting and pagination
         $trainings = $Training_query->orderBy('trainings.created_at', 'DESC')
@@ -111,12 +115,12 @@ class TrainingController extends Controller
         if (\Auth::user()->can('create training')) {
 
             $validator = Validator::make($request->all(), [
-                'brand_id' => 'required|numeric|min:1',
-                'region_id' => 'required|numeric|min:1',
-                'lead_branch' => 'required|numeric|min:1',
+                'brand_id' => 'required|numeric|min:1|exists:users,id',
+                'region_id' => 'required|numeric|min:1|exists:regions,id',
+                'lead_branch' => 'required|numeric|min:1|exists:branches,id',
                 'training_type' => 'required',
                 'training_cost' => 'required',
-                'lead_assigned_user' => 'required',
+                'lead_assigned_user' => 'required|exists:users,id',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date',
                 'trainer_option' => 'required',
@@ -149,7 +153,7 @@ class TrainingController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Training created successfully.',
-                'id' => $training->id
+                'id' => $training
             ]);
         } else {
             return response()->json([

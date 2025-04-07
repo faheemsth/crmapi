@@ -98,7 +98,7 @@ class UserController extends Controller
             'brand' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
-            'Name' => 'nullable|string',
+            'name' => 'nullable|string',
             'Designation' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
@@ -138,8 +138,8 @@ class UserController extends Controller
         if ($request->filled('branch_id')) {
             $employeesQuery->where('branch_id', $request->branch_id);
         }
-        if ($request->filled('Name')) {
-            $employeesQuery->where('name', 'like', '%' . $request->Name . '%');
+        if ($request->filled('name')) {
+            $employeesQuery->where('name', 'like', '%' . $request->name . '%');
         }
         if ($request->filled('Designation')) {
             $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
@@ -517,7 +517,10 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
-        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)->get();
+        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)
+        ->orderBy('id', 'desc')
+        ->get();
+
         return response()->json([
             'status' => 'success',
             'data' => $InternalEmployeeNotes,
@@ -1153,7 +1156,7 @@ class UserController extends Controller
             $user->save();
 
             // Assign Role using Role ID
-            
+
             $user->assignRole($role);
 
             // Assign Project/Region/Branch Manager based on Role ID

@@ -52,13 +52,13 @@ class AttendanceEmployeeController extends Controller
 
 
 
-        
+
 
 
         // Base query with necessary joins
         $query = AttendanceEmployee::with(['employee', 'employee.user']);
         if(isset($request->emp_id)){
-            $employee=Employee::where('id',$request->emp_id)->first();
+            $employee=Employee::where('user_id',$request->emp_id)->first();
             $query->where('employee_id',$employee->id ?? 1);
          }
         // Apply role-based filtering
