@@ -45,6 +45,11 @@ class JobApplicationController extends Controller
                 $query->whereHas('application', function ($q) use ($request) {
                     $q->where('created_by', $request->created_by);
                 });
+            
+                // Adjust the `whereHas` for the nested relationship
+                $query->whereHas('application.jobs', function ($q) use ($request) {
+                    $q->where('created_by', $request->created_by);
+                });
             }
             
             $stages = $query->get();
