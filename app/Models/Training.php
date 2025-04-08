@@ -55,6 +55,11 @@ class Training extends Model
         return $this->hasOne('App\Models\Employee', 'id', 'employee');
     }
 
+    public function assign_to()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'employee');
+    }
+
     public function trainer()
     {
         return $this->hasOne('App\Models\Trainer', 'id', 'trainer');
