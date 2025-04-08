@@ -57,8 +57,8 @@ class GoalTrackingController extends Controller
             $search = $request->input('search');
             $query->where(function ($subQuery) use ($search) {
                 $subQuery->where('goal_trackings.goal_type', 'like', "%$search%")
-                    ->orWhere('goal_trackings.description', 'like', "%$search%")
-                    ->orWhere('goal_trackings.amount', 'like', "%$search%");
+                    ->orWhere('goal_trackings.target_achievement', 'like', "%$search%")
+                    ->orWhere('goal_trackings.description', 'like', "%$search%");
             });
         }
 
