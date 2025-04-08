@@ -39,17 +39,19 @@ class JobApplicationController extends Controller
     public function getJobApplications(Request $request)
     {
         if (\Auth::user()->can('manage job application')) {
-            $stages = JobStage::orderBy('order', 'asc')
-                ->with('application.jobs')
-                ->get();
+            $query = JobStage::orderBy('order', 'asc')->with(['application.jobs']);
 
-                $query = Job::query();
-                if ($request->filled('created_by')) {
-                    $query->where('created_by', $request->created_by);
-                }
-                $jobs = $query->pluck('title', 'id')->toArray(); // Convert to an array
-                $jobs = ['' => 'All'] + $jobs; // Add the 'All' option at the start
-                
+            if ($request->filled('created_by')) {
+                $query->whereHas('application', function ($q) use ($request) {
+                    $q->where('employee', $request->created_by);
+                });
+            }
+            
+            $stages = $query->get();
+            
+
+            $jobs = Job::all()->pluck('title', 'id');
+            $jobs->prepend('All', '');
 
             $filter = [
                 'start_date' => $request->start_date ?? date("Y-m-d", strtotime("-1 month")),
