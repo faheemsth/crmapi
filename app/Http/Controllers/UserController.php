@@ -391,6 +391,8 @@ class UserController extends Controller
     }
     public function EmployeeDetails(Request $request)
     {
+
+
         $EmployeeDetails = User::with('employee')->select(
             'users.*',
             'assignedUser.name as brand_name',
