@@ -43,7 +43,7 @@ class JobApplicationController extends Controller
 
             if ($request->filled('created_by')) {
                 $query->whereHas('application', function ($q) use ($request) {
-                    $q->where('employee', $request->created_by);
+                    $q->where('created_by', $request->created_by);
                 });
             }
             
