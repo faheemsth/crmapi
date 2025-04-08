@@ -388,7 +388,7 @@ class JobController extends Controller
 
         $validator = Validator::make($request->all(), [
             'jobID' => 'required|integer|exists:jobs,id',
-            'status' => 'required|in:active,inactive',
+            'status' => 'required|in:active,in_active',
         ]);
 
 
