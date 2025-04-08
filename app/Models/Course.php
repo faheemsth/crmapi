@@ -15,6 +15,11 @@ class Course extends Model
         return $this->belongsTo(University::class);
     }
 
+    public function created_by()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
 
     public function courselevel()
     {

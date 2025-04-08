@@ -110,7 +110,14 @@ class User extends Authenticatable
     {
         return $this->hasOne('App\Models\User', 'id', 'project_manager_id');
     }
-
+    public function branch()
+    {
+        return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
+    }
+    public function brand()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'brand_id');
+    }
     public function director()
     {
         return $this->hasOne('App\Models\User', 'id', 'project_director_id');

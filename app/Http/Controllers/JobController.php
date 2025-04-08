@@ -612,27 +612,20 @@ class JobController extends Controller
 
     public function pluckJobs(Request $request)
     {
-        // Retrieve the JobApplication based on the provided ID
-        $jobApplication = JobApplication::find($request->id);
-        if (!$jobApplication || !$jobApplication->job) {
-            return response()->json(['status' => 'error', 'message' => 'Job not found'], 404);
-        }
-    
-        // Get the related job
-        $jobName = $jobApplication->job;
-    
+
+
         // Build the query for the Job model
-        $query = Job::where('id', $jobName);
-    
+        $query = Job::query();
+
         // Apply additional filters using the RoleBaseTableGet function
         $query = RoleBaseTableGet($query, 'brand_id', 'region_id', 'branch', 'created_by');
-    
+
         // Fetch the jobs, ordered by title, and pluck the title and ID
         $jobs = $query->orderBy('title', 'ASC')->pluck('title', 'id')->toArray();
-    
+
         // Return the results as a JSON response
         return response()->json(['status' => 'success', 'data' => $jobs], 200);
     }
-    
+
 
 }

@@ -42,7 +42,7 @@ class BranchController extends Controller
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
-            'brand_id' => 'nullable|integer',
+            'brand' => 'nullable|integer',
             'region_id' => 'nullable|integer',
             'branch_id' => 'nullable|integer',
         ]);

@@ -16,6 +16,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CommissionsController;
 use App\Http\Controllers\CompetenciesController;
+use App\Http\Controllers\CourseController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
 use App\Http\Controllers\DeductionController;
@@ -251,7 +252,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Branches
     Route::post('/branchDetail', [BranchController::class, 'branchDetail']);
-    Route::post('/getBranches', [BranchController::class, 'getBranches']);
+    Route::post('/getBrancheslist', [BranchController::class, 'getBranches']);
     Route::post('/addBranch', [BranchController::class, 'addBranch']);
     Route::post('/updateBranch', [BranchController::class, 'updateBranch']);
     Route::post('/deleteBranch', [BranchController::class, 'deleteBranch']);
@@ -347,6 +348,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteInterviews', [InterviewScheduleController::class, 'destroy']);
     Route::post('/addInterveiw', [InterviewScheduleController::class, 'addInterveiw']);
 
+    // Courses
+    Route::post('/getCourses', [CourseController::class, 'getCourses']);
+    Route::post('/showInterviews', [CourseController::class, 'show']);
+    Route::post('/updateInterviews', [CourseController::class, 'update']);
+    Route::post('/deleteInterviews', [CourseController::class, 'destroy']);
+    Route::post('/addCourses', [CourseController::class, 'addCourses']);
+
     //  Job Applications
     Route::post('/candidate', [JobApplicationController::class, 'candidate']);
     Route::post('/getJobApplications', [JobApplicationController::class, 'getJobApplications']);
@@ -426,5 +434,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
     Route::post('/Country', [GeneralController::class, 'Country']);
 
-    
+
 });
