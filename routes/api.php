@@ -79,6 +79,7 @@ Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 // Protected routes of product and logout
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
+    Route::post('/updateUserStatus', [UserController::class, 'updateUserStatus']);
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
     Route::get('/agentRequestGet', [AgentController::class, 'agentRequestGet']);
     Route::post('/agentRequestPost', [AgentController::class, 'agentRequestPost']);
