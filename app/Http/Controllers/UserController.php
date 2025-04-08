@@ -125,7 +125,7 @@ class UserController extends Controller
 
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
 
-        $employeesQuery = User::select('users.*')
+        $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
             ->whereNotIn('type', $excludedTypes);
 
         // Apply filters
@@ -175,10 +175,12 @@ class UserController extends Controller
         } else {
             $employeesQuery->where('id', $user->id);
         }
-
+      //  dd($request->input('download_csv'));
         // Check if CSV download is requested
         if ($request->input('download_csv')) {
             $employees = $employeesQuery->get(); // Fetch all records without pagination
+
+
 
             // Generate CSV
             $csvFileName = 'employees_' . time() . '.csv';

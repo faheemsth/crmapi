@@ -44,6 +44,9 @@ class InterviewScheduleController extends Controller
         if ($request->filled('startDate')) {
             $query->whereDate('date', $request->startDate);
         }
+        if ($request->filled('employee_id')) {
+            $query->where('employee', $request->employee_id);
+        }
 
         // Apply time filter
         if ($request->filled('startTime')) {
