@@ -56,11 +56,12 @@ class JobApplicationController extends Controller
             
 
             $query2 = Job::query();
+
             if ($request->filled('created_by')) {
                 $query2->where('created_by', $request->created_by);
             }
-            $query2->pluck('title', 'id');
-            $jobs=$query2->prepend('All', '');
+            
+            $jobs = $query2->get()->pluck('title', 'id')->prepend('All', '');
 
             $filter = [
                 'start_date' => $request->start_date ?? date("Y-m-d", strtotime("-1 month")),
