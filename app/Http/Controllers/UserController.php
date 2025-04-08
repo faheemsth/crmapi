@@ -1145,6 +1145,7 @@ class UserController extends Controller
             $user->name = $request->name;
             $user->email = $request->email;
             $user->password = $password;
+            $user->passport_number = $request->Passport;
             $user->type = $role->name ?? 'Client'; // Storing role ID
             $user->branch_id = $request->branch_id;
             $user->region_id = $request->region_id;
