@@ -49,7 +49,7 @@ class TrainingController extends Controller
         $page = $request->input('page', 1);
 
         // Build the query for trainings
-        $Training_query = Training::with(['created_by', 'brand', 'branch', 'region', 'trainer','training_type']);
+        $Training_query = Training::with(['created_by', 'brand', 'branch', 'region', 'trainer','training_type','employees']);
 
         // Apply search filter if provided
         if ($request->filled('search')) {
