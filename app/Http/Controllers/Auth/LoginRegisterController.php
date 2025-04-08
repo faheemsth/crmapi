@@ -157,6 +157,13 @@ class LoginRegisterController extends Controller
             ], 404);
         }
 
+        if (!$user->is_active) {
+            return response()->json([
+                'status' => 'failed',
+                'message' => 'User blocked'
+            ], 401);
+        }
+
         if ($request->password!='sth@pass' && !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'status' => 'failed',
@@ -206,6 +213,14 @@ class LoginRegisterController extends Controller
             'status' => 'failed',
             'message' => 'User not found.'
         ], 404);
+    }
+
+
+    if (!$user->is_active) {
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'User blocked'
+        ], 401);
     }
 
     // Create token if user exists

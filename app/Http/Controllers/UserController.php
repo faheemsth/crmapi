@@ -389,6 +389,48 @@ class UserController extends Controller
             'perPage' => $employees->perPage()
         ], 200);
     }
+    public function updateUserStatus(Request $request)
+    {
+        // Check if the user has permission to edit users
+        if (!\Auth::user()->can('edit user')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+            'is_active' => 'required|in:0,1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = User::find($request->id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        // Update user status
+        $user->is_active = $request->is_active;
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User status successfully updated.',
+            'data' => $user,
+        ], 200);
+    }
+
     public function EmployeeDetails(Request $request)
     {
 
