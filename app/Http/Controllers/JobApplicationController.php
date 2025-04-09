@@ -57,8 +57,8 @@ class JobApplicationController extends Controller
                 });
             }
             if ($request->filled('job_id')) {
-                $query->whereHas('application', function ($q) use ($request) {
-                    $q->where('job', $request->job_id);
+                $query->whereHas('application.jobs', function ($q) use ($request) {
+                    $q->where('id', $request->job_id);
                 });
             }
             if ($request->filled('created_by')) {
