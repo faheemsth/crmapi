@@ -41,6 +41,26 @@ class JobApplicationController extends Controller
         if (\Auth::user()->can('manage job application')) {
             $query = JobStage::orderBy('order', 'asc')->with(['application.jobs']);
 
+            if ($request->filled('brand_id')) {
+                $query->whereHas('application.jobs', function ($q) use ($request) {
+                    $q->where('brand_id', $request->brand_id);
+                });
+            }
+            if ($request->filled('region_id')) {
+                $query->whereHas('application.jobs', function ($q) use ($request) {
+                    $q->where('region_id', $request->region_id);
+                });
+            }
+            if ($request->filled('branch_id')) {
+                $query->whereHas('application.jobs', function ($q) use ($request) {
+                    $q->where('branch', $request->branch_id);
+                });
+            }
+            if ($request->filled('job_id')) {
+                $query->whereHas('application', function ($q) use ($request) {
+                    $q->where('job', $request->job_id);
+                });
+            }
             if ($request->filled('created_by')) {
                 $query->whereHas('application', function ($q) use ($request) {
                     $q->where('created_by', $request->created_by);

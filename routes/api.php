@@ -324,6 +324,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // JobStage
     Route::post('/addJobStage', [JobStageController::class, 'addJobStage']);
     Route::get('/getJobStages', [JobStageController::class, 'getJobStages']);
+    Route::get('/PluckJobStages', [JobStageController::class, 'PluckJobStages']);
     Route::post('/updateJobStage', [JobStageController::class, 'updateJobStage']);
     Route::post('/deleteJobStage', [JobStageController::class, 'deleteJobStage']);
 

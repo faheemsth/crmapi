@@ -7,6 +7,24 @@ use Illuminate\Http\Request;
 
 class JobStageController extends Controller
 {
+
+    
+    public function PluckJobStages()
+    {
+        if (!\Auth::user()->can('manage job stage')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        $jobStages = JobStage::orderBy('title', 'ASC')->pluck('title', 'id')->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $jobStages
+        ], 200);
+    }
     public function getJobStages()
     {
         if (!\Auth::user()->can('manage job stage')) {
