@@ -28,6 +28,17 @@ class Leave extends Model
     {
         return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
     }
+
+    public function User()
+    {
+        if (!empty($this->employee_id)) {
+            // If employee_id is set, return the Employee relationship
+            return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
+        } else {
+            // Otherwise, return the User relationship
+            return $this->hasOne('App\Models\User', 'id', 'employee_id');
+        }
+    }
     public function branch()
     {
         return $this->hasOne('App\Models\Branch', 'id', 'branch_id');

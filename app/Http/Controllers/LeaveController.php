@@ -57,7 +57,7 @@ class LeaveController extends Controller
             'brands.name as brand_name',
             'regions.name as region_name'
         )
-            ->with(['brand', 'branch', 'region', 'created_by', 'leaveType', 'employees'])
+            ->with(['brand', 'branch', 'region', 'created_by', 'leaveType', 'employees','User'])
             ->leftJoin('employees', 'employees.id', '=', 'leaves.employee_id')
             ->leftJoin('users', 'users.id', '=', 'employees.user_id')
             ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')

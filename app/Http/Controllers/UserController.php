@@ -42,6 +42,36 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
 
+    public function Pluck_All_Users(Request $request)
+    {
+        $user = \Auth::user();
+        if (\Auth::user()->can('manage employee')) {
+            $excludedTypes = ['super admin', 'company', 'team', 'client'];
+            $usersQuery = User::select(['users.id', 'users.name'])->whereNotIn('type', $excludedTypes);
+    
+            if ($user->type == 'super admin') {
+                // No need to redeclare the query, we just need to exclude types here
+                $usersQuery->whereNotIn('type', $excludedTypes);
+            } else if ($user->type == 'company') {
+                $usersQuery->where('brand_id', $user->id);
+            } else {
+                $usersQuery->where('brand_id', $user->brand_id);
+            }
+    
+            $users = $usersQuery->pluck('name', 'id'); 
+    
+            return response()->json([
+                'status' => 'success',
+                'data' => $users
+            ], 200);
+    
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+    }
     public function employees(Request $request)
     {
         $user = \Auth::user();
