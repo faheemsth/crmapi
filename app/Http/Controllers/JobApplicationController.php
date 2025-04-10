@@ -39,23 +39,28 @@ class JobApplicationController extends Controller
     public function getJobApplications(Request $request)
     {
         if (\Auth::user()->can('manage job application')) {
-            $query = JobStage::orderBy('order', 'asc')->with(['application.jobs']);
-
-            if ($request->filled('brand_id')) {
-                $query->whereHas('application.jobs', function ($q) use ($request) {
-                    $q->where('brand_id', $request->brand_id);
-                });
-            }
-            if ($request->filled('region_id')) {
-                $query->whereHas('application.jobs', function ($q) use ($request) {
-                    $q->where('region_id', $request->region_id);
-                });
-            }
-            if ($request->filled('branch_id')) {
-                $query->whereHas('application.jobs', function ($q) use ($request) {
-                    $q->where('branch', $request->branch_id);
-                });
-            }
+            // Query for JobStage with filters
+            $query = JobStage::orderBy('order', 'asc')
+                ->with(['application.jobs' => function ($q) use ($request) {
+                    // Apply filters to related jobs
+                    if ($request->filled('search')) {
+                        $q->where('title', 'like', '%' . $request->search . '%'); // Job title filter
+                    }
+                    if ($request->filled('job_id')) {
+                        $q->where('id', $request->job_id);
+                    }
+                    if ($request->filled('brand_id')) {
+                        $q->where('brand_id', $request->brand_id);
+                    }
+                    if ($request->filled('region_id')) {
+                        $q->where('region_id', $request->region_id);
+                    }
+                    if ($request->filled('branch_id')) {
+                        $q->where('branch', $request->branch_id);
+                    }
+                }]);
+    
+            // Apply additional filters directly to JobStage
             if ($request->filled('job_id')) {
                 $query->whereHas('application.jobs', function ($q) use ($request) {
                     $q->where('id', $request->job_id);
@@ -65,30 +70,26 @@ class JobApplicationController extends Controller
                 $query->whereHas('application', function ($q) use ($request) {
                     $q->where('created_by', $request->created_by);
                 });
-            
-                // Adjust the `whereHas` for the nested relationship
-                $query->whereHas('application.jobs', function ($q) use ($request) {
-                    $q->where('created_by', $request->created_by);
-                });
             }
-            
+    
+            // Get stages with applied filters
             $stages = $query->get();
-            
-
+    
+            // Job dropdown logic
             $query2 = Job::query();
-
             if ($request->filled('created_by')) {
                 $query2->where('created_by', $request->created_by);
             }
-            
             $jobs = $query2->get()->pluck('title', 'id')->prepend('All', '');
-
+    
+            // Define the filter
             $filter = [
                 'start_date' => $request->start_date ?? date("Y-m-d", strtotime("-1 month")),
                 'end_date' => $request->end_date ?? date("Y-m-d H:i:s", strtotime("+1 hours")),
                 'job' => $request->job ?? '',
             ];
-
+    
+            // Return response with data
             return response()->json([
                 'success' => true,
                 'message' => 'Job applications fetched successfully.',
@@ -99,12 +100,13 @@ class JobApplicationController extends Controller
                 ],
             ]);
         }
-
+    
+        // Return permission denied response
         return response()->json([
             'success' => false,
             'message' => 'Permission denied.',
         ], 403);
-    }
+    }    
 
     public function getJobApplicationDetails(Request $request)
     {
