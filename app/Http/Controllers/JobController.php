@@ -424,33 +424,51 @@ class JobController extends Controller
 
     public function deleteJob(Request $request)
     {
-        // Check if the user has permission to delete jobs
-        if (!\Auth::user()->can('delete job')) {
+        try {
+            // Check if the user has permission to delete jobs
+            if (!\Auth::user()->can('delete job')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Permission denied.',
+                ], 403);
+            }
+    
+            // Validate the job ID in the request
+            $validator = Validator::make($request->all(), [
+                'id' => 'required|integer|exists:jobs,id',
+            ]);
+    
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $validator->errors()->first(),
+                ], 422);
+            }
+    
+            // Attempt to delete the job
+            $deleted = Job::where('id', $request->id)->delete();
+    
+            if ($deleted) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Job successfully deleted.',
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to delete the job.',
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            // Catch any unexpected errors and log them
+            \Log::error('Error deleting job: ' . $e->getMessage());
+    
             return response()->json([
                 'status' => 'error',
-                'message' => 'Permission denied.',
-            ], 403);
+                'message' => 'An unexpected error occurred. Please try again later.',
+            ], 500);
         }
-
-        // Validate the jobID in the request
-        $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:jobs,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $validator->errors()->first(),
-            ], 422);
-        }
-        Job::where('id', $request->id)->delete();
-
-        // Return success response
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Job successfully deleted.',
-        ], 200);
-    }
+    }    
 
     public function jobRequirement(Request $request)
     {
