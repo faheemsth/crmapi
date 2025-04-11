@@ -5,17 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class InstituteCategory extends Model
+class UniversityMeta extends Model
 {
     use HasFactory;
-
     protected $fillable = [
-        'name',
+        'university_id',
         'created_by',
+        'meta_key',
+        'meta_value',
     ];
 
-    public function created_by()
+    public function university()
     {
-        return $this->hasOne('App\Models\User', 'id', 'created_by');
+        return $this->belongsTo(University::class);
     }
 }

@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class InstituteCategory extends Model
+class UniversityRule extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'name',
+        'university_id',
+        'position',
+        'rule_type',
         'created_by',
     ];
 
