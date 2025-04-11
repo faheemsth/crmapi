@@ -29,6 +29,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
 use App\Http\Controllers\IndicatorController;
+use App\Http\Controllers\InstituteCategoryController;
 use App\Http\Controllers\InstituteController;
 use App\Http\Controllers\JobCategoryController;
 use App\Http\Controllers\JobStageController;
@@ -38,12 +39,16 @@ use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\OtherPaymentController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\LoanController;
+use App\Http\Controllers\MoiAcceptedController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
+use App\Http\Controllers\UniversityController;
+use App\Http\Controllers\UniversityMetaController;
+use App\Http\Controllers\UniversityRuleController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
@@ -234,7 +239,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);
     Route::get('/Pluck_All_Users', [UserController::class, 'Pluck_All_Users']);
-    
+
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
 
@@ -355,8 +360,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Courses
     Route::post('/getCourses', [CourseController::class, 'getCourses']);
     Route::post('/showCourses', [CourseController::class, 'show']);
-    Route::post('/updateCourses', [CourseController::class, 'update']);
-    Route::post('/deleteCourses', [CourseController::class, 'destroy']);
+    Route::post('/updateCourses', [CourseController::class, 'updateCourses']);
+    Route::post('/deleteCourse', [CourseController::class, 'deleteCourse']);
     Route::post('/addCourses', [CourseController::class, 'addCourses']);
 
     //  Job Applications
@@ -418,6 +423,37 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/addInstitute', [InstituteController::class, 'addInstitute']);
     Route::post('/updateInstitute', [InstituteController::class, 'updateInstitute']);
     Route::post('/deleteInstitute', [InstituteController::class, 'deleteInstitute']);
+
+    Route::post('/getUniversities', [UniversityController::class, 'getUniversities']);
+    Route::post('/pluckUniversities', [UniversityController::class, 'pluckInstitutes']);
+    Route::post('/addUniversities', [UniversityController::class, 'addUniversities']);
+    Route::post('/updateUniversities', [UniversityController::class, 'updateUniversities']);
+    Route::post('/deleteUniversities', [UniversityController::class, 'deleteUniversities']);
+    Route::post('/universityDetail', [UniversityController::class, 'universityDetail']);
+    Route::post('/addUpdateUniversityMeta', [UniversityMetaController::class, 'storeOrUpdateMetas']);
+    Route::post('/getUniversityMeta', [UniversityMetaController::class, 'getUniversityMeta']);
+
+     //   Institute Category
+     Route::post('/addInstituteCategory', [InstituteCategoryController::class, 'addInstituteCategory']);
+     Route::get('/getInstituteCategoryPluck', [InstituteCategoryController::class, 'getInstituteCategoryPluck']);
+     Route::get('/getInstituteCategories', [InstituteCategoryController::class, 'getInstituteCategories']);
+     Route::post('/updateInstituteCategory', [InstituteCategoryController::class, 'updateInstituteCategory']);
+     Route::post('/deleteInstituteCategory', [InstituteCategoryController::class, 'deleteInstituteCategory']);
+
+
+     //     University Rules
+     Route::post('/addUniversityRule', [UniversityRuleController::class, 'addUniversityRule']);
+     Route::post('/getUniversityRules', [UniversityRuleController::class, 'getUniversityRules']);
+     Route::post('/updateUniversityRule', [UniversityRuleController::class, 'updateUniversityRule']);
+     Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
+
+
+     //     University Rules
+     Route::post('/addMOIInstitutes', [MoiAcceptedController::class, 'addMOIInstitutes']);
+     Route::post('/getMIOList', [MoiAcceptedController::class, 'getMIOList']);
+     Route::post('/updateMOIInstitutes', [MoiAcceptedController::class, 'updateMOIInstitutes']);
+    //  Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
+
 
 
 

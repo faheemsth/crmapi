@@ -141,81 +141,12 @@ class CourseController extends Controller
             'status' => 'success',
             'message' => 'Course successfully created!',
             'data' => [
-                'course_id' => $course,
-                'university_id' => $course->university,
+                'course' => $course,
+                'university' => $course->university,
             ]
         ]);
     }
 
-
-    public function show(Course $course)
-    {
-        //
-        return redirect()->route('course.index');
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Course  $course
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-        if (\Auth::user()->type == 'Product Coordinator' || \Auth::user()->type == 'super admin' ) {
-            $course = Course::find($id);
-            $Instalment = Instalment::where('course_id', $id)->orderBy('id', 'asc')->get();
-            $months = months();
-            $universities     = University::get()->pluck('name', 'id');
-            $universities->prepend('Select University', '');
-
-            $courselevel     = CourseLevel::get()->pluck('name', 'id');
-            $courselevel->prepend('Select Course Level', '');
-
-            $courseduration     = CourseDuration::get()->pluck('duration', 'id');
-            $courseduration->prepend('Select Course Duration', '');
-
-            $country_curr =new Collection(self::getCountryCurrency());
-            $country_curr = $country_curr->pluck('name', 'code');
-            $country_curr->prepend('Select Currency');
-            $campuss = University::where('id', $course->university_id)
-            ->whereNotNull('campuses')
-            ->pluck('campuses')
-            ->flatMap(function ($campusString) {
-                return array_map('trim', explode(',', $campusString)); // Trim spaces from each campus
-            })
-            ->toArray();
-            $intake_months = University::where('id', $course->university_id)
-            ->whereNotNull('intake_months')
-            ->pluck('intake_months')
-            ->flatMap(function ($campusString) {
-                return array_map('trim', explode(',', $campusString)); // Trim spaces from each month abbreviation
-            })
-            ->map(function ($abbr) use ($months) {
-                // Convert abbreviations to full month names
-                $monthMap = [
-                    'JAN' => 'January',
-                    'FEB' => 'February',
-                    'MAR' => 'March',
-                    'APR' => 'April',
-                    'MAY' => 'May',
-                    'JUN' => 'June',
-                    'JUL' => 'July',
-                    'AUG' => 'August',
-                    'SEP' => 'September',
-                    'OCT' => 'October',
-                    'NOV' => 'November',
-                    'DEC' => 'December',
-                ];
-                return $monthMap[strtoupper($abbr)] ?? $abbr; // Return full name if found, else original
-            })
-            ->toArray();
-            return view('course.edit', compact('Instalment','intake_months','campuss','months','course', 'universities', 'courselevel', 'courseduration', 'country_curr'));
-        } else {
-            return response()->json(['error' => __('Permission Denied.')], 401);
-        }
-    }
 
     private function getCountryCurrency(){
 
@@ -399,101 +330,108 @@ class CourseController extends Controller
      * @param  \App\Models\Course  $course
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Course $course)
+    public function updateCourses(Request $request)
     {
-        //
-        if (\Auth::user()->type == 'Product Coordinator' || \Auth::user()->type == 'super admin' ) {
-
-            $validator = \Validator::make(
-                $request->all(),
-                [
-                    'name' => 'required|max:150',
-                    'university_id' => 'required',
-                    'campus' => 'required',
-                    'intake_month' => 'required',
-                    'duration' => 'required',
-                    'intakeYear' => 'required',
-                    'gross_fees' => 'required',
-                    'net_fees' => 'required',
-                ]
-            );
-
-            if ($validator->fails()) {
-                $messages = $validator->getMessageBag();
-
-                return json_encode([
-                    'status' => 'error',
-                    'message' => $messages->first()
-                ]);
-            }
-
-            $course->name        = $request->name;
-            $course->university_id        = $request->university_id;
-            $campusData = is_array($campus = $request->input('campus')) ? implode(',', $campus) : $campus;
-            $course->campus = $campusData;
-            $course->intake_month        = is_array($intake_month = $request->input('intake_month')) ? implode(',', $intake_month) : $intake_month;
-            $course->duration        = $request->duration;
-            $course->gross_fees        = $request->gross_fees;
-            $course->net_fees        = $request->net_fees;
-            $course->intakeYear        = $request->intakeYear;
-            $course->scholarship        = $request->scholarship;
-            $course->save();
-
-            $installments = is_array($request->installments) ? $request->installments : [];
-            $installment_ids = is_array($request->installment_ids) ? $request->installment_ids : [];
-
-            if (!empty($installments) && isset($course->id)) {
-                // Fetch all existing installment IDs for the course
-                $existingInstallments = Instalment::where('course_id', $course->id)->pluck('id')->toArray();
-
-                // Track processed installment IDs
-                $processedInstallmentIds = [];
-
-                foreach ($installments as $index => $fetch) {
-                    if (!empty($fetch)) {
-                        $installmentId = $installment_ids[$index] ?? null;
-
-                        // Check if installment ID exists and belongs to this course
-                        if ($installmentId && in_array($installmentId, $existingInstallments)) {
-                            // Update existing installment
-                            $installment = Instalment::find($installmentId);
-                            $installment->fee = $fetch;
-                            $installment->save();
-
-                            // Mark this installment ID as processed
-                            $processedInstallmentIds[] = $installmentId;
-                        } else {
-                            // Create new installment if it doesn't exist
-                            $newInstallment = Instalment::create([
-                                'course_id' => $course->id,
-                                'fee' => $fetch,
-                            ]);
-
-                            // Track the new installment ID
-                            $processedInstallmentIds[] = $newInstallment->id;
-                        }
-                    }
-                }
-
-                // Remove installments that are not in the processed list
-                $installmentsToDelete = array_diff($existingInstallments, $processedInstallmentIds);
-                if (!empty($installmentsToDelete)) {
-                    Instalment::whereIn('id', $installmentsToDelete)->delete();
-                }
-            }
-
-            return json_encode([
-                'status' => 'success',
-                'message' => 'Course successfully updated!',
-                'id' => $course->university_id
-            ]);
-
-        } else {
-            return json_encode([
+        if (!in_array(Auth::user()->type, ['Product Coordinator', 'super admin'])) {
+            return response()->json([
                 'status' => 'error',
                 'message' => 'Permission Denied.'
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|max:150',
+            'university_id' => 'required|exists:universities,id',
+            'id' => 'required|exists:courses,id',
+            'campus' => 'required',
+            'intake_month' => 'required',
+            'intakeYear' => 'required|integer|min:2000',
+            'duration' => 'required',
+            'gross_fees' => 'required|numeric|min:0',
+            'net_fees' => 'required|numeric|min:0',
+            'scholarship' => 'nullable|numeric|min:0',
+            'first_instalment' => 'nullable|numeric|min:0',
+            'second_instalment' => 'nullable|numeric|min:0',
+            'third_instalment' => 'nullable|numeric|min:0',
+            'final_instalment' => 'nullable|numeric|min:0',
+            'installments' => 'nullable|array',
+            'installments.*' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $id = $request->id;
+        $course = Course::findOrFail($id);
+        $updatedFields = [];
+
+        $fieldsToUpdate = [
+            'name' => $request->name,
+            'university_id' => $request->university_id,
+            'campus' => is_array($request->campus) ? implode(',', $request->campus) : $request->campus,
+            'intake_month' => is_array($request->intake_month) ? implode(',', $request->intake_month) : $request->intake_month,
+            'intakeYear' => $request->intakeYear,
+            'duration' => $request->duration,
+            'gross_fees' => $request->gross_fees,
+            'net_fees' => $request->net_fees,
+            'scholarship' => $request->scholarship,
+            'first_instalment' => $request->first_instalment,
+            'second_instalment' => $request->second_instalment,
+            'third_instalment' => $request->third_instalment,
+            'final_instalment' => $request->final_instalment,
+        ];
+
+        foreach ($fieldsToUpdate as $field => $newValue) {
+            if ($course->$field != $newValue) {
+                $updatedFields[$field] = [
+                    'old' => $course->$field,
+                    'new' => $newValue
+                ];
+                $course->$field = $newValue;
+            }
+        }
+
+        $course->save();
+
+        // Sync Installments (optional reset logic, or update logic as needed)
+        if (!empty($request->installments)) {
+            Instalment::where('course_id', $course->id)->delete();
+            foreach ($request->installments as $installmentAmount) {
+                $installment = new Instalment();
+                $installment->course_id = $course->id;
+                $installment->fee = $installmentAmount;
+                $installment->save();
+            }
+            $updatedFields['installments'] = 'Updated installments data';
+        }
+
+        // Log only if any field was actually changed
+        if (!empty($updatedFields)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'Course Updated',
+                    'message' => 'The following fields were updated:',
+                    'changes' => $updatedFields
+                ]),
+                'module_id' => $course->id,
+                'module_type' => 'course',
+                'notification_type' => 'Course Updated',
             ]);
         }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Course successfully updated.',
+            'data' => [
+                'course' => $course,
+                'university' => $course->university,
+            ]
+        ]);
     }
 
     /**
@@ -502,19 +440,55 @@ class CourseController extends Controller
      * @param  \App\Models\Course  $course
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function deleteCourse(Request $request)
     {
-        //
-        if (\Auth::user()->type == 'Product Coordinator' || \Auth::user()->type == 'super admin' ) {
-            Course::find($id)->delete();
+        // Validate request data
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:courses,id',
+        ]);
 
-            return back()->with('success', __('Course successfully deleted!'));
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
         }
-        else
-        {
-            return back()->with('error', __('Permission Denied.'));
+
+        // Check user type (permission)
+        if (\Auth::user()->type !== 'Product Coordinator' && \Auth::user()->type !== 'super admin') {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.')
+            ], 403);
         }
+
+        // Find the Course
+        $course = Course::find($request->id);
+
+        // Log the deletion
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'Course Deleted',
+                'changes' => $course,
+                'message' => 'Course deleted successfully.'
+            ]),
+            'module_id' => $course->id,
+            'module_type' => 'course',
+            'notification_type' => 'Course Deleted'
+        ];
+        addLogActivity($logData);
+
+        // Delete the course
+        $course->delete();
+
+        // Return success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Course successfully deleted!')
+        ], 200);
     }
+
 
     public function get_course_campus()
     {
