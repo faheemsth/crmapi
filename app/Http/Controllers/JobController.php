@@ -443,7 +443,7 @@ class JobController extends Controller
                 'message' => $validator->errors()->first(),
             ], 422);
         }
-        InterviewSchedule::where('id', $request->id)->delete();
+        Job::where('id', $request->id)->delete();
 
         // Return success response
         return response()->json([
