@@ -30,7 +30,7 @@ class MoiAccepted extends Model
     }
 
     // Relationship to Creator
-    public function creator()
+    public function created_by()
     {
         return $this->belongsTo(User::class, 'created_by');
     }

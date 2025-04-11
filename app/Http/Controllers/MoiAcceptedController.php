@@ -117,4 +117,34 @@ class MoiAcceptedController extends Controller
             ], 500);
         }
     }
+
+    public function getMIOList(Request $request)
+    {
+        // Validate university_id is required and exists
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => __('Validation Error.'),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Build the query with relationships
+        $query = MoiAccepted::with(['created_by', 'institute', 'university'])
+            ->where('university_id', $request->university_id);
+
+        // Get data
+        $mioList = $query->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'MIO list fetched successfully.',
+            'data' => $mioList
+        ]);
+    }
+
 }

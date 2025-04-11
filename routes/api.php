@@ -239,7 +239,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);
     Route::get('/Pluck_All_Users', [UserController::class, 'Pluck_All_Users']);
-    
+
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
 
@@ -449,7 +449,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
      //     University Rules
      Route::post('/addMOIInstitutes', [MoiAcceptedController::class, 'addMOIInstitutes']);
-    //  Route::post('/getUniversityRules', [UniversityRuleController::class, 'getUniversityRules']);
+     Route::post('/getMIOList', [MoiAcceptedController::class, 'getMIOList']);
      Route::post('/updateMOIInstitutes', [MoiAcceptedController::class, 'updateMOIInstitutes']);
     //  Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
 
