@@ -212,4 +212,21 @@ class InstituteController extends Controller
         $Institute =    Institute::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
         return response()->json(['status' => 'success', 'data' => $Institute], 200);
     }
+
+    public function instituteDetail(Request $request)
+    {
+          $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:institutes,id',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+        $Institute = Institute::findOrFail($request->id);
+        $responseData = [
+            'status' => 'success',
+            'data' => $Institute
+        ];
+    return response()->json($responseData);
+}
+    
 }
