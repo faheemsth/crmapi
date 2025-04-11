@@ -417,6 +417,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/payslip-update/{id}', [PayslipTypeController::class, 'update'])->middleware('can:edit payslip type');
     Route::post('/payslip-delete/{id}', [PayslipTypeController::class, 'destroy'])->middleware('can:delete payslip type');
 
+    Route::post('/instituteDetail', [InstituteController::class, 'instituteDetail']);
     Route::post('/getInstitutes', [InstituteController::class, 'getInstitutes']);
     Route::post('/pluckInstitutes', [InstituteController::class, 'pluckInstitutes']);
     Route::post('/addInstitute', [InstituteController::class, 'addInstitute']);
