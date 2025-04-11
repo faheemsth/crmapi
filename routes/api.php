@@ -238,6 +238,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // user/employees
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);
+    Route::get('/Pluck_All_Users', [UserController::class, 'Pluck_All_Users']);
+    
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
 
@@ -329,6 +331,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // JobStage
     Route::post('/addJobStage', [JobStageController::class, 'addJobStage']);
     Route::get('/getJobStages', [JobStageController::class, 'getJobStages']);
+    Route::get('/PluckJobStages', [JobStageController::class, 'PluckJobStages']);
     Route::post('/updateJobStage', [JobStageController::class, 'updateJobStage']);
     Route::post('/deleteJobStage', [JobStageController::class, 'deleteJobStage']);
 

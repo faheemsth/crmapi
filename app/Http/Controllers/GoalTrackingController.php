@@ -29,7 +29,7 @@ class GoalTrackingController extends Controller
             'perPage'    => 'nullable|integer|min:1',
             'page'       => 'nullable|integer|min:1',
             'search'     => 'nullable|string',
-            'brand_id'   => 'nullable|integer|exists:brands,id',
+            'brand_id'   => 'nullable|integer|exists:users,id',
             'region_id'  => 'nullable|integer|exists:regions,id',
             'branch_id'  => 'nullable|integer|exists:branches,id',
             'created_at' => 'nullable|date',
@@ -50,15 +50,15 @@ class GoalTrackingController extends Controller
         $query = GoalTracking::with(['created_by', 'brand', 'branch', 'region','goalType']);
 
         // Apply role-based filtering
-        $query = RoleBaseTableGet($query, 'goal_trackings.brand_id', 'goal_trackings.region_id', 'goal_trackings.branch_id', 'goal_trackings.created_by');
+        $query = RoleBaseTableGet($query, 'goal_trackings.brand_id', 'goal_trackings.region_id', 'goal_trackings.branch', 'goal_trackings.created_by');
 
         // Apply search filter if provided
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($subQuery) use ($search) {
                 $subQuery->where('goal_trackings.goal_type', 'like', "%$search%")
-                    ->orWhere('goal_trackings.description', 'like', "%$search%")
-                    ->orWhere('goal_trackings.amount', 'like', "%$search%");
+                    ->orWhere('goal_trackings.target_achievement', 'like', "%$search%")
+                    ->orWhere('goal_trackings.description', 'like', "%$search%");
             });
         }
 
@@ -73,7 +73,7 @@ class GoalTrackingController extends Controller
         } elseif ($user->type === 'Region Manager' && !empty($user->region_id)) {
             $query->where('goal_trackings.region_id', $user->region_id);
         } elseif (in_array($user->type, ['Branch Manager', 'Admissions Officer', 'Admissions Manager', 'Marketing Officer']) && !empty($user->branch_id)) {
-            $query->where('goal_trackings.branch_id', $user->branch_id);
+            $query->where('goal_trackings.branch', $user->branch_id);
         } else {
             $query->where('goal_trackings.created_by', $user->id);
         }
@@ -86,7 +86,7 @@ class GoalTrackingController extends Controller
             $query->where('goal_trackings.region_id', $request->region_id);
         }
         if ($request->filled('branch_id')) {
-            $query->where('goal_trackings.branch_id', $request->branch_id);
+            $query->where('goal_trackings.branch', $request->branch_id);
         }
         if ($request->filled('created_at')) {
             $query->whereDate('goal_trackings.created_at', substr($request->created_at, 0, 10));

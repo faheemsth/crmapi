@@ -52,7 +52,13 @@ class Training extends Model
 
     public function employees()
     {
-        return $this->hasOne('App\Models\Employee', 'id', 'employee');
+        if (!empty($this->employee)) {
+            // If employee is set, return the Employee relationship
+            return $this->hasOne('App\Models\Employee', 'id', 'employee');
+        } else {
+            // Otherwise, return the User relationship
+            return $this->hasOne('App\Models\User', 'id', 'employee');
+        }
     }
 
     public function assign_to()
