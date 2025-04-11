@@ -434,7 +434,7 @@ class JobController extends Controller
 
         // Validate the jobID in the request
         $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:interview_schedules,id',
+            'id' => 'required|integer|exists:jobs,id',
         ]);
 
         if ($validator->fails()) {
