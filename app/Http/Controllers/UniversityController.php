@@ -557,17 +557,174 @@ class UniversityController extends Controller
         }
     }
 
-    public function UnivristyActive(Request $request)
-    {
-        $University = University::find($request->id);
-        if ($University) {
-            $University->uni_status = $request->status;
-            $University->save();
+    public function updateUniversityStatus(Request $request)
+{
+    // Validate the request
+    $validator = Validator::make($request->all(), [
+        'university_id' => 'required|exists:universities,id',
+        'status' => 'required|in:0,1' // Assuming 0 or 1 as status values
+    ]);
 
-            return json_encode([
-                'status' => 'success',
-                'message' => 'University successfully updated!',
-            ]);
-        }
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
     }
+
+    // Check permission
+    if (!\Auth::user()->can('edit university')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission Denied.')
+        ], 403);
+    }
+
+    // Find university
+    $university = University::find($request->university_id);
+
+    if (!$university) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('University not found.')
+        ], 404);
+    }
+
+    // Update status
+    $university->status = $request->status;
+    $university->save();
+
+    // Log activity
+    $logData = [
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => 'University Status Updated',
+            'message' => 'University status changed to ' . $request->status,
+        ]),
+        'module_id' => $university->id,
+        'module_type' => 'university',
+        'notification_type' => 'University Updated'
+    ];
+    addLogActivity($logData);
+
+    // Success response
+    return response()->json([
+        'status' => 'success',
+        'message' => __('University successfully updated!')
+    ], 200);
+}
+
+    public function updateUniversityCourseStatus(Request $request)
+{
+    // Validate the request
+    $validator = Validator::make($request->all(), [
+        'university_id' => 'required|exists:universities,id',
+        'status' => 'required|in:0,1' // Assuming 0 or 1 as status values
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
+    }
+
+    // Check permission
+    if (!\Auth::user()->can('edit university')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission Denied.')
+        ], 403);
+    }
+
+    // Find university
+    $university = University::find($request->university_id);
+
+    if (!$university) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('University not found.')
+        ], 404);
+    }
+
+    // Update status
+    $university->uni_status = $request->status;
+    $university->save();
+
+    // Log activity
+    $logData = [
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => 'University course Status Updated',
+            'message' => 'University status changed to ' . $request->status,
+        ]),
+        'module_id' => $university->id,
+        'module_type' => 'university',
+        'notification_type' => 'University Updated'
+    ];
+    addLogActivity($logData);
+
+    // Success response
+    return response()->json([
+        'status' => 'success',
+        'message' => __('University successfully updated!')
+    ], 200);
+}
+    public function updateUniversityMOIStatus(Request $request)
+{
+    // Validate the request
+    $validator = Validator::make($request->all(), [
+        'university_id' => 'required|exists:universities,id',
+        'status' => 'required|in:0,1' // Assuming 0 or 1 as status values
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
+    }
+
+    // Check permission
+    if (!\Auth::user()->can('edit university')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission Denied.')
+        ], 403);
+    }
+
+    // Find university
+    $university = University::find($request->university_id);
+
+    if (!$university) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('University not found.')
+        ], 404);
+    }
+
+    // Update status
+    $university->moi_status = $request->status;
+    $university->save();
+
+    // Log activity
+    $logData = [
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => 'University course Status Updated',
+            'message' => 'University status changed to ' . $request->status,
+        ]),
+        'module_id' => $university->id,
+        'module_type' => 'university',
+        'notification_type' => 'University Updated'
+    ];
+    addLogActivity($logData);
+
+    // Success response
+    return response()->json([
+        'status' => 'success',
+        'message' => __('University successfully updated!')
+    ], 200);
+}
+
 }

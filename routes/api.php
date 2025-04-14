@@ -440,6 +440,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/universityDetail', [UniversityController::class, 'universityDetail']);
     Route::post('/addUpdateUniversityMeta', [UniversityMetaController::class, 'storeOrUpdateMetas']);
     Route::post('/getUniversityMeta', [UniversityMetaController::class, 'getUniversityMeta']);
+    Route::post('/updateUniversityStatus', [UniversityController::class, 'updateUniversityStatus']);
+    Route::post('/updateUniversityCourseStatus', [UniversityController::class, 'updateUniversityCourseStatus']);
+    Route::post('/updateUniversityMOIStatus', [UniversityController::class, 'updateUniversityMOIStatus']);
 
      //   Institute Category
      Route::post('/addInstituteCategory', [InstituteCategoryController::class, 'addInstituteCategory']);
