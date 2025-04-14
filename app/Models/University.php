@@ -10,7 +10,7 @@ class University extends Model
     use HasFactory;
     protected $appends = ['country_code', 'meta_data' ];
     protected $hidden = ['universityMeta'];
-    protected $with = ['createdBy']; // Always eager load this relationship
+    protected $with = ['createdBy','rank']; // Always eager load this relationship
 
     public function course()
     {
@@ -45,6 +45,11 @@ class University extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by'); // Ensure 'created_by' matches your DB column
+    }
+
+    public function rank()
+    {
+        return $this->belongsTo(UniversityRank::class, 'rank_id');
     }
 
 

@@ -114,7 +114,7 @@ class UniversityController extends Controller
 
         // Final response
         return response()->json([
-            'status' => 'succes',
+            'status' => 'success',
             'message' => 'University list retrieved successfully.',
             'data' => [
                 'universities' => $universities,
