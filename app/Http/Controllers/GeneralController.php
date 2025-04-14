@@ -48,6 +48,7 @@ use App\Models\Job;
 use App\Models\JobCategory;
 use App\Models\LeadTag;
 use App\Models\LeadStage;
+use App\Models\LogActivity;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -436,14 +437,14 @@ class GeneralController extends Controller
             'module' => 'required|string|max:255',
             'count' => 'required|integer|min:0',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'failure',
                 'errors' => $validator->errors(),
             ], 422);
         }
-    
+
         // Save the filter data
         try {
             $filter = new SavedFilter();
@@ -453,7 +454,7 @@ class GeneralController extends Controller
             $filter->count = $request->count;
             $filter->created_by = auth()->id(); // Use the authenticated user's ID
             $filter->save();
-    
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Filter saved successfully.',
@@ -467,7 +468,7 @@ class GeneralController extends Controller
             ], 500);
         }
     }
-    
+
     public function Country()
     {
         $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
@@ -478,4 +479,34 @@ class GeneralController extends Controller
         ], 200);
 
     }
+
+    public function getLogActivity(Request $request)
+{
+    // Validate input
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|integer',
+        'type' => 'required|string|max:100',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => __('Validation Error.'),
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    // Fetch log activity records
+    $logs = LogActivity::where('module_id', $request->id)
+                ->where('module_type', $request->type)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Log activities fetched successfully.',
+        'data' => $logs
+    ]);
+}
+
 }

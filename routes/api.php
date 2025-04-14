@@ -371,6 +371,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateCourses', [CourseController::class, 'updateCourses']);
     Route::post('/deleteCourse', [CourseController::class, 'deleteCourse']);
     Route::post('/addCourses', [CourseController::class, 'addCourses']);
+    Route::post('/getCourseDetail', [CourseController::class, 'getCourseDetail']);
 
     //  Job Applications
     Route::post('/candidate', [JobApplicationController::class, 'candidate']);
@@ -485,6 +486,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
     Route::post('/Country', [GeneralController::class, 'Country']);
+    Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
 
 
 });
