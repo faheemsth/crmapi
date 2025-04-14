@@ -117,8 +117,10 @@ class InstituteController extends Controller
             'module_type' => 'institute',
             'notification_type' => 'Institute Created'
         ]);
-
-        return response()->json(['success' => __('Institute successfully created.'), 'institute' => $institute], 201);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Institute successfully created.',
+        ], 200);
     }
 
     public function show($id)
@@ -126,7 +128,10 @@ class InstituteController extends Controller
         $institute = Institute::with('country')->where('id', $id)->first();
 
         if (!$institute) {
-            return response()->json(['error' => __('Institute not found.')], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Institute not found.',
+            ], 404);
         }
 
         return response()->json(['institute' => $institute], 200);
@@ -146,7 +151,10 @@ class InstituteController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 422);
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 422);
         }
 
         $institute = Institute::where('id', $request->id)->first();
@@ -169,8 +177,10 @@ class InstituteController extends Controller
             'module_type' => 'institute',
             'notification_type' => 'Institute Updated'
         ]);
-
-        return response()->json(['success' => __('Institute successfully updated.'), 'institute' => $institute], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Institute successfully updated.',
+        ], 200);
     }
 
     public function deleteInstitute(Request $request)
