@@ -93,6 +93,7 @@ class InstituteController extends Controller
             'sector' => 'nullable|string|max:255',
             'city' => 'required|string|max:255',
             'address' => 'nullable|string',
+            'website' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'country_id' => 'required|exists:countries,id',
             'other_details' => 'nullable|string',
@@ -145,6 +146,7 @@ class InstituteController extends Controller
             'sector' => 'nullable|string|max:255',
             'city' => 'required|string|max:255',
             'address' => 'nullable|string',
+            'website' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'country_id' => 'required|exists:countries,id',
             'other_details' => 'nullable|string',
@@ -238,5 +240,5 @@ class InstituteController extends Controller
         ];
     return response()->json($responseData);
 }
-    
+
 }

@@ -48,6 +48,7 @@ use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\UniversityController;
 use App\Http\Controllers\UniversityMetaController;
+use App\Http\Controllers\UniversityRankController;
 use App\Http\Controllers\UniversityRuleController;
 use App\Http\Controllers\UserController;
 use App\Models\InterviewSchedule;
@@ -309,6 +310,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pluckGoalTypes', [GoalTypeController::class, 'pluckGoalTypes']);
     Route::post('/updateGoalType', [GoalTypeController::class, 'updateGoalType']);
     Route::post('/deleteGoalType', [GoalTypeController::class, 'deleteGoalType']);
+
+    // UniversityRank
+    Route::post('/addUniversityRank', [UniversityRankController::class, 'addUniversityRank']);
+    Route::get('/getUniversityRanks', [UniversityRankController::class, 'getUniversityRanks']);
+    Route::get('/pluckUniversityRanks', [UniversityRankController::class, 'pluckUniversityRanks']);
+    Route::post('/updateUniversityRank', [UniversityRankController::class, 'updateUniversityRank']);
+    Route::post('/deleteUniversityRank', [UniversityRankController::class, 'deleteUniversityRank']);
 
     // AwardType
     Route::post('/addAwardType', [AwardTypeController::class, 'addAwardType']);

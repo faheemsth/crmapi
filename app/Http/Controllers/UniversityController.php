@@ -114,11 +114,10 @@ class UniversityController extends Controller
 
         // Final response
         return response()->json([
-            'status' => true,
+            'status' => 'succes',
             'message' => 'University list retrieved successfully.',
             'data' => [
                 'universities' => $universities,
-                'users' => allUsers(),
                 'statuses' => $sortedStatuses,
                 'total_records' => $query->count()
             ]
@@ -449,7 +448,7 @@ class UniversityController extends Controller
         $stages = Stage::pluck('name', 'id')->toArray();
         $organizations = User::where('type', 'organization')->pluck('name', 'id')->toArray();
 
-        $users = User::pluck('name', 'id')->toArray();
+
         $course = Course::where('university_id', $id);
 
         if (\Auth::user()->type == 'super admin') {
@@ -463,7 +462,6 @@ class UniversityController extends Controller
             'university' => $university,
             'applications' => $applications,
             'deals' => $deals,
-            'users' => $users,
             'stages' => $stages,
             'organizations' => $organizations,
             'courses' => $courses
