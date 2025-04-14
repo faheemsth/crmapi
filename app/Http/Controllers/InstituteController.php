@@ -24,8 +24,10 @@ class InstituteController extends Controller
             'perPage'    => 'nullable|integer|min:1',
             'page'       => 'nullable|integer|min:1',
             'search'     => 'nullable|string',
-            'country_id' => 'nullable|integer|exists:countries,id',
+            'countryId' => 'nullable|integer|exists:countries,id',
             'city'       => 'nullable|string',
+            'name' => 'nullable|string',
+            'sector' => 'nullable|string',
             'created_at' => 'nullable|date',
         ]);
 
@@ -56,11 +58,17 @@ class InstituteController extends Controller
         }
 
         // Apply additional filters
-        if ($request->filled('country_id')) {
-            $query->where('institutes.country_id', $request->country_id);
+        if ($request->filled('countryId')) {
+            $query->where('institutes.country_id', $request->countryId);
         }
         if ($request->filled('city')) {
             $query->where('institutes.city', 'like', "%{$request->city}%");
+        }
+        if ($request->filled('name')) {
+            $query->where('institutes.name', 'like', "%{$request->name}%");
+        }
+        if ($request->filled('sector')) {
+            $query->where('institutes.sector', 'like', "%{$request->sector}%");
         }
         if ($request->filled('created_at')) {
             $query->whereDate('institutes.created_at', substr($request->created_at, 0, 10));
