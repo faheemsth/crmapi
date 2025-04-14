@@ -239,6 +239,7 @@ class UniversityController extends Controller
             'territory' => 'required|array|min:1',
             'territory.*' => 'required|string',
             'company_id' => 'required|exists:users,id',
+            'rank_id' => 'required|exists:university_ranks,id',
             'phone' => 'nullable|max:20',
             'note' => 'nullable|string',
             'institution_link' => 'nullable|string',
@@ -259,6 +260,7 @@ class UniversityController extends Controller
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         $university->campuses = $request->campuses;
+        $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
@@ -294,6 +296,7 @@ class UniversityController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
+            'rank_id' => 'required|exists:university_ranks,id',
             'name' => 'required|max:200',
             'country' => 'required|array|min:1',
             'country.*' => 'required|string|max:200',
@@ -333,6 +336,7 @@ class UniversityController extends Controller
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         $university->campuses = $request->city;
+        $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
@@ -372,6 +376,71 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'University updated successfully.',
+            'data' => $university
+        ]);
+    }
+
+
+    public function updateAboutUniversity(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:universities,id',
+            'territory' => 'required|array|min:1',
+            'territory.*' => 'required|string',
+            'campuses' => 'required|array|min:1',
+            'campuses.*' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        if (!Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission Denied.'
+            ], 403);
+        }
+
+        $university = University::where('id', $request->id)->first();
+        $originalData = $university->toArray();
+
+        // Update fields
+        $university->territory = implode(',', $request->territory);
+        $university->campuses = implode(',', $request->campuses);
+        $university->save();
+
+        // Log changed fields only
+        $changes = [];
+        foreach ($originalData as $field => $oldValue) {
+            if ($university->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $university->$field
+                ];
+            }
+        }
+
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'University Updated',
+                    'message' => 'Fields updated successfully',
+                    'changes' => $changes
+                ]),
+                'module_id' => $university->id,
+                'module_type' => 'university',
+                'notification_type' => 'University Updated'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'University about updated successfully.',
             'data' => $university
         ]);
     }
