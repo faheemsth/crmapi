@@ -164,8 +164,8 @@ class CourseController extends Controller
                 'title' => 'Course Created',
                 'message' => "A new course '{$course->name}' has been created successfully.",
             ]),
-            'module_id' => $course->id,
-            'module_type' => 'course',
+            'module_id' => $course->university_id,
+            'module_type' => 'university',
             'notification_type' => 'Course Created',
         ]);
 
@@ -451,8 +451,8 @@ class CourseController extends Controller
                     'message' => 'The following fields were updated:',
                     'changes' => $updatedFields
                 ]),
-                'module_id' => $course->id,
-                'module_type' => 'course',
+                'module_id' => $course->university_id,
+                'module_type' => 'university',
                 'notification_type' => 'Course Updated',
             ]);
         }
@@ -506,8 +506,8 @@ class CourseController extends Controller
                 'changes' => $course,
                 'message' => 'Course deleted successfully.'
             ]),
-            'module_id' => $course->id,
-            'module_type' => 'course',
+            'module_id' => $course->university_id,
+            'module_type' => 'university',
             'notification_type' => 'Course Deleted'
         ];
         addLogActivity($logData);

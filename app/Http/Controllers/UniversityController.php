@@ -257,6 +257,7 @@ class UniversityController extends Controller
 
         $university = new University();
         $university->name = $request->name;
+        $university->company_id = 0;
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         $university->campuses = $request->campuses;

@@ -73,7 +73,7 @@ class MoiAccepted extends Model
                         'institute_id' => $instituteId
                     ]),
                     'module_id' => $universityId,
-                    'module_type' => 'moi_accepted_list',
+                    'module_type' => 'university',
                     'created_by' => $createdBy,
                     'notification_type' => 'Institute Association Added'
                 ]);
@@ -121,7 +121,7 @@ class MoiAccepted extends Model
                     'institute_id' => $instituteId
                 ]),
                 'module_id' => $universityId,
-                'module_type' => 'moi_accepted_list',
+                'module_type' => 'university',
                 'created_by' => $userId,
                 'notification_type' => 'Institute Association Added'
             ]);
@@ -149,7 +149,7 @@ class MoiAccepted extends Model
                         'institute_id' => $instituteId
                     ]),
                     'module_id' => $universityId,
-                    'module_type' => 'moi_accepted_list',
+                    'module_type' => 'university',
                     'created_by' => $userId,
                     'notification_type' => 'Institute Association Removed'
                 ]);
@@ -179,7 +179,7 @@ class MoiAccepted extends Model
         //         ]
         //     ]),
         //     'module_id' => $universityId,
-        //     'module_type' => 'moi_accepted_list',
+        //     'module_type' => 'university',
         //     'created_by' => $userId,
         //     'notification_type' => 'Institute Associations Updated'
         // ]);

@@ -105,7 +105,7 @@ class MoiAcceptedController extends Controller
                     'institute_ids' => $request->institute_id
                 ]),
                 'module_id' => $request->university_id,
-                'module_type' => 'moi_accepted_list',
+                'module_type' => 'university',
                 'created_by' => auth()->id(),
                 'notification_type' => 'Update Error'
             ]);
