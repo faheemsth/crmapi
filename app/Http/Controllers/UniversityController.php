@@ -236,8 +236,8 @@ class UniversityController extends Controller
             'city' => 'nullable|max:200',
             'months' => 'required|array|min:1',
             'months.*' => 'required|string',
-            'territory' => 'nullable|array|min:1',
-            'territory.*' => 'nullable|string',
+            'territory' => 'required|array|min:1',
+            'territory.*' => 'required|string',
             'company_id' => 'nullable|exists:users,id',
             'rank_id' => 'required|exists:university_ranks,id',
             'phone' => 'nullable|max:20',
@@ -257,7 +257,7 @@ class UniversityController extends Controller
 
         $university = new University();
         $university->name = $request->name;
-        $university->company_id = 0;
+        $university->company_id = 1;
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         $university->campuses = $request->campuses;
