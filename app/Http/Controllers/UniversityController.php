@@ -266,7 +266,10 @@ class UniversityController extends Controller
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
         $university->intake_months = implode(',', $request->months);
-        $university->territory = implode(',', $request->territory);
+        if($request->territory!=''){
+            $university->territory = implode(',', $request->territory);
+        }
+
         $university->company_id = $request->company_id;
         $university->resource_drive_link = $request->resource_drive_link;
         $university->application_method_drive_link = $request->application_method_drive_link;
