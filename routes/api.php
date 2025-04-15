@@ -459,6 +459,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/getUniversityRules', [UniversityRuleController::class, 'getUniversityRules']);
      Route::post('/updateUniversityRule', [UniversityRuleController::class, 'updateUniversityRule']);
      Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
+     Route::post('/updateUniversityRulePosition', [UniversityRuleController::class, 'updateUniversityRulePosition']);
 
 
      //     University Rules

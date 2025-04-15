@@ -85,7 +85,7 @@ class UniversityRuleController extends Controller
                 'title' => 'University Rule Created',
                 'message' => "A new rule '{$rule->name}' has been created successfully.",
             ]),
-            'module_id' => $rule->id,
+            'module_id' => $rule->university_id,
             'module_type' => 'university',
             'notification_type' => 'Rule Created',
         ]);
@@ -165,7 +165,83 @@ class UniversityRuleController extends Controller
                     'message' => 'Fields updated successfully',
                     'changes' => $changes
                 ]),
-                'module_id' => $rule->id,
+                'module_id' => $rule->university_id,
+                'module_type' => 'university',
+                'notification_type' => 'Rule Updated'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('University Rule successfully updated.'),
+            'data' => $rule
+        ], 200);
+    }
+    public function updateUniversityRulePosition(Request $request)
+    {
+        if (!\Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'id' => 'required|exists:university_rules,id',
+                'position' => 'required|integer'
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $rule = UniversityRule::where('id', $request->id)->first();
+
+        if (!$rule) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University Rule not found or unauthorized.')
+            ], 404);
+        }
+
+        // Store original data before update
+        $originalData = $rule->toArray();
+
+        // Update fields
+        $rule->position = $request->position;
+        $rule->created_by = \Auth::id();
+
+        // Manually update only the updated_at timestamp
+        $rule->timestamps = false;  // Disable automatic timestamp updating
+        $rule->save();
+
+        // Log changed fields only
+        $changes = [];
+        foreach ($originalData as $field => $oldValue) {
+            if ($rule->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $rule->$field
+                ];
+            }
+        }
+
+        // If there are changes, log the activity
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'University Rule Updated',
+                    'message' => 'Fields updated successfully',
+                    'changes' => $changes
+                ]),
+                'module_id' => $rule->university_id,
                 'module_type' => 'university',
                 'notification_type' => 'Rule Updated'
             ]);
@@ -221,7 +297,7 @@ class UniversityRuleController extends Controller
                 'title' => 'University Rule Deleted',
                 'message' => "Rule '{$ruleName}' has been deleted successfully.",
             ]),
-            'module_id' => $ruleId,
+            'module_id' => $rule->university_id,
             'module_type' => 'university_rule',
             'notification_type' => 'Rule Deleted',
         ]);
