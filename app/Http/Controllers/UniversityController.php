@@ -386,6 +386,7 @@ class UniversityController extends Controller
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
             'territory' => 'required|array|min:1',
+            'agency' => 'required|array|min:1',
             'territory.*' => 'required|string',
             'campuses' => 'required|array|min:1',
             'campuses.*' => 'required|string'
@@ -411,6 +412,7 @@ class UniversityController extends Controller
         // Update fields
         $university->territory = implode(',', $request->territory);
         $university->campuses = implode(',', $request->campuses);
+        $university->agency = $request->campuses;
         $university->save();
 
         // Log changed fields only
