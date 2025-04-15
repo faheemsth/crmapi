@@ -412,7 +412,7 @@ class UniversityController extends Controller
         // Update fields
         $university->territory = implode(',', $request->territory);
         $university->campuses = implode(',', $request->campuses);
-        $university->agency = $request->campuses;
+        $university->agency = $request->agency;
         $university->save();
 
         // Log changed fields only
