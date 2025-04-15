@@ -386,7 +386,7 @@ class UniversityController extends Controller
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
             'territory' => 'required|array|min:1',
-            'agency' => 'required|array|min:1',
+            'agency' => 'required|string',
             'territory.*' => 'required|string',
             'campuses' => 'required|array|min:1',
             'campuses.*' => 'required|string'
