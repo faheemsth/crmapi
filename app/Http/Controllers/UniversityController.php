@@ -60,6 +60,10 @@ class UniversityController extends Controller
             $query->where('name', 'like', '%' . $request->name . '%');
         }
 
+        if ($request->filled('city')) {
+            $query->where('campuses', 'like', '%' . $request->city . '%');
+        }
+
         if ($request->filled('country')) {
             if ($request->country === 'Europe') {
                 $query->whereIn('country', $europeanCountries);
@@ -68,20 +72,15 @@ class UniversityController extends Controller
             }
         }
 
-        if ($request->filled('city')) {
-            $query->where('campuses', 'like', '%' . $request->city . '%');
-        }
-        if ($request->filled('sector')) {
-            $query->where('sector', 'like', '%' . $request->sector . '%');
+        if ($request->filled('rank_id')) {
+            $query->where('rank_id', 'like', '%' . $request->rank_id . '%');
         }
 
-        if ($request->filled('note')) {
-            $query->where('note', 'like', '%' . $request->note . '%');
+        if ($request->filled('intake_months')) {
+            $query->whereIn('intake_months',$request->intake_months);
         }
 
-        if ($request->filled('created_by')) {
-            $query->where('created_by', 'like', '%' . $request->created_by . '%');
-        }
+
 
         // Retrieve paginated data
         $universities = $query
