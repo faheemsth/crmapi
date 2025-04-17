@@ -112,7 +112,7 @@ class CourseController extends Controller
             'campus' => 'required',
             'intake_month' => 'required',
             'intakeYear' => 'required|integer|min:2000',
-            'duration' => 'required',
+            'duration' => 'nullable',
             'gross_fees' => 'required|numeric|min:0',
             'net_fees' => 'required|numeric|min:0',
             'scholarship' => 'nullable|numeric|min:0',
