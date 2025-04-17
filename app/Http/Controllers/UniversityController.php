@@ -71,6 +71,9 @@ class UniversityController extends Controller
         if ($request->filled('city')) {
             $query->where('campuses', 'like', '%' . $request->city . '%');
         }
+        if ($request->filled('sector')) {
+            $query->where('sector', 'like', '%' . $request->sector . '%');
+        }
 
         if ($request->filled('note')) {
             $query->where('note', 'like', '%' . $request->note . '%');
