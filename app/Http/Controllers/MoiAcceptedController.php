@@ -134,17 +134,31 @@ class MoiAcceptedController extends Controller
         }
 
         // Build the query with relationships
-        $query = MoiAccepted::with(['created_by', 'institute', 'university'])
-            ->where('university_id', $request->university_id);
+        // $query = MoiAccepted::with(['created_by', 'institute', 'university'])
+        //     ->where('university_id', $request->university_id);
 
         // Get data
-        $mioList = $query->get();
+        // $mioList = $query->get();
+
+        // return response()->json([
+        //     'status' => true,
+        //     'message' => 'MIO list fetched successfully.',
+        //     'data' => $mioList
+        // ]);
+        $query = MoiAccepted::with(['institute.country'])
+            ->where('university_id', $request->university_id)
+            ->get()
+            ->pluck('institute')
+            ->unique('id')
+            ->values();
 
         return response()->json([
             'status' => true,
             'message' => 'MIO list fetched successfully.',
-            'data' => $mioList
+            'data' => $query
         ]);
+
+        
     }
 
 }
