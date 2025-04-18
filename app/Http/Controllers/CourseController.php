@@ -387,8 +387,9 @@ class CourseController extends Controller
             'second_instalment' => 'nullable|numeric|min:0',
             'third_instalment' => 'nullable|numeric|min:0',
             'final_instalment' => 'nullable|numeric|min:0',
-            'installments' => 'nullable|array',
-            'installments.*' => 'nullable|numeric|min:0',
+            'installments' => 'required|array',
+            'installments.*.id' => 'sometimes|integer',
+            'installments.*.fee' => 'required|numeric',
         ]);
 
         if ($validator->fails()) {
@@ -432,13 +433,31 @@ class CourseController extends Controller
 
         // Sync Installments (optional reset logic, or update logic as needed)
         if (!empty($request->installments)) {
-            Instalment::where('course_id', $course->id)->delete();
-            foreach ($request->installments as $installmentAmount) {
-                $installment = new Instalment();
-                $installment->course_id = $course->id;
-                $installment->fee = $installmentAmount;
-                $installment->save();
+            $existingIds = [];
+            
+            foreach ($request->installments as $installmentData) {
+                if (isset($installmentData['id'])) {
+                    // Update existing installment
+                    $installment = Instalment::updateOrCreate(
+                        ['id' => $installmentData['id'], 'course_id' => $course->id],
+                        ['fee' => $installmentData['fee']]
+                    );
+                    $existingIds[] = $installment->id;
+                } else {
+                    // Create new installment
+                    $installment = new Instalment();
+                    $installment->course_id = $course->id;
+                    $installment->fee = $installmentData['fee'];
+                    $installment->save();
+                    $existingIds[] = $installment->id;
+                }
             }
+            
+            // Delete any installments not in the current request
+            Instalment::where('course_id', $course->id)
+                      ->whereNotIn('id', $existingIds)
+                      ->delete();
+            
             $updatedFields['installments'] = 'Updated installments data';
         }
 
