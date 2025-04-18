@@ -9,7 +9,7 @@ use App\Models\University;
 use App\Models\CourseLevel;
 use Illuminate\Http\Request;
 use App\Models\CourseDuration;
-use App\Models\instalment;
+use App\Models\Instalment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 
@@ -150,7 +150,7 @@ class CourseController extends Controller
 
         if (!empty($request->installments)) {
             foreach ($request->installments as $installmentAmount) {
-                $installment = new instalment();
+                $installment = new Instalment();
                 $installment->course_id = $course->id;
                 $installment->fee = $installmentAmount;
                 $installment->save();
