@@ -30,4 +30,9 @@ class Course extends Model
     {
         return $this->belongsTo(CourseDuration::class);
     }
+
+    public function instalments()
+    {
+        return $this->hasMany(Instalment::class, 'course_id', 'id');
+    }
 }

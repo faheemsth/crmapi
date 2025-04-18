@@ -43,7 +43,7 @@ class CourseController extends Controller
         }
 
         // Base query
-        $query = Course::with(['university', 'created_by'])
+        $query = Course::with(['instalments','university', 'created_by'])
             ->where('university_id', $request->university_id);
 
 
