@@ -48,9 +48,8 @@ class UniversityController extends Controller
         ];
 
         // Pagination control
-        $perPage = $request->get('num_results_on_page', env('RESULTS_ON_PAGE', 50));
-        $page = $request->get('page', 1);
-        $start = ($page - 1) * $perPage;
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
 
         // Build query
         $query = University::query();
@@ -83,11 +82,9 @@ class UniversityController extends Controller
 
 
         // Retrieve paginated data
-        $universities = $query
-            ->skip($start)
-            ->take($perPage)
-            ->orderBy('id', 'desc')
-            ->get();
+
+        $universities = $query->orderBy('created_at', 'DESC')
+        ->paginate($perPage, ['*'], 'page', $page);
 
         // University statistics grouped by country
         $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
@@ -119,9 +116,12 @@ class UniversityController extends Controller
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
             'data' => [
-                'universities' => $universities,
                 'statuses' => $sortedStatuses,
-                'total_records' => $query->count()
+                'universities' => $universities->items(),
+                'current_page' => $universities->currentPage(),
+                'last_page' => $universities->lastPage(),
+                'total_records' => $universities->total(),
+                'per_page' => $universities->perPage(),
             ]
         ]);
     }
