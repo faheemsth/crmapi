@@ -57,16 +57,6 @@ class TaskController extends Controller
     public function userTasksGet(Request $request)
     {
         $user = Auth::user();
-        $start = 0;
-        $num_results_on_page = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
-
-      // dd($request->filled('page'));
-        if ($request->filled('page')) {
-            $page = $request->input('page');
-            $start = ($page - 1) * $num_results_on_page;
-        }
-
-        $filtersBrands = array_keys(FiltersBrands());
 
         if (
             $user->can('view task') ||
@@ -74,6 +64,8 @@ class TaskController extends Controller
             $user->type === 'super admin' ||
             $user->type === 'company'
         ) {
+            $filtersBrands = array_keys(FiltersBrands());
+
             $tasks = DealTask::select(
                 'deal_tasks.name',
                 'deal_tasks.brand_id',
@@ -99,13 +91,19 @@ class TaskController extends Controller
                 } elseif ($user->type === 'Agent') {
                     $agency = Agency::where('user_id', $user->id)->first();
                     if ($agency) {
-                        $tasks->where('related_type', 'agency')
-                            ->where('related_to', $agency->id)
+                        $tasks->where(function ($query) use ($agency, $user) {
+                            $query->where(function ($q) use ($agency) {
+                                $q->where('related_type', 'agency')
+                                  ->where('related_to', $agency->id);
+                            })
                             ->orWhere('deal_tasks.assigned_to', $user->id)
                             ->orWhere('deal_tasks.created_by', $user->id);
+                        });
                     } else {
-                        $tasks->where('deal_tasks.assigned_to', $user->id)
-                            ->orWhere('deal_tasks.created_by', $user->id);
+                        $tasks->where(function ($query) use ($user) {
+                            $query->where('deal_tasks.assigned_to', $user->id)
+                                  ->orWhere('deal_tasks.created_by', $user->id);
+                        });
                     }
                 } else {
                     $tasks->where('deal_tasks.assigned_to', $user->id);
@@ -114,11 +112,9 @@ class TaskController extends Controller
                 $tasks->where('deal_tasks.branch_id', $user->branch_id);
             }
 
-            // Apply Filters
+            // Apply filters
             $filters = $this->TasksFilter();
             foreach ($filters as $column => $value) {
-
-
                 match ($column) {
                     'subjects' => $tasks->whereIn('deal_tasks.id', $value),
                     'assigned_to' => $tasks->where('assigned_to', $value),
@@ -145,7 +141,7 @@ class TaskController extends Controller
 
             $mergedResults = array_merge($tasks->pluck('deal_tasks.id')->toArray(), $scorpTasks);
 
-            $finalTasks = DealTask::select(
+            $finalQuery = DealTask::select(
                 'deal_tasks.name',
                 'deal_tasks.brand_id',
                 'deal_tasks.id',
@@ -167,17 +163,17 @@ class TaskController extends Controller
                         ->orWhere('deal_tasks.due_date', 'like', "%$g_search%");
                 });
             })
-            ->orderBy('deal_tasks.created_at', 'DESC')
-            ->skip($start)
-            ->take($num_results_on_page)
-            ->get();
+            ->orderBy('deal_tasks.created_at', 'DESC');
 
-            $totalRecords = $finalTasks->count();
+            $paginatedTasks = $finalQuery->paginate($request->input('perPage', env('RESULTS_ON_PAGE', 50)));
 
             return response()->json([
                 'status' => 'success',
-                'data' => $finalTasks,
-                'total_records' => $totalRecords,
+                'data' => $paginatedTasks->items(),
+                'current_page' => $paginatedTasks->currentPage(),
+                'last_page' => $paginatedTasks->lastPage(),
+                'total_records' => $paginatedTasks->total(),
+                'per_page' => $paginatedTasks->perPage(),
                 'message' => 'Tasks fetched successfully'
             ]);
         } else {

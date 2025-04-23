@@ -270,10 +270,6 @@ class User extends Authenticatable
         return $this->belongsToMany('App\Models\Lead', 'user_leads', 'user_id', 'lead_id');
     }
 
-    public function clientDeals()
-    {
-        return $this->belongsToMany('App\Models\Deal', 'client_deals', 'client_id', 'deal_id');
-    }
 
     public function employee()
     {
@@ -355,6 +351,25 @@ class User extends Authenticatable
             ]
         );
     }
+
+    public function clientDeals()
+    {
+        return $this->belongsToMany('App\Models\Deal', 'client_deals', 'client_id', 'deal_id');
+    }
+
+    public function clientApplications()
+    {
+        return $this->hasManyThrough(
+            \App\Models\DealApplication::class,
+            \App\Models\Deal::class,
+            'id', // Foreign key on the deals table...
+            'deal_id', // Foreign key on the deal_applications table...
+            'id', // Local key on the clients table...
+            'id' // Local key on the deals table...
+        )->join('client_deals', 'client_deals.deal_id', 'deals.id')
+        ->whereColumn('client_deals.client_id', 'clients.id');
+    }
+
 
 
 }

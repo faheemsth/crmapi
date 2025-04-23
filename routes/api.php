@@ -14,6 +14,7 @@ use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CommissionsController;
 use App\Http\Controllers\CompetenciesController;
 use App\Http\Controllers\CourseController;
@@ -453,6 +454,11 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updateInstituteCategory', [InstituteCategoryController::class, 'updateInstituteCategory']);
      Route::post('/deleteInstituteCategory', [InstituteCategoryController::class, 'deleteInstituteCategory']);
 
+
+     //     University Rules
+     Route::post('/getClients', [ClientController::class, 'getClients']);
+     Route::post('/clientDetail', [ClientController::class, 'clientDetail']);
+     Route::post('/updateClient', [ClientController::class, 'updateClient']);
 
      //     University Rules
      Route::post('/addUniversityRule', [UniversityRuleController::class, 'addUniversityRule']);
