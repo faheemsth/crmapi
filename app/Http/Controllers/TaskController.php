@@ -47,6 +47,7 @@ use App\Models\LeadTag;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Validator;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -74,8 +75,8 @@ class TaskController extends Controller
                 'deal_tasks.status',
                 'deal_tasks.assigned_to'
             )
-            ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
-            ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id');
+                ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
+                ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id');
 
             if ($user->type !== 'HR') {
                 if ($user->type === 'super admin' || $user->can('level 1')) {
@@ -94,15 +95,15 @@ class TaskController extends Controller
                         $tasks->where(function ($query) use ($agency, $user) {
                             $query->where(function ($q) use ($agency) {
                                 $q->where('related_type', 'agency')
-                                  ->where('related_to', $agency->id);
+                                    ->where('related_to', $agency->id);
                             })
-                            ->orWhere('deal_tasks.assigned_to', $user->id)
-                            ->orWhere('deal_tasks.created_by', $user->id);
+                                ->orWhere('deal_tasks.assigned_to', $user->id)
+                                ->orWhere('deal_tasks.created_by', $user->id);
                         });
                     } else {
                         $tasks->where(function ($query) use ($user) {
                             $query->where('deal_tasks.assigned_to', $user->id)
-                                  ->orWhere('deal_tasks.created_by', $user->id);
+                                ->orWhere('deal_tasks.created_by', $user->id);
                         });
                     }
                 } else {
@@ -151,19 +152,19 @@ class TaskController extends Controller
                 'brandname.name as brand_name',
                 'users.name as user_name'
             )
-            ->whereIn('deal_tasks.id', $mergedResults)
-            ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
-            ->join('users as brandname', 'brandname.id', '=', 'deal_tasks.brand_id')
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $g_search = $request->input('search');
-                $query->where(function ($subQuery) use ($g_search) {
-                    $subQuery->where('deal_tasks.name', 'like', "%$g_search%")
-                        ->orWhere('brandname.name', 'like', "%$g_search%")
-                        ->orWhere('users.name', 'like', "%$g_search%")
-                        ->orWhere('deal_tasks.due_date', 'like', "%$g_search%");
-                });
-            })
-            ->orderBy('deal_tasks.created_at', 'DESC');
+                ->whereIn('deal_tasks.id', $mergedResults)
+                ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
+                ->join('users as brandname', 'brandname.id', '=', 'deal_tasks.brand_id')
+                ->when($request->filled('search'), function ($query) use ($request) {
+                    $g_search = $request->input('search');
+                    $query->where(function ($subQuery) use ($g_search) {
+                        $subQuery->where('deal_tasks.name', 'like', "%$g_search%")
+                            ->orWhere('brandname.name', 'like', "%$g_search%")
+                            ->orWhere('users.name', 'like', "%$g_search%")
+                            ->orWhere('deal_tasks.due_date', 'like', "%$g_search%");
+                    });
+                })
+                ->orderBy('deal_tasks.created_at', 'DESC');
 
             $paginatedTasks = $finalQuery->paginate($request->input('perPage', env('RESULTS_ON_PAGE', 50)));
 
@@ -302,13 +303,13 @@ class TaskController extends Controller
     }
 
 
-public function createtask(Request $request)
-{
-    $usr = \Auth::user();
-    $employeeId = !empty(\Auth::user()->id) ? \Auth::user()->id : 0;
+    public function createtask(Request $request)
+    {
+        $usr = \Auth::user();
+        $employeeId = !empty(\Auth::user()->id) ? \Auth::user()->id : 0;
 
-    // // Check if the user has permission to create a task
-    // if ($usr->can('create task')) {
+        // // Check if the user has permission to create a task
+        // if ($usr->can('create task')) {
 
         // Validation rules and messages
         $rules = [
@@ -415,119 +416,119 @@ public function createtask(Request $request)
             'message' => __('Task successfully created!')
         ], 201);
 
-    // } else {
-    //     // Return error response if the user does not have permission
-    //     return response()->json([
-    //         'status' => 'error',
-    //         'message' => __('Permission Denied.')
-    //     ], 403);
-    // }
-}
-
-
-
-public function taskUpdate(Request $request)
-{
-    $user = Auth::user();
-
-    if (!$user->can('edit task')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Permission Denied.')
-        ], 403);
+        // } else {
+        //     // Return error response if the user does not have permission
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => __('Permission Denied.')
+        //     ], 403);
+        // }
     }
 
-    // Validation Rules
-    $rules = [
-        'task_name' => 'required|string|max:255',
-        'task_id' => 'required|integer|min:1',
-        'brand_id' => 'required|integer|min:1',
-        'region_id' => 'required|integer|min:1',
-        'branch_id' => 'required|integer|min:1',
-        'assigned_to' => 'required|integer|min:1',
-        'due_date' => 'required|date',
-        'start_date' => 'required|date',
-        'visibility' => 'required|string',
-    ];
 
-    // Validation
-    $validator = \Validator::make($request->all(), $rules);
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $validator->errors()->first()
-        ], 422);
-    }
-    $id = $request->task_id;
 
-    $dealTask = DealTask::find($id);
+    public function taskUpdate(Request $request)
+    {
+        $user = Auth::user();
 
-    if (!$dealTask) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Task not found.')
-        ], 404);
-    }
+        if (!$user->can('edit task')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.')
+            ], 403);
+        }
 
-    // Track Status Change
-    $is_status_change = $dealTask->status !== $request->status;
+        // Validation Rules
+        $rules = [
+            'task_name' => 'required|string|max:255',
+            'task_id' => 'required|integer|min:1',
+            'brand_id' => 'required|integer|min:1',
+            'region_id' => 'required|integer|min:1',
+            'branch_id' => 'required|integer|min:1',
+            'assigned_to' => 'required|integer|min:1',
+            'due_date' => 'required|date',
+            'start_date' => 'required|date',
+            'visibility' => 'required|string',
+        ];
 
-    // Update Task Details
-    $dealTask->related_to = $request->related_to;
-    $dealTask->related_type = $request->related_type;
-    $dealTask->name = $request->task_name;
-    $dealTask->branch_id = $request->branch_id ?? $dealTask->branch_id;
-    $dealTask->assigned_to = $request->assigned_to ?? $dealTask->assigned_to;
-    $dealTask->brand_id = $request->brand_id ?? $dealTask->brand_id;
-    $dealTask->assigned_type = $request->assign_type;
-    $dealTask->region_id = $request->region_id ?? $dealTask->region_id;
-    $dealTask->due_date = $request->due_date;
-    $dealTask->start_date = $request->start_date;
-    $dealTask->date = $request->start_date;
-    $dealTask->status = $request->status ?? $dealTask->status;
-    $dealTask->remainder_date = $request->remainder_date;
-    $dealTask->description = $request->description;
-    $dealTask->visibility = $request->visibility;
-    $dealTask->priority = 1;
-    $dealTask->time = $request->remainder_time ?? $dealTask->time;
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        $id = $request->task_id;
 
-    $dealTask->save();
+        $dealTask = DealTask::find($id);
 
-    // Log Activity
+        if (!$dealTask) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Task not found.')
+            ], 404);
+        }
 
-    ActivityLog::create(
-        [
-            'user_id' => $user->id,
-            'deal_id' => $dealTask->deal_id,
-            'log_type' => 'Update Task',
-            'remark' => json_encode(['title' => $dealTask->name]),
-        ]
-    );
+        // Track Status Change
+        $is_status_change = $dealTask->status !== $request->status;
 
-    //store Activity Log
-    $remarks = [
-        'title' => 'Task Update',
-        'message' => 'Task updated successfully'
-    ];
+        // Update Task Details
+        $dealTask->related_to = $request->related_to;
+        $dealTask->related_type = $request->related_type;
+        $dealTask->name = $request->task_name;
+        $dealTask->branch_id = $request->branch_id ?? $dealTask->branch_id;
+        $dealTask->assigned_to = $request->assigned_to ?? $dealTask->assigned_to;
+        $dealTask->brand_id = $request->brand_id ?? $dealTask->brand_id;
+        $dealTask->assigned_type = $request->assign_type;
+        $dealTask->region_id = $request->region_id ?? $dealTask->region_id;
+        $dealTask->due_date = $request->due_date;
+        $dealTask->start_date = $request->start_date;
+        $dealTask->date = $request->start_date;
+        $dealTask->status = $request->status ?? $dealTask->status;
+        $dealTask->remainder_date = $request->remainder_date;
+        $dealTask->description = $request->description;
+        $dealTask->visibility = $request->visibility;
+        $dealTask->priority = 1;
+        $dealTask->time = $request->remainder_time ?? $dealTask->time;
 
-    $module_id = isset($dealTask->deal_id) && in_array($dealTask->related_type, ['organization', 'lead', 'deal', 'application', 'toolkit', 'agency'])
-        ? $dealTask->deal_id
-        : $dealTask->id;
+        $dealTask->save();
 
-    $module_type = isset($dealTask->deal_id) && in_array($dealTask->related_type, ['organization', 'lead', 'deal', 'application', 'toolkit', 'agency'])
-        ? $dealTask->related_type
-        : 'task';
+        // Log Activity
 
-    $data = [
-        'type' => 'info',
-        'note' => json_encode($remarks),
-        'module_id' => $module_id,
-        'module_type' => $module_type,
-        'notification_type' => 'Task Update'
-    ];
-    addLogActivity($data);
+        ActivityLog::create(
+            [
+                'user_id' => $user->id,
+                'deal_id' => $dealTask->deal_id,
+                'log_type' => 'Update Task',
+                'remark' => json_encode(['title' => $dealTask->name]),
+            ]
+        );
 
-    $html = '<p class="mb-0">
+        //store Activity Log
+        $remarks = [
+            'title' => 'Task Update',
+            'message' => 'Task updated successfully'
+        ];
+
+        $module_id = isset($dealTask->deal_id) && in_array($dealTask->related_type, ['organization', 'lead', 'deal', 'application', 'toolkit', 'agency'])
+            ? $dealTask->deal_id
+            : $dealTask->id;
+
+        $module_type = isset($dealTask->deal_id) && in_array($dealTask->related_type, ['organization', 'lead', 'deal', 'application', 'toolkit', 'agency'])
+            ? $dealTask->related_type
+            : 'task';
+
+        $data = [
+            'type' => 'info',
+            'note' => json_encode($remarks),
+            'module_id' => $module_id,
+            'module_type' => $module_type,
+            'notification_type' => 'Task Update'
+        ];
+        addLogActivity($data);
+
+        $html = '<p class="mb-0">
     <span class="fw-bold">
        <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
     onclick="openSidebar(\'/get-task-detail?task_id=' . $dealTask->id . '\')"
@@ -538,389 +539,521 @@ public function taskUpdate(Request $request)
     ' . User::find(\Auth::id())->name ?? '' . '
    </p>';
 
-    $Notification_data = [
-        'type' => 'Tasks',
-        'data_type' => 'Task_Updated',
-        'sender_id' =>  $dealTask->created_by,
-        'receiver_id' => $dealTask->assigned_to,
-        'data' => $html,
-        'is_read' => 0,
-        'related_id' => $dealTask->id,
-        'created_by' => \Auth::id(),
-        'created_at' => \Carbon\Carbon::now()
-    ];
-    if ($dealTask->created_by !== (int)$dealTask->assigned_to && (int)$dealTask->assigned_to !== \Auth::id()) {
-        addNotifications($Notification_data);
-    }
-
-    if ($is_status_change) {
-        //store Activity Log
-        $remarks = [
-            'title' => 'Task Update',
-            'message' => 'Task status updated'
+        $Notification_data = [
+            'type' => 'Tasks',
+            'data_type' => 'Task_Updated',
+            'sender_id' =>  $dealTask->created_by,
+            'receiver_id' => $dealTask->assigned_to,
+            'data' => $html,
+            'is_read' => 0,
+            'related_id' => $dealTask->id,
+            'created_by' => \Auth::id(),
+            'created_at' => \Carbon\Carbon::now()
         ];
+        if ($dealTask->created_by !== (int)$dealTask->assigned_to && (int)$dealTask->assigned_to !== \Auth::id()) {
+            addNotifications($Notification_data);
+        }
 
-        //store Log
-        $data = [
-            'type' => 'info',
-            'note' => json_encode($remarks),
-            'module_id' => $dealTask->id,
-            'module_type' => 'task',
-            'notification_type' => 'Task Update'
-        ];
-        addLogActivity($data);
-    }
+        if ($is_status_change) {
+            //store Activity Log
+            $remarks = [
+                'title' => 'Task Update',
+                'message' => 'Task status updated'
+            ];
 
-    return response()->json([
-        'status' => 'success',
-        'task_id' => $dealTask->id,
-        'message' => __('Task successfully updated!')
-    ], 200);
-}
-
-
-public function ShuffleTaskOwnership(Request $request)
-{
-
-    $rules = [
-        'task_id' => 'required|integer|min:1',
-        'created_by' => 'required|integer|min:1',
-        'assigned_to' => 'required|integer|min:1',
-    ];
-
-    // Validation
-    $validator = \Validator::make($request->all(), $rules);
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $validator->errors()->first()
-        ], 422);
-    }
-    $id = $request->task_id;
-    if (!empty($id)) {
-
-        $task = DealTask::findOrFail($id);
-
-        $from = User::find($task->assigned_to);
-        $to = User::find($request->assigned_to);
-
-        // Ensure $from and $to are valid objects before accessing their properties
-        $data = [
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Swaps Tasks',
-                'message' => 'Swaps From ' . ($from->name ?? '') . ' To ' . ($to->name ?? '')
-            ]),
-            'module_id' => $id,
-            'module_type' => 'task',
-            'notification_type' => 'Swaps Tasks From ' . ($from->name ?? '') . ' To ' . ($to->name ?? '') . ' Successfully'
-        ];
-
-        addLogActivity($data);
-
-
-        $task->assigned_to = $request->created_by;
-        $task->created_by = $request->assigned_to;
-        $task->due_date = Carbon::now()->addDay()->format('Y-m-d');
-        $task->is_swap = '1';
-        $task->save();
-
-        return json_encode([
-            'status' => 'success',
-            'message' => 'Swap Tasks Successfully',
-            'id' => $id,
-        ]);
-    }
-}
-
-
-public function updateTaskStatus(Request $request)
-    {
-        $id = $request->input('id');
-
-        if ($id) {
-            $dealTask = DealTask::findOrFail($id);
-
-            if ($dealTask->created_by !== (int)$dealTask->assigned_to && \Auth::id() == (int)$dealTask->assigned_to) {
-
-                $html = '<p class="mb-0">
-                <span class="fw-bold">
-                    <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
-                        onclick="openSidebar(\'/get-task-detail?task_id=' . $dealTask->id . '\')"
-                        data-task-id="' . $dealTask->id . '">' .$dealTask->name . '</span>
-                </span>
-                Task Completed By <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
-                    onclick="openSidebar(\'/users/' . \Auth::id() . '/user_detail\')">
-                    ' . User::find(\Auth::id())->name ?? '' . ' </span>
-            </p>';
-
-                addNotifications([
-                    'type' => 'Tasks',
-                    'data_type' => 'Task_Completed',
-                    'sender_id' => \Auth::id(),
-                    'receiver_id' => $dealTask->created_by,
-                    'data' => $html,
-                    'is_read' => 0,
-                    'related_id' => $dealTask->id,
-                    'created_by' => \Auth::id(),
-                    'created_at' => \Carbon\Carbon::now()
-                ]);
-            }
-            $dealTask->update(['status' => '1']);
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Update User Tasks Successfully'
-            ]);
+            //store Log
+            $data = [
+                'type' => 'info',
+                'note' => json_encode($remarks),
+                'module_id' => $dealTask->id,
+                'module_type' => 'task',
+                'notification_type' => 'Task Update'
+            ];
+            addLogActivity($data);
         }
 
         return response()->json([
-            'status' => 'error',
-            'message' => 'ID is required'
-        ], 400);
+            'status' => 'success',
+            'task_id' => $dealTask->id,
+            'message' => __('Task successfully updated!')
+        ], 200);
     }
+
+
+    public function ShuffleTaskOwnership(Request $request)
+    {
+
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+            'created_by' => 'required|integer|min:1',
+            'assigned_to' => 'required|integer|min:1',
+        ];
+
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        $id = $request->task_id;
+        if (!empty($id)) {
+
+            $task = DealTask::findOrFail($id);
+
+            $from = User::find($task->assigned_to);
+            $to = User::find($request->assigned_to);
+
+            // Ensure $from and $to are valid objects before accessing their properties
+            $data = [
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'Swaps Tasks',
+                    'message' => 'Swaps From ' . ($from->name ?? '') . ' To ' . ($to->name ?? '')
+                ]),
+                'module_id' => $id,
+                'module_type' => 'task',
+                'notification_type' => 'Swaps Tasks From ' . ($from->name ?? '') . ' To ' . ($to->name ?? '') . ' Successfully'
+            ];
+
+            addLogActivity($data);
+
+
+            $task->assigned_to = $request->created_by;
+            $task->created_by = $request->assigned_to;
+            $task->due_date = Carbon::now()->addDay()->format('Y-m-d');
+            $task->is_swap = '1';
+            $task->save();
+
+            return json_encode([
+                'status' => 'success',
+                'message' => 'Swap Tasks Successfully',
+                'id' => $id,
+            ]);
+        }
+    }
+
+
 
     public function getTaskDetails(Request $request)
-{
+    {
 
-    $rules = [
-        'task_id' => 'required|integer|min:1',
-    ];
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+        ];
 
-    // Validation
-    $validator = \Validator::make($request->all(), $rules);
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $validator->errors()->first()
-        ], 422);
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        // Fetch Task Details
+        $taskId = $request->task_id;
+        $task = DealTask::findOrFail($taskId);
+
+        // Fetch Related Data
+        $branches = Branch::get()->pluck('name', 'id');
+        $users = User::get()->pluck('name', 'id');
+        $stages = Stage::get()->pluck('name', 'id');
+        $universities = University::get()->pluck('name', 'id');
+        $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
+        $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
+        $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
+            ->where('deals.branch_id', $task->branch_id)
+            ->orderBy('deal_applications.name', 'ASC')
+            ->pluck('deal_applications.application_key', 'deal_applications.id');
+        $Agency = \App\Models\Agency::find($task->related_to);
+
+        // Fetch Discussions
+        $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
+            ->join('users', 'task_discussions.created_by', 'users.id')
+            ->where(['task_discussions.task_id' => $taskId])
+            ->orderBy('task_discussions.created_at', 'DESC')
+            ->get();
+
+        // Fetch Log Activities
+        $log_activities = getLogActivity($taskId, 'task');
+
+        // Build Response Data
+        $response = [
+            'status' => 'success',
+            'task' => $task,
+            'branches' => $branches,
+            'users' => $users,
+            'stages' => $stages,
+            'universities' => $universities,
+            'organizations' => $organizations,
+            'leads' => $leads,
+            'deals' => $deals,
+            'toolkits' => $toolkits,
+            'applications' => $applications,
+            'agency' => $Agency,
+            'discussions' => $discussions,
+            'log_activities' => $log_activities
+        ];
+
+        return response()->json($response, 200);
     }
 
-    // Fetch Task Details
-    $taskId = $request->task_id;
-    $task = DealTask::findOrFail($taskId);
 
-    // Fetch Related Data
-    $branches = Branch::get()->pluck('name', 'id');
-    $users = User::get()->pluck('name', 'id');
-    $stages = Stage::get()->pluck('name', 'id');
-    $universities = University::get()->pluck('name', 'id');
-    $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
-    $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-    $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-    $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
-    $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
-        ->where('deals.branch_id', $task->branch_id)
-        ->orderBy('deal_applications.name', 'ASC')
-        ->pluck('deal_applications.application_key', 'deal_applications.id');
-    $Agency = \App\Models\Agency::find($task->related_to);
+    public function taskDiscussionStore(Request $request)
+    {
 
-    // Fetch Discussions
-    $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
-        ->join('users', 'task_discussions.created_by', 'users.id')
-        ->where(['task_discussions.task_id' => $taskId])
-        ->orderBy('task_discussions.created_at', 'DESC')
-        ->get();
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+            'comment' => 'required',
+        ];
 
-    // Fetch Log Activities
-    $log_activities = getLogActivity($taskId, 'task');
-
-    // Build Response Data
-    $response = [
-        'status' => 'success',
-        'task' => $task,
-        'branches' => $branches,
-        'users' => $users,
-        'stages' => $stages,
-        'universities' => $universities,
-        'organizations' => $organizations,
-        'leads' => $leads,
-        'deals' => $deals,
-        'toolkits' => $toolkits,
-        'applications' => $applications,
-        'agency' => $Agency,
-        'discussions' => $discussions,
-        'log_activities' => $log_activities
-    ];
-
-    return response()->json($response, 200);
-}
-
-
-public function taskDiscussionStore(Request $request)
-{
-
-    $rules = [
-        'task_id' => 'required|integer|min:1',
-        'comment' => 'required',
-    ];
-
-    // Validation
-    $validator = \Validator::make($request->all(), $rules);
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $validator->errors()->first()
-        ], 422);
-    }
-    $id = $request->task_id;
-    $usr = \Auth::user();
-    $discussion = !empty($request->id) ? TaskDiscussion::find($request->id) : new TaskDiscussion();
-    $discussion->fill([
-        'comment'    => $request->comment,
-        'task_id'    => $id,
-        'created_by' => \Auth::id(),
-    ])->save();
-    $dealTask = DealTask::find($id);
-    $discussion_comment = (strlen($text = strip_tags($discussion->comment)) > 20) ? substr($text, 0, 20) . "..." : $text;
-    $html = '<p class="mb-0">
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        $id = $request->task_id;
+        $usr = \Auth::user();
+        $discussion = !empty($request->id) ? TaskDiscussion::find($request->id) : new TaskDiscussion();
+        $discussion->fill([
+            'comment'    => $request->comment,
+            'task_id'    => $id,
+            'created_by' => \Auth::id(),
+        ])->save();
+        $dealTask = DealTask::find($id);
+        $discussion_comment = (strlen($text = strip_tags($discussion->comment)) > 20) ? substr($text, 0, 20) . "..." : $text;
+        $html = '<p class="mb-0">
     On This Task
     <span class="fw-bold">
        <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
     onclick="openSidebar(\'/get-task-detail?task_id=' . $dealTask->id . '\')"
-    data-task-id="' . $dealTask->id . '">' .$dealTask->name . '</span>
+    data-task-id="' . $dealTask->id . '">' . $dealTask->name . '</span>
      </span>
      Note
-     <span style="font-weight:bold;color:black !important">'.$discussion_comment.'</span>
+     <span style="font-weight:bold;color:black !important">' . $discussion_comment . '</span>
     Created By <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
     onclick="openSidebar(\'/users/' . \Auth::id() . '/user_detail\')">
     ' . User::find(\Auth::id())->name ?? '' . '
    </p>';
 
-    $Notification_data = [
-        'type' => 'Tasks',
-        'data_type' => 'Notes_Created',
-        'sender_id' =>  $dealTask->created_by,
-        'receiver_id' => $dealTask->assigned_to,
-        'data' => $html,
-        'is_read' => 0,
-        'related_id' => $dealTask->id,
-        'created_by' => \Auth::id(),
-        'created_at' => \Carbon\Carbon::now()
-    ];
-    if($dealTask->created_by !== (int)$dealTask->assigned_to && (int)$dealTask->assigned_to !== \Auth::id()){
-        addNotifications($Notification_data);
-    }
-
-    $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
-        ->join('users', 'task_discussions.created_by', 'users.id')
-        ->where(['task_discussions.task_id' => $id])
-        ->orderBy('task_discussions.created_at', 'DESC')
-        ->get()
-        ->toArray();
-
-
-
-    return response()->json([
-        'status' => 'success',
-        'discussions' => $discussions,
-        'message' => __('Message successfully added!')
-    ], 201);
-}
-
-public function taskDelete(Request $request)
-{
-
-    $rules = [
-        'task_id' => 'required|integer|min:1',
-    ];
-
-    // Validation
-    $validator = \Validator::make($request->all(), $rules);
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $validator->errors()->first()
-        ], 422);
-    }
-    $id = $request->task_id;
-    $task = DealTask::findOrFail($id);
-    $notifications = \App\Models\Notification::where('type','Tasks')->where('related_id',$id)->first();
-    if(!empty($notifications)){
-        $notifications->delete();
-    }
-    $task->delete();
-
-    return response()->json([
-        'status' => 'success',
-        'message' => __('Task successfully deleted!')
-    ], 201);
-
-}
-
-
-public function downloadTasks()
-{
-    if (\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team' || \Auth::user()->can('level 1')) {
-        $tasks = DealTask::select(['deal_tasks.*'])->join('users', 'users.id', '=', 'deal_tasks.assigned_to');
-
-        $companies = FiltersBrands();
-        $brand_ids = array_keys($companies);
-
-        if (\Auth::user()->type == 'company') {
-            $tasks->where('deal_tasks.brand_id', \Auth::user()->id);
-        } else if (\Auth::user()->type == 'Project Director' || \Auth::user()->type == 'Project Manager' || \Auth::user()->can('level 2')) {
-            $tasks->whereIn('deal_tasks.brand_id', $brand_ids);
-        } else if (\Auth::user()->type == 'Regional Manager' || \Auth::user()->can('level 3') && !empty(\Auth::user()->region_id)) {
-            $tasks->where('deal_tasks.region_id', \Auth::user()->region_id);
-        } else if (\Auth::user()->type == 'Branch Manager' || \Auth::user()->type == 'Admissions Officer' || \Auth::user()->type == 'Marketing Officer' || \Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id)) {
-            $tasks->where('deal_tasks.branch_id', \Auth::user()->branch_id);
-        } else {
-            $tasks->where('deal_tasks.assigned_to', \Auth::user()->id);
+        $Notification_data = [
+            'type' => 'Tasks',
+            'data_type' => 'Notes_Created',
+            'sender_id' =>  $dealTask->created_by,
+            'receiver_id' => $dealTask->assigned_to,
+            'data' => $html,
+            'is_read' => 0,
+            'related_id' => $dealTask->id,
+            'created_by' => \Auth::id(),
+            'created_at' => \Carbon\Carbon::now()
+        ];
+        if ($dealTask->created_by !== (int)$dealTask->assigned_to && (int)$dealTask->assigned_to !== \Auth::id()) {
+            addNotifications($Notification_data);
         }
 
-        $filters = $this->TasksFilter();
+        $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
+            ->join('users', 'task_discussions.created_by', 'users.id')
+            ->where(['task_discussions.task_id' => $id])
+            ->orderBy('task_discussions.created_at', 'DESC')
+            ->get()
+            ->toArray();
 
-        foreach ($filters as $column => $value) {
-            if ($column === 'subjects') {
-                $tasks->whereIn('deal_tasks.name', $value);
-            } elseif ($column === 'assigned_to') {
-                $tasks->whereIn('assigned_to', $value);
-            } elseif ($column === 'created_by') {
-                $tasks->whereIn('deal_tasks.brand_id', $value);
-            } elseif ($column == 'due_date') {
-                $tasks->whereDate('due_date', 'LIKE', '%' . substr($value, 0, 10) . '%');
-            } elseif ($column == 'status') {
-                $tasks->where('status', $value);
+
+
+        return response()->json([
+            'status' => 'success',
+            'discussions' => $discussions,
+            'message' => __('Message successfully added!')
+        ], 201);
+    }
+
+    public function taskDelete(Request $request)
+    {
+
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+        ];
+
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        $id = $request->task_id;
+        $task = DealTask::findOrFail($id);
+        $notifications = \App\Models\Notification::where('type', 'Tasks')->where('related_id', $id)->first();
+        if (!empty($notifications)) {
+            $notifications->delete();
+        }
+        $task->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Task successfully deleted!')
+        ], 201);
+    }
+
+
+    public function downloadTasks()
+    {
+        if (\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team' || \Auth::user()->can('level 1')) {
+            $tasks = DealTask::select(['deal_tasks.*'])->join('users', 'users.id', '=', 'deal_tasks.assigned_to');
+
+            $companies = FiltersBrands();
+            $brand_ids = array_keys($companies);
+
+            if (\Auth::user()->type == 'company') {
+                $tasks->where('deal_tasks.brand_id', \Auth::user()->id);
+            } else if (\Auth::user()->type == 'Project Director' || \Auth::user()->type == 'Project Manager' || \Auth::user()->can('level 2')) {
+                $tasks->whereIn('deal_tasks.brand_id', $brand_ids);
+            } else if (\Auth::user()->type == 'Regional Manager' || \Auth::user()->can('level 3') && !empty(\Auth::user()->region_id)) {
+                $tasks->where('deal_tasks.region_id', \Auth::user()->region_id);
+            } else if (\Auth::user()->type == 'Branch Manager' || \Auth::user()->type == 'Admissions Officer' || \Auth::user()->type == 'Marketing Officer' || \Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id)) {
+                $tasks->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+            } else {
+                $tasks->where('deal_tasks.assigned_to', \Auth::user()->id);
             }
-        }
 
-        if (!isset($_GET['status'])) {
-            $tasks->where('status', 0);
-        }
+            $filters = $this->TasksFilter();
 
-        if (isset($_GET['search']) && !empty($_GET['search'])) {
-            $g_search = $_GET['search'];
-            $tasks->Where('deal_tasks.name', 'like', '%' . $g_search . '%');
-            $tasks->orWhere('deal_tasks.due_date', 'like', '%' . $g_search . '%');
-        }
+            foreach ($filters as $column => $value) {
+                if ($column === 'subjects') {
+                    $tasks->whereIn('deal_tasks.name', $value);
+                } elseif ($column === 'assigned_to') {
+                    $tasks->whereIn('assigned_to', $value);
+                } elseif ($column === 'created_by') {
+                    $tasks->whereIn('deal_tasks.brand_id', $value);
+                } elseif ($column == 'due_date') {
+                    $tasks->whereDate('due_date', 'LIKE', '%' . substr($value, 0, 10) . '%');
+                } elseif ($column == 'status') {
+                    $tasks->where('status', $value);
+                }
+            }
 
-        $tasks = $tasks->orderBy('created_at', 'DESC')->get();
-        $all_users = allUsers();
+            if (!isset($_GET['status'])) {
+                $tasks->where('status', 0);
+            }
 
-        // Prepare CSV Data
-        $header = ['Sr.No.', 'Subject', 'Assigned to', 'Brand', 'Status'];
-        $data = [];
-        foreach ($tasks as $key => $task) {
-            $data[] = [
-                $key + 1,
-                $task->name,
-                $all_users[$task->assigned_to] ?? '',
-                $all_users[$task->brand_id] ?? '',
-                ($task->status == 1) ? 'Completed' : 'On Going'
-            ];
-        }
+            if (isset($_GET['search']) && !empty($_GET['search'])) {
+                $g_search = $_GET['search'];
+                $tasks->Where('deal_tasks.name', 'like', '%' . $g_search . '%');
+                $tasks->orWhere('deal_tasks.due_date', 'like', '%' . $g_search . '%');
+            }
 
-        downloadCSV($header, $data, 'tasks.csv');
+            $tasks = $tasks->orderBy('created_at', 'DESC')->get();
+            $all_users = allUsers();
+
+            // Prepare CSV Data
+            $header = ['Sr.No.', 'Subject', 'Assigned to', 'Brand', 'Status'];
+            $data = [];
+            foreach ($tasks as $key => $task) {
+                $data[] = [
+                    $key + 1,
+                    $task->name,
+                    $all_users[$task->assigned_to] ?? '',
+                    $all_users[$task->brand_id] ?? '',
+                    ($task->status == 1) ? 'Completed' : 'On Going'
+                ];
+            }
+
+            downloadCSV($header, $data, 'tasks.csv');
             return true;
-    } else {
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.')
+            ], 403);
+        }
+    }
+
+
+    public function updateTaskStatus(Request $request, $status)
+    {
+
+
+
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:deal_tasks,id',
+            'comment' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $id = $request->input('id');
+        $dealTask = DealTask::find($id);
+        if (!$dealTask || !in_array(\Auth::user()->type, ['super admin', 'Product Coordinator'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized or invalid task'
+            ], 403);
+        }
+        $discussion = new TaskDiscussion();
+        $discussion->comment = $request->comment;
+        $discussion->task_id = $id;
+        $discussion->created_by = \Auth::id();
+        $discussion->save();
+
+
+        $stageRequest = DealTask::where('id', $id)
+            ->where('related_type', 'application')->first();
+        if ($status == 'approve') {
+            $data = [
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'Task Approved successfully',
+                    'message' => 'Task Approved successfully'
+                ]),
+                'module_id' => $id,
+                'module_type' => 'task',
+                'notification_type' => 'Task Approved successfully'
+            ];
+            addLogActivity($data);
+            $stageRequest->tasks_type_status = '1';
+        } else {
+            $data = [
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'Task Rejected successfully',
+                    'message' => 'Task Rejected successfully'
+                ]),
+                'module_id' => $id,
+                'module_type' => 'task',
+                'notification_type' => 'Task Rejected successfully'
+            ];
+            addLogActivity($data);
+            $stageRequest->tasks_type_status = '2';
+            $dealTask->status = 1;
+            $dealTask->save();
+        }
+        $dealTask->save();
+        $stageRequest->save();
+        if (!$stageRequest) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Stage request not found'
+            ], 404);
+        }
+
+        $applicationId = $stageRequest->related_to;
+        $dealApplication = DealApplication::find($applicationId);
+
+        if ($dealApplication) {
+            $deal = Deal::find($dealApplication->deal_id);
+            if ($deal) {
+                $highestStageApplication = DealApplication::where('deal_id', $dealApplication->deal_id)
+                    ->orderBy('stage_id', 'desc')
+                    ->first();
+
+                if (!empty($highestStageApplication)) {
+                    if ($highestStageApplication->stage_id == '0') {
+                        $deal->stage_id = 0;
+                    } elseif ($highestStageApplication->stage_id == '1' || $highestStageApplication->stage_id == '2') {
+                        $deal->stage_id = 1;
+                    } elseif ($highestStageApplication->stage_id == '3' || $highestStageApplication->stage_id == '4') {
+
+                        $deal->stage_id = 2;
+                    } elseif ($highestStageApplication->stage_id == '5' || $highestStageApplication->stage_id == '6') {
+
+                        $deal->stage_id = 3;
+                    } elseif ($highestStageApplication->stage_id == '7' || $highestStageApplication->stage_id == '8') {
+
+                        $deal->stage_id = 4;
+                    } elseif ($highestStageApplication->stage_id == '9' || $highestStageApplication->stage_id == '10') {
+
+                        $deal->stage_id = 5;
+                    } elseif ($highestStageApplication->stage_id == '11') {
+
+                        $deal->stage_id = 6;
+                    } elseif ($highestStageApplication->stage_id == '12') {
+
+                        $deal->stage_id = 7;
+                    }
+
+                    $deal->save();
+                } else {
+                    $deal->stage_id = 0;
+                    $deal->save();
+                }
+            }
+
+            $lastStageHistory = StageHistory::where('type', 'application')
+                ->where('type_id', $applicationId)
+                ->latest()
+                ->first();
+
+            if ($status != 'approve') {
+
+                //new code
+                if ($stageRequest->tasks_type == 'Quality') {
+                    $dealApplication->update(['stage_id' => 0]);
+                    addLeadHistory([
+                        'stage_id' => 0,
+                        'type_id' => $applicationId,
+                        'type' => 'application'
+                    ]);
+                } elseif ($stageRequest->tasks_type == 'Compliance') {
+                    $dealApplication->update(['stage_id' => 5]);
+                    addLeadHistory([
+                        'stage_id' => 5,
+                        'type_id' => $applicationId,
+                        'type' => 'application'
+                    ]);
+                }
+            } else {
+                $dealApplication->update(['stage_id' => $stageRequest->stage_request]);
+                addLeadHistory([
+                    'stage_id' => $stageRequest->stage_request,
+                    'type_id' => $applicationId,
+                    'type' => 'application'
+                ]);
+            }
+
+            // Add Log
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'Stage Updated',
+                    'message' => 'Application stage updated successfully.'
+                ]),
+                'module_id' => $applicationId,
+                'module_type' => 'application',
+                'notification_type' => 'application stage update'
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'User Task updated successfully'
+            ]);
+        }
+
         return response()->json([
             'status' => 'error',
-            'message' => __('Permission Denied.')
-        ], 403);
+            'message' => 'Application not found'
+        ], 404);
+    }
+
+    public function RejectTaskStatus(Request $request)
+    {
+        return $this->updateTaskStatus($request, 'reject');
+    }
+
+    public function ApprovedTaskStatus(Request $request)
+    {
+        return $this->updateTaskStatus($request, 'approve');
     }
 }
-
-
-
-}
-

@@ -5,10 +5,10 @@ error_reporting(E_ALL);
 header('Content-Type: text/plain');
 
 // Configuration
-$secret = 'o/fZHG5LL4P59lptCcsdQWv05xoQ==';
-$project_path = '/home/convosoftserver/public_html/backend.convosoftserver.com';
-$branch = 'live';
-$log_file = 'deploy.log';
+$secret = 'dev===o/fZHG5LL4P59lptCcsdQWv05xoQ==';
+$project_path = '/home/convosoftserver/public_html/devapi.convosoftserver.com';
+$branch = 'main';
+$log_file = 'dev-deploy.log';
 
 // Get the GitHub event type
 $github_event = $_SERVER['HTTP_X_GITHUB_EVENT'] ?? '';

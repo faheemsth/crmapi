@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/taskDiscussionStore', [TaskController::class, 'taskDiscussionStore']);
     Route::post('/taskDelete', [TaskController::class, 'taskDelete']);
     Route::get('/downloadTasks', [TaskController::class, 'downloadTasks']);
+    Route::post('/ApprovedTaskStatus', [TaskController::class, 'ApprovedTaskStatus']);
 
     // Leads start here
     Route::post('/getLeads', [LeadController::class, 'getLeads']);
