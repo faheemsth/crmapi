@@ -573,7 +573,7 @@ class JobController extends Controller
         }
 
         // Get the first job stage
-        $stage = JobStage::where('created_by', $job->created_by)->orderBy('id')->first();
+        $stage = JobStage::where('id', $request->stage)->first();
         if (!$stage) {
             return response()->json([
                 'status' => 'error',
