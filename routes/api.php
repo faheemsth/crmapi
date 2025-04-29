@@ -74,6 +74,7 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/registerAgent', 'registerAgent');
     Route::post('/login', 'login');
     Route::post('/validateEmpId', 'validateEmpId');
+    Route::post('/encryptDataEmpId', 'encryptDataEmpId');
     Route::post('/googlelogin', 'googlelogin');
     Route::post('/changePassword', 'changePassword');
 });
