@@ -55,19 +55,178 @@ class TaskController extends Controller
 {
 
 
+    private function TasksFilter()
+    {
+        $filters = [];
+        if (isset($_POST['subjects']) && !empty($_POST['subjects'])) {
+            $filters['subjects'] = $_POST['subjects'];
+        }
+
+        if (isset($_POST['assigned_to']) && !empty($_POST['assigned_to'])) {
+            $filters['assigned_to'] = $_POST['assigned_to'];
+        }
+
+        if (isset($_POST['brand']) && !empty($_POST['brand'])) {
+            $filters['brand_id'] = $_POST['brand'];
+        }
+
+        if (isset($_POST['region_id']) && !empty($_POST['region_id'])) {
+            $filters['region_id'] = $_POST['region_id'];
+        }
+
+        if (isset($_POST['branch_id']) && !empty($_POST['branch_id'])) {
+            $filters['branch_id'] = $_POST['branch_id'];
+        }
+
+        if (isset($_POST['due_date']) && !empty($_POST['due_date'])) {
+            $filters['due_date'] = $_POST['due_date'];
+        }
+        if (isset($_POST['status']) && $_POST['status'] !== '') {
+            if ($_POST['status'] != '0') {
+                $filters['status'] = $_POST['status'];
+            } else {
+                $filters['status'] = 0;
+            }
+        }
+
+        if (isset($_POST['created_at_from']) && !empty($_POST['created_at_from'])) {
+            $filters['created_at_from'] = $_POST['created_at_from'];
+        }
+
+        if (isset($_POST['created_at_to']) && !empty($_POST['created_at_to'])) {
+            $filters['created_at_to'] = $_POST['created_at_to'];
+        }
+
+        if (isset($_POST['university_id']) && !empty($_POST['university_id'])) {
+            $filters['university_id'] = $_POST['university_id'];
+        }
+        
+        return $filters;
+    }
+    public function GetScorpTasks()
+    {
+        $brandId = 3751; // Assuming 3751 is the brand ID to filter
+    
+        if (\Auth::user()->can('view task') || \Auth::user()->can('manage task') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'company') {
+            $tasks = DealTask::select(
+                    'deal_applications.university_id',
+                    'deal_tasks.stage_request',
+                    'deal_tasks.name',
+                    'deal_tasks.brand_id',
+                    'deal_tasks.id',
+                    'deal_tasks.due_date',
+                    'deal_tasks.status',
+                    'deal_tasks.assigned_to'
+                )
+                ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
+                ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id')
+                ->leftJoin('deal_applications', function ($join) {
+                    $join->on('deal_applications.id', '=', 'deal_tasks.related_to')
+                         ->where('deal_tasks.related_type', '=', 'application');
+                })
+                ->where('deal_tasks.brand_id', $brandId)
+                ->where('deal_tasks.created_by', \Auth::user()->id)
+                
+            ->leftJoin('universities', 'universities.id', '=', 'deal_applications.university_id');
+            
+            // Filter by origin country if provided
+            if (isset($_POST['country']) && !empty($_POST['country'])) {
+                $country = $_POST['country'];
+            
+                // Fetch country details
+                $country_code = Country::where('country_code', $country)->first();
+            
+                if ($country_code) {
+                    $tasks->where('uni_status', '0')
+                               ->whereRaw("FIND_IN_SET(?, country)", [$country_code->name]);
+                }
+            }
+    
+            $filters = $this->TasksFilter();
+    
+            foreach ($filters as $column => $value) {
+                if ($column === 'subjects') {
+                    if (is_array($value) && count($value) > 0) {
+                        $chunks = array_chunk($value, 500);
+                        $tasks->where(function($query) use ($chunks) {
+                            foreach ($chunks as $chunk) {
+                                $query->orWhereIn('deal_tasks.id', $chunk);
+                            }
+                        });
+                    }
+                } elseif ($column === 'assigned_to') {
+                    $tasks->where('deal_tasks.assigned_to', $value);
+                } elseif ($column === 'brand_id') {
+                    $tasks->where('deal_tasks.brand_id', $value);
+                } elseif ($column === 'region_id') {
+                    $tasks->where('deal_tasks.region_id', $value);
+                } elseif ($column === 'university_id') {
+                    $tasks->where('deal_applications.university_id', $value);
+                } elseif ($column === 'branch_id') {
+                    $tasks->where('deal_tasks.branch_id', $value);
+                } elseif ($column === 'due_date') {
+                    $tasks->whereDate('deal_tasks.due_date', $value);
+                } elseif ($column === 'status') {
+                    if (is_array($value)) {
+                        if (in_array(2, $value)) {
+                            $tasks->where('deal_tasks.status', 0)
+                                  ->whereDate('deal_tasks.due_date', '<', now());
+                        } else {
+                            $tasks->whereIn('deal_tasks.status', $value);
+                        }
+                    } else {
+                        if ($value == 2) {
+                            $tasks->where('deal_tasks.status', 0)
+                                  ->whereDate('deal_tasks.due_date', '<', now());
+                        } else {
+                            $tasks->where('deal_tasks.status', $value);
+                        }
+                    }
+                } elseif ($column === 'created_at_from') {
+                    $tasks->whereDate('deal_tasks.created_at', '>=', $value);
+                } elseif ($column === 'created_at_to') {
+                    $tasks->whereDate('deal_tasks.created_at', '<=', $value);
+                }
+            }
+    
+            if (!empty($_POST['task_type'])) {
+                $tasks->where('deal_tasks.tasks_type', $_POST['task_type']);
+            }
+    
+            if (!empty($_POST['tasks_type_status'])) {
+                $status = $_POST['tasks_type_status'];
+                if ($status == '1') {
+                    $tasks->where('deal_tasks.tasks_type_status', "1")
+                          ->where('deal_tasks.status', 1);
+                } elseif ($status == '2') {
+                    $tasks->where('deal_tasks.tasks_type_status', "2");
+                } else {
+                    $tasks->where('deal_tasks.tasks_type_status', "0");
+                }
+            } elseif (!isset($_POST['status'])) {
+                $tasks->where('deal_tasks.status', 0)
+                      ->where('deal_tasks.tasks_type_status', "0");
+            }
+    
+            return $tasks->pluck('deal_tasks.id')->toArray();
+        }
+    
+        return [];
+    }
     public function userTasksGet(Request $request)
     {
-        $user = Auth::user();
-
-        if (
-            $user->can('view task') ||
-            $user->can('manage task') ||
-            $user->type === 'super admin' ||
-            $user->type === 'company'
-        ) {
-            $filtersBrands = array_keys(FiltersBrands());
-
-            $tasks = DealTask::select(
+        // Pagination setup
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
+        $start = ($page - 1) * $perPage;
+    
+        if (\Auth::user()->can('view task') || \Auth::user()->can('manage task') || 
+            \Auth::user()->type == 'super admin' || \Auth::user()->type == 'company') {
+            
+            // Base query for tasks
+            $tasksQuery = DealTask::select(
+                'deal_applications.university_id',
+                'deal_tasks.stage_request',
                 'deal_tasks.name',
                 'deal_tasks.brand_id',
                 'deal_tasks.id',
@@ -75,99 +234,192 @@ class TaskController extends Controller
                 'deal_tasks.status',
                 'deal_tasks.assigned_to'
             )
-                ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
-                ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id');
-
-            if ($user->type !== 'HR') {
-                if ($user->type === 'super admin' || $user->can('level 1')) {
-                    $filtersBrands[] = '3751';
-                } elseif ($user->type === 'company') {
-                    $tasks->where('deal_tasks.brand_id', $user->id);
-                } elseif (in_array($user->type, ['Project Director', 'Project Manager']) || $user->can('level 2')) {
-                    $tasks->whereIn('deal_tasks.brand_id', $filtersBrands);
-                } elseif ($user->type === 'Region Manager' || ($user->can('level 3') && !empty($user->region_id))) {
-                    $tasks->where('deal_tasks.region_id', $user->region_id);
-                } elseif (in_array($user->type, ['Branch Manager', 'Admissions Officer', 'Marketing Officer']) || ($user->can('level 4') && !empty($user->branch_id))) {
-                    $tasks->where('deal_tasks.branch_id', $user->branch_id);
-                } elseif ($user->type === 'Agent') {
-                    $agency = Agency::where('user_id', $user->id)->first();
-                    if ($agency) {
-                        $tasks->where(function ($query) use ($agency, $user) {
-                            $query->where(function ($q) use ($agency) {
-                                $q->where('related_type', 'agency')
-                                    ->where('related_to', $agency->id);
-                            })
-                                ->orWhere('deal_tasks.assigned_to', $user->id)
-                                ->orWhere('deal_tasks.created_by', $user->id);
-                        });
-                    } else {
-                        $tasks->where(function ($query) use ($user) {
-                            $query->where('deal_tasks.assigned_to', $user->id)
-                                ->orWhere('deal_tasks.created_by', $user->id);
-                        });
-                    }
-                } else {
-                    $tasks->where('deal_tasks.assigned_to', $user->id);
+            ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
+            ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id')
+            ->leftJoin('deal_applications', function ($join) {
+                $join->on('deal_applications.id', '=', 'deal_tasks.related_to')
+                     ->where('deal_tasks.related_type', '=', 'application');
+            })
+            ->leftJoin('universities', 'universities.id', '=', 'deal_applications.university_id');
+            
+            // Filter by origin country if provided
+            if ($request->has('country') && !empty($request->country)) {
+                $country = $request->country;
+            
+                // Fetch country details
+                $country_code = Country::where('country_code', $country)->first();
+            
+                if ($country_code) {
+                    $tasksQuery->where('uni_status', '0')
+                               ->whereRaw("FIND_IN_SET(?, country)", [$country_code->name]);
                 }
-            } else {
-                $tasks->where('deal_tasks.branch_id', $user->branch_id);
             }
-
-            // Apply filters
+            
+    
+            // Apply user type filters
+            $FiltersBrands = array_keys(FiltersBrands());
+            if (\Auth::user()->type != 'HR') {
+                if (\Auth::user()->type == 'super admin' || \Auth::user()->can('level 1')) {
+                    $FiltersBrands[] = '3751';
+                    $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+                } elseif (\Auth::user()->type == 'company') {
+                    $tasksQuery->where('deal_tasks.brand_id', \Auth::user()->id);
+                } elseif (\Auth::user()->type == 'Project Director' || \Auth::user()->type == 'Project Manager' || \Auth::user()->can('level 2')) {
+                    $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+                } elseif (\Auth::user()->type == 'Region Manager' || (\Auth::user()->can('level 3') && !empty(\Auth::user()->region_id))) {
+                    $tasksQuery->where('deal_tasks.region_id', \Auth::user()->region_id);
+                } elseif (\Auth::user()->type == 'Branch Manager' || \Auth::user()->type == 'Admissions Officer' || 
+                         \Auth::user()->type == 'Career Consultant' || \Auth::user()->type == 'Admissions Manager' || 
+                         \Auth::user()->type == 'Marketing Officer' || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
+                    $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+                } elseif (\Auth::user()->type === 'Agent') {
+                    $tasksQuery->where(function($q) {
+                        $q->where('deal_tasks.assigned_to', \Auth::user()->id)
+                          ->orWhere('deal_tasks.created_by', \Auth::user()->id);
+                    });
+                } else {
+                    $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+                }
+            }
+    
+            // Apply all filters
             $filters = $this->TasksFilter();
             foreach ($filters as $column => $value) {
-                match ($column) {
-                    'subjects' => $tasks->whereIn('deal_tasks.id', $value),
-                    'assigned_to' => $tasks->where('assigned_to', $value),
-                    'brand_id' => $tasks->where('deal_tasks.brand_id', $value),
-                    'region_id' => $tasks->where('deal_tasks.region_id', $value),
-                    'branch_id' => $tasks->where('deal_tasks.branch_id', $value),
-                    'due_date' => $tasks->whereDate('due_date', 'LIKE', '%' . substr($value, 0, 10) . '%'),
-                    'status' => $this->filterStatus($tasks, $value),
-                    'created_at_from' => $tasks->whereDate('deal_tasks.created_at', '>=', $value),
-                    'created_at_to' => $tasks->whereDate('deal_tasks.created_at', '<=', $value),
-                    default => null,
-                };
+                
+                if ($column === 'subjects') {
+                    if (is_array($value) && count($value) > 0) {
+                        $chunks = array_chunk($value, 500);
+                        $tasksQuery->where(function($q) use ($chunks) {
+                            foreach ($chunks as $chunk) {
+                                $q->orWhereIn('deal_tasks.id', $chunk);
+                            }
+                        });
+                    }
+                } elseif ($column === 'assigned_to') {
+                    $tasksQuery->where('deal_tasks.assigned_to', $value);
+                } elseif ($column === 'brand_id') {
+                    $tasksQuery->where('deal_tasks.brand_id', $value);
+                } elseif ($column === 'region_id') {
+                    $tasksQuery->where('deal_tasks.region_id', $value);
+                } elseif ($column === 'university_id') {
+                    $tasksQuery->where('deal_applications.university_id', $value);
+                } elseif ($column === 'branch_id') {
+                    $tasksQuery->where('deal_tasks.branch_id', $value);
+                } elseif ($column === 'due_date') {
+                    $tasksQuery->whereDate('deal_tasks.due_date', $value);
+                } elseif ($column === 'status') {
+                    if (is_array($value)) {
+                        if (in_array(2, $value)) {
+                            $tasksQuery->where('deal_tasks.status', 0)
+                                      ->whereDate('deal_tasks.due_date', '<', now());
+                        } else {
+                            $tasksQuery->whereIn('deal_tasks.status', $value);
+                        }
+                    } else {
+                        if ($value == 2) {
+                            $tasksQuery->where('deal_tasks.status', 0)
+                                      ->whereDate('deal_tasks.due_date', '<', now());
+                        } else {
+                            $tasksQuery->where('deal_tasks.status', $value);
+                        }
+                    }
+                } elseif ($column === 'created_at_from') {
+                    $tasksQuery->whereDate('deal_tasks.created_at', '>=', $value);
+                } elseif ($column === 'created_at_to') {
+                    $tasksQuery->whereDate('deal_tasks.created_at', '<=', $value);
+                }
             }
-
-            if (!$request->filled('status')) {
-                $tasks->where('status', 0);
+    
+            // Additional filters
+            if ($request->filled('task_type')) {
+                $tasksQuery->where('deal_tasks.tasks_type', $request->task_type);
             }
-
-            if ($request->filled('assigned_by_me') && $request->input('assigned_by_me') == true) {
-                $tasks->where('deal_tasks.created_by', $user->id);
+    
+            if ($request->filled('tasks_type_status')) {
+                $status = $request->tasks_type_status;
+                if ($status == '1') {
+                    $tasksQuery->where('deal_tasks.tasks_type_status', "1")
+                              ->where('deal_tasks.status', 1);
+                } elseif ($status == '2') {
+                    $tasksQuery->where('deal_tasks.tasks_type_status', "2");
+                } else {
+                    $tasksQuery->where('deal_tasks.tasks_type_status', "0");
+                }
+            } elseif (!$request->has('status')) {
+                $tasksQuery->where('deal_tasks.status', 0)
+                          ->where('deal_tasks.tasks_type_status', "0");
             }
-
+    
+            if ($request->filled('assigned_by_me') && $request->assigned_by_me == true) {
+                $tasksQuery->where('deal_tasks.created_by', \Auth::id());
+            }
+    
+            // Get Scorp tasks and merge with main tasks
             $scorpTasks = $this->GetScorpTasks();
-
-            $mergedResults = array_merge($tasks->pluck('deal_tasks.id')->toArray(), $scorpTasks);
-
+            $mainTasks = $tasksQuery->pluck('deal_tasks.id')->toArray();
+            $mergedResults = array_unique(array_merge($mainTasks, $scorpTasks));
+    
+            // Create temporary table for the final query
+            $tempTable = 'temp_task_ids_' . uniqid();
+            \DB::statement("CREATE TEMPORARY TABLE {$tempTable} (id INT PRIMARY KEY)");
+    
+            // Insert IDs in batches
+            foreach (array_chunk($mergedResults, 1000) as $chunk) {
+                \DB::table($tempTable)->insert(
+                    array_map(function($id) { return ['id' => $id]; }, $chunk)
+                );
+            }
+    
+            // Build final query with all joins and selects
             $finalQuery = DealTask::select(
-                'deal_tasks.name',
-                'deal_tasks.brand_id',
-                'deal_tasks.id',
-                'deal_tasks.due_date',
-                'deal_tasks.status',
-                'deal_tasks.assigned_to',
-                'brandname.name as brand_name',
-                'users.name as user_name'
-            )
-                ->whereIn('deal_tasks.id', $mergedResults)
+                    'deal_applications.university_id',
+                    'deal_tasks.stage_request',
+                    'deal_tasks.tasks_type',
+                    'deal_tasks.tasks_type_status',
+                    'deal_tasks.name',
+                    'deal_tasks.brand_id',
+                    'deal_tasks.id',
+                    'deal_tasks.due_date',
+                    'deal_tasks.status',
+                    'users.name as assigned_to',
+                    'brandname.name as brand_name',
+                    'users.name as user_name'
+                )
+                ->join($tempTable, 'deal_tasks.id', '=', "{$tempTable}.id")
                 ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
                 ->join('users as brandname', 'brandname.id', '=', 'deal_tasks.brand_id')
-                ->when($request->filled('search'), function ($query) use ($request) {
-                    $g_search = $request->input('search');
-                    $query->where(function ($subQuery) use ($g_search) {
-                        $subQuery->where('deal_tasks.name', 'like', "%$g_search%")
-                            ->orWhere('brandname.name', 'like', "%$g_search%")
-                            ->orWhere('users.name', 'like', "%$g_search%")
-                            ->orWhere('deal_tasks.due_date', 'like', "%$g_search%");
-                    });
-                })
-                ->orderBy('deal_tasks.created_at', 'DESC');
-
-            $paginatedTasks = $finalQuery->paginate($request->input('perPage', env('RESULTS_ON_PAGE', 50)));
-
+                ->leftJoin('deal_applications', function ($join) {
+                    $join->on('deal_applications.id', '=', 'deal_tasks.related_to')
+                         ->where('deal_tasks.related_type', '=', 'application');
+                });
+    
+            // Search functionality
+            if ($request->ajaxCall == 'true' && $request->filled('search')) {
+                $search = $request->search;
+                $finalQuery->where(function($q) use ($search) {
+                    $q->where('deal_tasks.name', 'like', "%{$search}%")
+                      ->orWhere('brandname.name', 'like', "%{$search}%")
+                      ->orWhere('users.name', 'like', "%{$search}%")
+                      ->orWhere('deal_tasks.due_date', 'like', "%{$search}%");
+                });
+            }
+    
+            // Get total count
+            $total_records = $finalQuery->count();
+    
+            // Apply sorting
+            if (\Auth::user()->branch_id == 262) {
+                $finalQuery->orderBy('deal_tasks.created_at', 'ASC');
+            } else {
+                $finalQuery->orderBy('deal_tasks.created_at', 'DESC');
+            }
+    
+            // Paginate results
+            $paginatedTasks = $finalQuery->paginate($perPage);
+    
+            // Clean up
+            \DB::statement("DROP TEMPORARY TABLE IF EXISTS {$tempTable}");
+    
             return response()->json([
                 'status' => 'success',
                 'data' => $paginatedTasks->items(),
@@ -177,112 +429,14 @@ class TaskController extends Controller
                 'per_page' => $paginatedTasks->perPage(),
                 'message' => 'Tasks fetched successfully'
             ]);
-        } else {
+        }else{
             return response()->json([
-                'status' => 'error',
-                'message' => 'Permission Denied'
+                    'status' => 'error',
+                    'message' => __('Permission Denied.')
             ], 403);
         }
-    }
-
-
-    private function TasksFilter()
-    {
-        $filters = [];
-        if (isset($_GET['subjects']) && !empty($_GET['subjects'])) {
-            $filters['subjects'] = $_GET['subjects'];
-        }
-
-        if (isset($_GET['lead_assigned_user']) && !empty($_GET['lead_assigned_user'])) {
-            $filters['assigned_to'] = $_GET['lead_assigned_user'];
-        }
-
-        if (isset($_GET['brand']) && !empty($_GET['brand'])) {
-            $filters['brand_id'] = $_GET['brand'];
-        }
-
-        if (isset($_GET['region_id']) && !empty($_GET['region_id'])) {
-            $filters['region_id'] = $_GET['region_id'];
-        }
-
-        if (isset($_GET['branch_id']) && !empty($_GET['branch_id'])) {
-            $filters['branch_id'] = $_GET['branch_id'];
-        }
-
-        if (isset($_GET['due_date']) && !empty($_GET['due_date'])) {
-            $filters['due_date'] = $_GET['due_date'];
-        }
-        if (isset($_GET['status']) && $_GET['status'] !== '') {
-            if ($_GET['status'] != '0') {
-                $filters['status'] = $_GET['status'];
-            } else {
-                $filters['status'] = 0;
-            }
-        }
-
-        if (isset($_GET['created_at_from']) && !empty($_GET['created_at_from'])) {
-            $filters['created_at_from'] = $_GET['created_at_from'];
-        }
-
-        if (isset($_GET['created_at_to']) && !empty($_GET['created_at_to'])) {
-            $filters['created_at_to'] = $_GET['created_at_to'];
-        }
-
-        return $filters;
-    }
-
-
-
-    public function GetScorpTasks()
-    {
-        $brandId = 3751; // Assuming 3751 is the brand ID to filter
-        // Fetching regions and branches related to the brand
-
-        if (\Auth::user()->can('view task') || \Auth::user()->can('manage task') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'company') {
-            $tasks = DealTask::select('deal_tasks.name', 'deal_tasks.brand_id', 'deal_tasks.id', 'deal_tasks.due_date', 'deal_tasks.status', 'deal_tasks.assigned_to')
-                ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
-                ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id')
-                ->where('deal_tasks.brand_id', $brandId)->where('deal_tasks.created_by', \Auth::user()->id);;
-        }
-        $filters = $this->TasksFilter();
-        foreach ($filters as $column => $value) {
-            if ($column === 'subjects') {
-                $tasks->whereIn('deal_tasks.id', $value);
-            } elseif ($column === 'assigned_to') {
-                $tasks->where('assigned_to', $value);
-            } elseif ($column === 'brand_id') {
-                $tasks->where('deal_tasks.brand_id', $value);
-            } elseif ($column === 'region_id') {
-                $tasks->where('deal_tasks.region_id', $value);
-            } elseif ($column === 'branch_id') {
-                $tasks->where('deal_tasks.branch_id', $value);
-            } elseif ($column == 'due_date') {
-                $tasks->whereDate('due_date', 'LIKE', '%' . substr($value, 0, 10) . '%');
-            } elseif ($column == 'status') {
-                if (gettype($value) == 'array') {
-                    if (in_array(2, $value)) {
-                        $tasks->where('status', 0)->whereDate('deal_tasks.due_date', '<', now());
-                    } else {
-                        $tasks->whereIn('status', $value);
-                    }
-                } else {
-                    if ($value == 2) {
-                        $tasks->where('status', 0)->whereDate('deal_tasks.due_date', '<', now());
-                    } else {
-                        $tasks->where('status', $value);
-                    }
-                }
-            } elseif ($column == 'created_at_from') {
-                $tasks->whereDate('deal_tasks.created_at', '>=', $value);
-            } elseif ($column == 'created_at_to') {
-                $tasks->whereDate('deal_tasks.created_at', '<=', $value);
-            }
-        }
-
-        if (!isset($_GET['status'])) {
-            $tasks->where('deal_tasks.status', 0);
-        }
-        return $tasks->pluck('deal_tasks.id')->toArray();
+    
+        return redirect()->back()->with('error', __('Permission Denied.'));
     }
 
     private function filterStatus($tasks, $value)

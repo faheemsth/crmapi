@@ -480,6 +480,17 @@ class GeneralController extends Controller
 
     }
 
+    public function CountryByCode()
+    {
+        $Country = Country::orderBy('name', 'ASC')->pluck('name', 'country_code')->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $Country,
+        ], 200);
+
+    }
+
     public function getLogActivity(Request $request)
 {
     // Validate input
@@ -509,4 +520,33 @@ class GeneralController extends Controller
     ]);
 }
 
+
+public function UniversityByCountryCode(Request $request)
+{
+        $request->validate([
+            'country' => 'required|string',
+        ]);
+        try {
+            $country = $request->get('country');
+            $country_code = Country::where('country_code', $country)->first();
+            if ($country_code) {
+                $universities = University::where('uni_status', '0')
+                    ->whereRaw("FIND_IN_SET(?, country)", [$country_code->name])
+                    ->pluck('name', 'id')
+                    ->toArray();
+                $universities = $universities;
+            } else {
+                $universities = [''];
+            }
+            return response()->json([
+                'status' => "success",
+                'data' => $universities,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => "success",
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+}
 }

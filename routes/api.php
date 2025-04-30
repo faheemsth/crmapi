@@ -496,6 +496,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
     Route::post('/Country', [GeneralController::class, 'Country']);
+    Route::post('/Country/by/code', [GeneralController::class, 'CountryByCode']);
+    Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);
     Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
 
 
