@@ -549,4 +549,66 @@ public function UniversityByCountryCode(Request $request)
             ], 500);
         }
 }
+
+public function GetBranchByType()
+{
+    $type = $_POST['type'] ?? null;
+    $BranchId = Auth::user()->type == 'super admin' ? null : Auth::user()->id;
+    if (!$type) {
+        return json_encode([
+            'status' => 'error',
+            'message' => 'Type and Branch ID are required.',
+        ]);
+    }
+    try {
+        switch ($type) {
+            case 'lead':
+                $data = \App\Models\Lead::where('branch_id', $BranchId)->pluck('name', 'id')->toArray();
+                break;
+
+            case 'organization':
+                $data = User::where('type', 'organization')->pluck('name', 'id')->toArray();
+                break;
+
+            case 'deal':
+                $data = Deal::where('branch_id', $BranchId)->pluck('name', 'id')->toArray();
+                break;
+
+            case 'application':
+                $data = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
+                    ->where('deals.branch_id', $BranchId)
+                    ->pluck('deal_applications.name', 'deal_applications.id')
+                    ->toArray();
+                break;
+
+            case 'toolkit':
+                $data = University::pluck('name', 'id')->toArray();
+                break;
+
+            case 'agency':
+                $data = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+                    ->where('approved_status', 2)
+                    ->pluck('agencies.organization_name', 'agencies.id')
+                    ->toArray();
+                break;
+
+            default:
+                $data = User::where('branch_id', $BranchId)
+                    ->where('type', 'organization')
+                    ->pluck('name', 'id')
+                    ->toArray();
+                break;
+        }
+
+        return response()->json([
+            'status' => "success",
+            'data' => $data,
+        ], 200);
+    } catch (\Exception $e) {
+        return json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ]);
+    }
+}
 }

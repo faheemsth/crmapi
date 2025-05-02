@@ -499,6 +499,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/Country/by/code', [GeneralController::class, 'CountryByCode']);
     Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);
     Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
+    Route::post('/GetBranchByType', [GeneralController::class, 'GetBranchByType']);
 
 
 });

@@ -524,22 +524,18 @@ class TaskController extends Controller
             'message' => 'Task Created successfully'
         ];
 
-        $related_id = '';
-        $related_type = '';
-
         if (isset($dealTask->deal_id) && in_array($dealTask->related_type, ['organization', 'lead', 'deal', 'application', 'toolkit', 'agency', 'task'])) {
-            $related_id = $dealTask->deal_id;
-            $related_type = $dealTask->related_type;
+            $logData = [
+                'type' => 'info',
+                'note' => json_encode($remarks),
+                'module_id' => $dealTask->related_type == 'task' ? $dealTask->id : $dealTask->deal_id,
+                'module_type' => $dealTask->related_type,
+                'notification_type' => 'Task created'
+            ];
+            addLogActivity($logData);
         }
 
-        $logData = [
-            'type' => 'info',
-            'note' => json_encode($remarks),
-            'module_id' => $related_type == 'task' ? $dealTask->id : $related_id,
-            'module_type' => $related_type,
-            'notification_type' => 'Task created'
-        ];
-        addLogActivity($logData);
+        
 
         // Notification data (optional)
         $html = '<p class="mb-0"><span class="fw-bold">
@@ -811,19 +807,19 @@ class TaskController extends Controller
         $task = DealTask::findOrFail($taskId);
 
         // Fetch Related Data
-        $branches = Branch::get()->pluck('name', 'id');
-        $users = User::get()->pluck('name', 'id');
-        $stages = Stage::get()->pluck('name', 'id');
-        $universities = University::get()->pluck('name', 'id');
-        $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
-        $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-        $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-        $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
-        $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
-            ->where('deals.branch_id', $task->branch_id)
-            ->orderBy('deal_applications.name', 'ASC')
-            ->pluck('deal_applications.application_key', 'deal_applications.id');
-        $Agency = \App\Models\Agency::find($task->related_to);
+        // $branches = Branch::get()->pluck('name', 'id');
+        // $users = User::get()->pluck('name', 'id');
+        // $stages = Stage::get()->pluck('name', 'id');
+        // $universities = University::get()->pluck('name', 'id');
+        // $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
+        // $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        // $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        // $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
+        // $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
+        //     ->where('deals.branch_id', $task->branch_id)
+        //     ->orderBy('deal_applications.name', 'ASC')
+        //     ->pluck('deal_applications.application_key', 'deal_applications.id');
+        // $Agency = \App\Models\Agency::find($task->related_to);
 
         // Fetch Discussions
         $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
@@ -839,21 +835,23 @@ class TaskController extends Controller
         $response = [
             'status' => 'success',
             'task' => $task,
-            'branches' => $branches,
-            'users' => $users,
-            'stages' => $stages,
-            'universities' => $universities,
-            'organizations' => $organizations,
-            'leads' => $leads,
-            'deals' => $deals,
-            'toolkits' => $toolkits,
-            'applications' => $applications,
-            'agency' => $Agency,
+            // 'branches' => $branches,
+            // 'users' => $users,
+            // 'stages' => $stages,
+            // 'universities' => $universities,
+            // 'organizations' => $organizations,
+            // 'leads' => $leads,
+            // 'deals' => $deals,
+            // 'toolkits' => $toolkits,
+            // 'applications' => $applications,
+            // 'agency' => $Agency,
             'discussions' => $discussions,
             'log_activities' => $log_activities
         ];
-
-        return response()->json($response, 200);
+        return response()->json([
+            'status' => "success",
+            'data' => $response,
+        ], 200);
     }
 
 
