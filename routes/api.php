@@ -107,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fetchColumns', [LeadController::class, 'fetchColumns']);
     Route::post('/importCsv', [LeadController::class, 'importCsv']);
     Route::post('/getLeadDetails', [LeadController::class, 'getLeadDetails']);
+    Route::post('/saveLead', [LeadController::class, 'saveLead']);
     Route::post('/updateLead', [LeadController::class, 'updateLead']);
     Route::post('/deleteBulkLeads', [LeadController::class, 'deleteBulkLeads']);
     Route::post('/updateBulkLead', [LeadController::class, 'updateBulkLead']);
@@ -500,6 +501,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);
     Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
     Route::post('/GetBranchByType', [GeneralController::class, 'GetBranchByType']);
+    Route::post('/leadsrequireddata', [GeneralController::class, 'leadsrequireddata']);
 
 
 });

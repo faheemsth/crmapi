@@ -611,4 +611,52 @@ public function GetBranchByType()
         ]);
     }
 }
+
+ public function leadsrequireddata(Request $request)
+    {
+        // Validate input
+        $stages = LeadStage::pluck('name', 'id');
+
+        // Get organizations that are not companies
+        $organizations = User::where('type', 'organization')->pluck('name', 'id');
+        $sources = Source::pluck('name', 'id');
+
+        // Get approved agencies
+        $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+            ->where('approved_status', '2')
+            ->pluck('agencies.organization_name', 'agencies.id');
+
+        $tags = [];
+
+            if (Auth::check()) {
+                $user = Auth::user();
+
+                if (in_array($user->type, ['super admin', 'Admin Team'])) {
+                    $tags = LeadTag::pluck('tag', 'id');
+                } elseif (in_array($user->type, ['Project Director', 'Project Manager', 'Admissions Officer'])) {
+                    $tags = LeadTag::whereIn('brand_id', array_keys(FiltersBrands()))->pluck('tag', 'id');
+                } elseif (in_array($user->type, ['Region Manager'])) {
+                    $tags = LeadTag::where('region_id', $user->region_id)->pluck('tag', 'id');
+                } else {
+                    $tags = LeadTag::where('branch_id', $user->branch_id)->pluck('tag', 'id');
+                }
+            }
+
+        // Fetch countries
+        $countries = countries();
+
+        // Return the response
+        return response()->json([
+            'status' => "success",
+            'data' => [
+                'stages' => $stages,
+                'organizations' => $organizations,
+                'sources' => $sources,
+                'agencies' => $agencies,
+                'countries' => $countries,
+                'tags' => $tags,
+            ]
+        ]);
+    }
+
 }
