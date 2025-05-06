@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgencyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
@@ -107,6 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fetchColumns', [LeadController::class, 'fetchColumns']);
     Route::post('/importCsv', [LeadController::class, 'importCsv']);
     Route::post('/getLeadDetails', [LeadController::class, 'getLeadDetails']);
+    Route::post('/getLeadDetailOnly', [LeadController::class, 'getLeadDetailOnly']);
     Route::post('/saveLead', [LeadController::class, 'saveLead']);
     Route::post('/updateLead', [LeadController::class, 'updateLead']);
     Route::post('/deleteBulkLeads', [LeadController::class, 'deleteBulkLeads']);
@@ -228,6 +230,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/addEmpoyeeOtherPayment', [OtherPaymentController::class, 'addEmpoyeeOtherPayment']);
     Route::post('/updateEmployeeOtherPayment', [OtherPaymentController::class, 'updateEmployeeOtherPayment']);
     Route::post('/deleteEmployeeOtherPayment', [OtherPaymentController::class, 'deleteEmployeeOtherPayment']);
+
+    // agency
+    Route::post('/getagency', [AgencyController::class, 'index']);
+    Route::post('/storeagency', [AgencyController::class, 'storeagency']);
 
     // Apraisals
     Route::post('/getGoalTrackings', [GoalTrackingController::class, 'getGoalTrackings']);
@@ -502,6 +508,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
     Route::post('/GetBranchByType', [GeneralController::class, 'GetBranchByType']);
     Route::post('/leadsrequireddata', [GeneralController::class, 'leadsrequireddata']);
-
+    Route::post('/getCitiesOnCode', [GeneralController::class, 'getCitiesOnCode']);
 
 });

@@ -43,6 +43,7 @@ use App\Models\CompanyPermission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Models\ApplicationNote;
+use App\Models\City;
 use App\Models\instalment;
 use App\Models\Job;
 use App\Models\JobCategory;
@@ -659,4 +660,14 @@ public function GetBranchByType()
         ]);
     }
 
+    public function getCitiesOnCode(Request $request)
+    {
+        $countryCode = $request->input('code');
+        $cities = City::where('country_code', $countryCode)->pluck('name', 'id')->toArray();
+        return response()->json([
+            'status' => 'success',
+            'data' => $cities
+            
+        ]);
+    }
 }
