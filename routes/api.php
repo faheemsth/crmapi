@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\AttendanceEmployeeController;
@@ -262,6 +263,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/EmployeeNoteStore', [UserController::class, 'HrmInternalEmployeeNoteStore']);
     Route::post('/EmployeeNoteDelete', [UserController::class, 'HrmInternalEmployeeNoteDelete']);
 
+    //organization 
+    Route::post('getorganization', [OrganizationController::class, 'getorganization']);
+    Route::post('organizationstore', [OrganizationController::class, 'organizationstore']);
+    Route::post('organizationupdate', [OrganizationController::class, 'organizationupdate']);
+    
+    Route::post('organizationshow', [OrganizationController::class, 'organizationshow']);
 
     // Branches
     Route::post('/getRegions', [RegionController::class, 'getRegions']);
