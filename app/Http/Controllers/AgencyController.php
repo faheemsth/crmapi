@@ -9,6 +9,7 @@ use App\Models\OrganizationType;
 use Illuminate\Support\Facades\Validator;
 use App\Models\City;
 use App\Models\AgencyNote;
+use Illuminate\Validation\Rule;
 class AgencyController extends Controller
 {
     private function organizationsFilter(Request $request)
@@ -48,9 +49,8 @@ class AgencyController extends Controller
         }
     
         // Default pagination settings
-        $numResultsOnPage = $request->input('num_results_on_page', env('RESULTS_ON_PAGE', 50));
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
         $page = $request->input('page', 1);
-        $start = ($page - 1) * $numResultsOnPage;
     
         // Check user permissions
         $user = \Auth::user();
@@ -78,32 +78,24 @@ class AgencyController extends Controller
             });
         }
     
-        // Get total record count
-        $totalRecords = $orgQuery->count();
-    
         // Fetch paginated results
         $organizations = $orgQuery
-            ->orderByRaw('organization_name COLLATE utf8mb4_unicode_ci')
-            ->skip($start)
-            ->take($numResultsOnPage)
-            ->get();
+            ->orderBy('id', 'ASC')
+            ->paginate($perPage, ['*'], 'page', $page);
     
         // Fetch cities if a country filter is applied
         $cities = [];
         if ($request->filled('country')) {
             $country = \App\Models\Country::where('name', $request->input('country'))->first();
-            $cities = City::where('country_code', $country->country_code ?? '')->get();
         }
-    
-        // Return response
+
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'organizations' => $organizations,
-                'total_records' => $totalRecords,
-                'num_results_on_page' => $numResultsOnPage,
-            ],
-            'current_page' => $page,
+            'data' => $organizations->items(),
+            'current_page' => $organizations->currentPage(),
+            'last_page' => $organizations->lastPage(),
+            'total_records' => $organizations->total(),
+            'perPage' => $organizations->perPage()
         ], 200);
     }
     
@@ -139,10 +131,10 @@ class AgencyController extends Controller
             $Agency->contactemail = $request->contactemail;
             $Agency->contactphone = $request->contactphone;
             $Agency->contactjobroll = $request->contactjobroll;
-            $Agency->billing_country = $request->billing_country;
+            $Agency->billing_country = $request->billing_country ?? '';
             $Agency->description = $request->description;
             $Agency->user_id = \Auth::id();
-            $Agency->city = $request->city;
+            $Agency->city = $request->city ?? '';
             $Agency->c_address = $request->c_address;
             $Agency->save();
             $data = [
@@ -170,112 +162,97 @@ class AgencyController extends Controller
 
     public function GetAgencyDetail(Request $request)
     {
-        // sheraz
         $org_query = Agency::find($request->id);
-        
-        $filter = BrandsRegionsBranches();
-        $companies = $filter['brands'];
 
-        $log_activities = getLogActivity($org_query->id, 'agency');
-
-        $tasks = \App\Models\DealTask::where(['related_to' => $org_query->id, 'related_type' => 'agency'])->get();
-        $html = view('agency.AgencyDetail', compact('companies','org_query','log_activities','tasks'))->render();
-        return json_encode([
-            'status' => 'success',
-            'html' => $html
+        return response()->json([
+           'status' => 'success',
+           'data' => $org_query,
         ]);
-
     }
-
-   
-    public function edit($id)
+    public function updateAgency(Request $request)
     {
-        //
-        if (\Auth::user()->type == 'super admin' || \Auth::user()->can('Edit Agency')) {
-
-            $org_query =  Agency::find($id);
-            $countries = $this->countries_list();
-            $country_parts = explode("-", $org_query->billing_country);
-            $country_code = end($country_parts);
-            $cities = City::where('country_code', $country_code)->pluck('name', 'id')->toArray();
-
-            $filter = BrandsRegionsBranches();
-            $companies = $filter['brands'];
-            return view('agency.organization_edit', ['companies' => $companies,'cities' => $cities,'org_query' => $org_query , 'countries' => $countries]);
-        } else {
-            return response()->json(['error' => __('Permission Denied.')], 401);
-        }
-    }
-
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'id' => 'required|exists:agencies,id',
+                'organization_name' => [
+                    'required',
+                    Rule::unique('agencies')->ignore($request->id),
+                ],
+                'organization_email' => [
+                    'required',
+                    'email',
+                    Rule::unique('agencies')->ignore($request->id),
+                ],
+                'phone' => 'required',
+            ]
+        );
     
-    public function update(Request $request, $id)
-    {
-
-        //Creating users
-        // $org_query = Agency::select(
-        //     'agencies.*',
-        //     'users.name as username',
-        //     'users.email as useremail',
-        //     'users.id as UserId',
-        // )
-        // ->leftJoin('users', 'users.id', '=', 'agencies.user_id')
-        // ->where('agencies.id', $id)->first();
-        // $user = User::where('id', $org_query->user_id)->first();
-        // $user->name = $request->organization_name;
-        // $user->type = 'agency';
-        // $user->email =  $request->organization_email;
-        // $user->password = Hash::make('123456789');
-        // $user->is_active = 1;
-        // $user->lang = 'en';
-        // $user->mode = 'light';
-        // $user->created_by = \Auth::user()->id;
-        // $user->passport_number = '';
-        // $user->save();
-
-
-        if (\Auth::user()->type == 'super admin' || \Auth::user()->can('Edit Agency')) {
-        $Agency = Agency::find($id);
-        $Agency->type = $request->contactjobroll;
-        $Agency->phone = $request->organization_phone;
-        $Agency->organization_name =  $request->organization_name;
-        $Agency->organization_email =  $request->organization_email;
-        $Agency->website = $request->organization_website;
-        $Agency->linkedin = $request->organization_linkedin;
-        $Agency->facebook = $request->organization_facebook;
-        $Agency->twitter = $request->organization_twitter;
-        $Agency->billing_street = $request->organization_billing_street;
-        $Agency->contactname = $request->contactname;
-        $Agency->contactemail = $request->contactemail;
-        $Agency->contactphone = $request->contactphone;
-        $Agency->contactjobroll = $request->contactjobroll;
-        $Agency->billing_country = $request->organization_billing_country;
-        $Agency->description = $request->organization_description;
-        $Agency->city = $request->city;
-        $Agency->c_address = $request->c_address;
-        $Agency->save();
-        //Log
-        $data = [
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Organization Updated',
-                'message' => 'Organization updated successfully'
-            ]),
-            'module_id' => $Agency->id,
-            'module_type' => 'agency',
-            'notification_type' => 'Organization Updated'
-        ];
-        addLogActivity($data);
-
-        return json_encode([
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422); // Added proper HTTP status code for validation errors
+        }
+    
+        $agency = Agency::find($request->id);
+        if (!$agency) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Agency not found.',
+            ], 404); // Added proper HTTP status code for not found
+        }
+    
+        // Check authorization before proceeding with update
+        if (!(\Auth::user()->type == 'super admin' || \Auth::user()->can('Edit Agency'))) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission Denied.',
+            ], 403); // Added proper HTTP status code for forbidden
+        }
+    
+        // Update agency fields
+        $agency->type = 'Agency';
+        $agency->phone = $request->phone;
+        $agency->organization_name =  $request->organization_name;
+        $agency->organization_email =  $request->organization_email;
+        $agency->website = $request->website;
+        $agency->linkedin = $request->linkedin;
+        $agency->facebook = $request->facebook;
+        $agency->twitter = $request->twitter;
+        $agency->billing_street = $request->billing_street;
+        $agency->contactname = $request->contactname;
+        $agency->contactemail = $request->contactemail;
+        $agency->contactphone = $request->contactphone;
+        $agency->contactjobroll = $request->contactjobroll;
+        $agency->billing_country = $request->billing_country ?? '';
+        $agency->description = $request->description;
+        $agency->user_id = \Auth::id();
+        $agency->city = $request->city ?? '';
+        $agency->c_address = $request->c_address;
+        $agency->save();
+    
+       
+    
+            // Log activity
+            $data = [
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => 'Organization Updated',
+                    'message' => 'Organization updated successfully',
+                ]),
+                'module_id' => $agency->id,
+                'module_type' => 'agency',
+                'notification_type' => 'Organization Updated',
+            ];
+            addLogActivity($data);
+    
+        return response()->json([
             'status' => 'success',
-            'org' => $Agency->id,
-            'message' =>  __('Organization successfully updated!')
+            'message' => 'Agency updated successfully!',
         ]);
-    } else {
-        return response()->json(['error' => __('Permission Denied.')], 401);
     }
 
-    }
 
     public function destroy($id)
     {
