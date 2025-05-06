@@ -391,6 +391,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteCourse', [CourseController::class, 'deleteCourse']);
     Route::post('/addCourses', [CourseController::class, 'addCourses']);
     Route::post('/getCourseDetail', [CourseController::class, 'getCourseDetail']);
+    Route::post('/pluckCourse', [CourseController::class, 'pluckCourse']);
 
     //  Job Applications
     Route::post('/candidate', [JobApplicationController::class, 'candidate']);

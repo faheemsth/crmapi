@@ -627,4 +627,14 @@ class CourseController extends Controller
             'intake_year_html' => $intake_year_html,
         ]);
     }
+
+    public function pluckCourse(Request $request)
+        {
+            $Course = Course::pluck('name', 'id')->toArray();
+            return response()->json([
+                'status' => 'success',
+                'data' => $Course
+                
+            ]);
+        }
 }
