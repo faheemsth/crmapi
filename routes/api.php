@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\ApplicationsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
@@ -488,9 +489,14 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updateUniversityRulePosition', [UniversityRuleController::class, 'updateUniversityRulePosition']);
 
 
-     //     University Rules
+     //     adminission
      Route::post('/getAdmission', [DealController::class, 'getAdmission']);
      Route::post('/getAdmissionDetails', [DealController::class, 'getAdmissionDetails']);
+
+
+     //     application
+     Route::post('/getApplications', [ApplicationsController::class, 'getApplications']);
+     Route::post('/getDetailApplication', [ApplicationsController::class, 'getDetailApplication']);
 
      //     University Rules
      Route::post('/addMOIInstitutes', [MoiAcceptedController::class, 'addMOIInstitutes']);

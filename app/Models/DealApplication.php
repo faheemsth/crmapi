@@ -12,7 +12,8 @@ class DealApplication extends Model
     protected $products;
     protected $sources;
     protected $fillable = ['labels','application_key','deal_id', 'university_id', 'course', 'stage_id', 'external_app_id', 'name', 'intake', 'created_by'];
-
+    protected $with = ['stage:id,name','source:id,name','assignedUser:id,name','brand:id,name','branch:id,name','lead']; // Always eager load this relationship
+   
     public function getUniversity($id)
     {
         return University::where('id', $id)->first();
@@ -65,4 +66,45 @@ class DealApplication extends Model
     {
         return $this->hasOne('App\Models\Stage', 'id', 'stage_id');
     }
+
+    
+public function brand()
+{
+    return $this->belongsTo(User::class, 'brand_id');
+}
+
+public function branch()
+{
+    return $this->belongsTo(User::class, 'branch_id');
+}
+
+public function source()
+{
+    return $this->belongsTo(Source::class, 'source_id');
+}
+public function lead()
+{
+    return $this->belongsTo(Lead::class);
+}
+
+public function assignedUser()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
+public function city()
+{
+    return $this->belongsTo(City::class, 'student_origin_city');
+}
+
+public function institute()
+{
+    return $this->belongsTo(Institute::class, 'student_previous_university');
+}
+
+public function country()
+{
+    return $this->belongsTo(Country::class, 'student_origin_country', 'country_code', 'country_code');
+}
+
+
 }
