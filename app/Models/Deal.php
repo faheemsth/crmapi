@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Deal extends Model
 {
+    protected $with = ['pipeline:id,name','stage:id,name','source:id,name','assignedUser:id,name','brand:id,name','branch:id,name','lead']; // Always eager load this relationship
     protected $fillable = [
         'name',
         'price',
@@ -162,4 +163,29 @@ class Deal extends Model
 
         return \Auth::user()->priceFormat($total);
     }
+
+    public function assignedUser()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
+
+public function brand()
+{
+    return $this->belongsTo(User::class, 'brand_id');
+}
+
+public function branch()
+{
+    return $this->belongsTo(User::class, 'branch_id');
+}
+
+public function source()
+{
+    return $this->belongsTo(Source::class, 'source_id');
+}
+public function lead()
+{
+    return $this->belongsTo(Lead::class);
+}
+
 }

@@ -20,6 +20,7 @@ use App\Http\Controllers\CompetenciesController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
+use App\Http\Controllers\DealController;
 use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\DeductionOptionController;
 use App\Http\Controllers\InterviewScheduleController;
@@ -468,6 +469,10 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
      Route::post('/updateUniversityRulePosition', [UniversityRuleController::class, 'updateUniversityRulePosition']);
 
+
+     //     University Rules
+     Route::post('/getAdmission', [DealController::class, 'getAdmission']);
+     Route::post('/getAdmissionDetails', [DealController::class, 'getAdmissionDetails']);
 
      //     University Rules
      Route::post('/addMOIInstitutes', [MoiAcceptedController::class, 'addMOIInstitutes']);
