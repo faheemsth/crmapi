@@ -196,7 +196,7 @@ class LeadController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $leads->get(),
+            'data' => $leadsWithTags,
             'current_page' => $leads->currentPage(),
             'last_page' => $leads->lastPage(),
             'total_records' => $leads->total(),
