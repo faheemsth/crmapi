@@ -43,6 +43,7 @@ use App\Models\CompanyPermission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Models\ApplicationNote;
+use App\Models\City;
 use App\Models\instalment;
 use App\Models\Job;
 use App\Models\JobCategory;
@@ -480,6 +481,17 @@ class GeneralController extends Controller
 
     }
 
+    public function CountryByCode()
+    {
+        $Country = Country::orderBy('name', 'ASC')->pluck('name', 'country_code')->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $Country,
+        ], 200);
+
+    }
+
     public function getLogActivity(Request $request)
 {
     // Validate input
@@ -509,4 +521,153 @@ class GeneralController extends Controller
     ]);
 }
 
+
+public function UniversityByCountryCode(Request $request)
+{
+        $request->validate([
+            'country' => 'required|string',
+        ]);
+        try {
+            $country = $request->get('country');
+            $country_code = Country::where('country_code', $country)->first();
+            if ($country_code) {
+                $universities = University::where('uni_status', '0')
+                    ->whereRaw("FIND_IN_SET(?, country)", [$country_code->name])
+                    ->pluck('name', 'id')
+                    ->toArray();
+                $universities = $universities;
+            } else {
+                $universities = [''];
+            }
+            return response()->json([
+                'status' => "success",
+                'data' => $universities,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => "success",
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+}
+
+public function GetBranchByType()
+{
+    $type = $_POST['type'] ?? null;
+    $BranchId = Auth::user()->type == 'super admin' ? null : Auth::user()->id;
+    if (!$type) {
+        return json_encode([
+            'status' => 'error',
+            'message' => 'Type and Branch ID are required.',
+        ]);
+    }
+    try {
+        switch ($type) {
+            case 'lead':
+                $data = \App\Models\Lead::where('branch_id', $BranchId)->pluck('name', 'id')->toArray();
+                break;
+
+            case 'organization':
+                $data = User::where('type', 'organization')->pluck('name', 'id')->toArray();
+                break;
+
+            case 'deal':
+                $data = Deal::where('branch_id', $BranchId)->pluck('name', 'id')->toArray();
+                break;
+
+            case 'application':
+                $data = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
+                    ->where('deals.branch_id', $BranchId)
+                    ->pluck('deal_applications.name', 'deal_applications.id')
+                    ->toArray();
+                break;
+
+            case 'toolkit':
+                $data = University::pluck('name', 'id')->toArray();
+                break;
+
+            case 'agency':
+                $data = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+                    ->where('approved_status', 2)
+                    ->pluck('agencies.organization_name', 'agencies.id')
+                    ->toArray();
+                break;
+
+            default:
+                $data = User::where('branch_id', $BranchId)
+                    ->where('type', 'organization')
+                    ->pluck('name', 'id')
+                    ->toArray();
+                break;
+        }
+
+        return response()->json([
+            'status' => "success",
+            'data' => $data,
+        ], 200);
+    } catch (\Exception $e) {
+        return json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ]);
+    }
+}
+
+ public function leadsrequireddata(Request $request)
+    {
+        // Validate input
+        $stages = LeadStage::pluck('name', 'id');
+
+        // Get organizations that are not companies
+        $organizations = User::where('type', 'organization')->pluck('name', 'id');
+        $sources = Source::pluck('name', 'id');
+
+        // Get approved agencies
+        $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+            ->where('approved_status', '2')
+            ->pluck('agencies.organization_name', 'agencies.id');
+
+        $tags = [];
+
+            if (Auth::check()) {
+                $user = Auth::user();
+
+                if (in_array($user->type, ['super admin', 'Admin Team'])) {
+                    $tags = LeadTag::pluck('tag', 'id');
+                } elseif (in_array($user->type, ['Project Director', 'Project Manager', 'Admissions Officer'])) {
+                    $tags = LeadTag::whereIn('brand_id', array_keys(FiltersBrands()))->pluck('tag', 'id');
+                } elseif (in_array($user->type, ['Region Manager'])) {
+                    $tags = LeadTag::where('region_id', $user->region_id)->pluck('tag', 'id');
+                } else {
+                    $tags = LeadTag::where('branch_id', $user->branch_id)->pluck('tag', 'id');
+                }
+            }
+
+        // Fetch countries
+        $countries = countries();
+
+        // Return the response
+        return response()->json([
+            'status' => "success",
+            'data' => [
+                'stages' => $stages,
+                'organizations' => $organizations,
+                'sources' => $sources,
+                'agencies' => $agencies,
+                'countries' => $countries,
+                'tags' => $tags,
+            ]
+        ]);
+    }
+
+    public function getCitiesOnCode(Request $request)
+    {
+        $countryCode = $request->input('code');
+        $cities = City::where('country_code', $countryCode)->pluck('name', 'id')->toArray();
+        return response()->json([
+            'status' => 'success',
+            'data' => $cities
+            
+        ]);
+    }
 }

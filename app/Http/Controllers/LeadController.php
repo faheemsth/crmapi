@@ -218,8 +218,7 @@ class LeadController extends Controller
 
         // Validate Input
         $validator = \Validator::make($request->all(), [
-            'lead_first_name' => 'required',
-            'lead_last_name' => 'required',
+            'name' => 'required',
             'lead_stage' => 'required',
             'brand_id' => 'required|exists:users,id',
             'region_id' => 'required|exists:regions,id',
@@ -275,7 +274,7 @@ class LeadController extends Controller
         // Create New Lead
         $lead = new Lead();
         $lead->title = $request->lead_prefix ?? '';
-        $lead->name = "{$request->lead_first_name} {$request->lead_last_name}";
+        $lead->name = $request->name;
         $lead->email = $request->lead_email;
         $lead->phone = $request->lead_phone;
         $lead->mobile_phone = $request->lead_phone;
@@ -349,7 +348,7 @@ class LeadController extends Controller
                     return response()->json([
                         'status' => 'success',
                         'lead_id' => $lead->id,
-                        'message' => __('Lead successfully created!') . '<br> <span class="text-danger">' . $resp['error'] . '</span>'
+                        'message' => __('Lead successfully created!')
                     ]);
                 }
             }
@@ -376,8 +375,7 @@ class LeadController extends Controller
 
         // Validate Input
         $validator = \Validator::make($request->all(), [
-            'lead_first_name' => 'required',
-            'lead_last_name' => 'required',
+            'name' => 'required',
             'lead_stage' => 'required',
             'lead_id' => 'required|exists:leads,id',
             'brand_id' => 'required|exists:users,id',
@@ -413,7 +411,7 @@ class LeadController extends Controller
 
         // Update Lead Data
         $lead->title = $request->lead_prefix ?? $lead->title;
-        $lead->name = "{$request->lead_first_name} {$request->lead_last_name}";
+        $lead->name = $request->name;
         $lead->email = $request->lead_email;
         $lead->phone = $request->lead_phone;
         $lead->mobile_phone = $request->lead_phone;
@@ -471,7 +469,7 @@ class LeadController extends Controller
             $assignedUser = User::find($request->lead_assigned_user);
             $settings = Utility::settings();
 
-            if ($settings['lead_updated'] == 1) {
+            if (isset($settings)) {
                 $emailData = [
                     'lead_name' => $lead->name,
                     'lead_email' => $lead->email,
@@ -486,7 +484,7 @@ class LeadController extends Controller
                     return response()->json([
                         'status' => 'success',
                         'lead_id' => $lead->id,
-                        'message' => __('Lead successfully updated!') . '<br> <span class="text-danger">' . $resp['error'] . '</span>'
+                        'message' => __('Lead successfully updated!')
                     ]);
                 }
             }
@@ -1055,6 +1053,39 @@ class LeadController extends Controller
         ], 400);
     }
 
+    public function getLeadDetailOnly(Request $request)
+    {
+        // Validate Request
+        $validator = Validator::make($request->all(), [
+            'lead_id' => 'required|exists:leads,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Fetch Lead Details
+        $lead = Lead::select('leads.*')
+            ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')
+            ->where('leads.id', $request->lead_id)
+            ->first(); // Use `first` instead of `findOrFail` for a conditional check
+
+        if ($lead) {
+            return response()->json([
+                'status' => 'success',
+                'data' => $lead,
+            ], 200);
+        }
+
+        // Return error if lead is not active or not found
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Lead is not active.'
+        ], 400);
+    }
 
     public function deleteBulkLeads(Request $request)
     {

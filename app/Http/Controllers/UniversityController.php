@@ -804,4 +804,14 @@ class UniversityController extends Controller
     ], 200);
 }
 
+public function pluckInstitutes(Request $request)
+{
+    $University = University::pluck('name', 'id')->toArray();
+    return response()->json([
+        'status' => 'success',
+        'data' => $University
+        
+    ]);
+}
+
 }

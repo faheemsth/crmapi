@@ -84,8 +84,11 @@ class LoginRegisterController extends Controller
             'data' => $data,
         ], 200);
     }
-
-
+    public function encryptDataEmpId(Request $request)
+    {
+        return encryptData($request->emp_id,'');
+    }
+    
      /**
      * Register a new user.
      *

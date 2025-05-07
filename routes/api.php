@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\AgencyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\AttendanceEmployeeController;
@@ -75,6 +77,7 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/registerAgent', 'registerAgent');
     Route::post('/login', 'login');
     Route::post('/validateEmpId', 'validateEmpId');
+    Route::post('/encryptDataEmpId', 'encryptDataEmpId');
     Route::post('/googlelogin', 'googlelogin');
     Route::post('/changePassword', 'changePassword');
 });
@@ -107,6 +110,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/fetchColumns', [LeadController::class, 'fetchColumns']);
     Route::post('/importCsv', [LeadController::class, 'importCsv']);
     Route::post('/getLeadDetails', [LeadController::class, 'getLeadDetails']);
+    Route::post('/getLeadDetailOnly', [LeadController::class, 'getLeadDetailOnly']);
+    Route::post('/saveLead', [LeadController::class, 'saveLead']);
     Route::post('/updateLead', [LeadController::class, 'updateLead']);
     Route::post('/deleteBulkLeads', [LeadController::class, 'deleteBulkLeads']);
     Route::post('/updateBulkLead', [LeadController::class, 'updateBulkLead']);
@@ -228,6 +233,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateEmployeeOtherPayment', [OtherPaymentController::class, 'updateEmployeeOtherPayment']);
     Route::post('/deleteEmployeeOtherPayment', [OtherPaymentController::class, 'deleteEmployeeOtherPayment']);
 
+    // agency
+    Route::post('/getagency', [AgencyController::class, 'index']);
+    Route::post('/storeagency', [AgencyController::class, 'storeagency']);
+    Route::post('/updateagency', [AgencyController::class, 'updateagency']);
+    Route::post('/GetAgencyDetail', [AgencyController::class, 'GetAgencyDetail']);
+
     // Apraisals
     Route::post('/getGoalTrackings', [GoalTrackingController::class, 'getGoalTrackings']);
     Route::post('/addGoalTracking', [GoalTrackingController::class, 'addGoalTracking']);
@@ -253,6 +264,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/EmployeeNoteStore', [UserController::class, 'HrmInternalEmployeeNoteStore']);
     Route::post('/EmployeeNoteDelete', [UserController::class, 'HrmInternalEmployeeNoteDelete']);
 
+    //organization 
+    Route::post('getorganization', [OrganizationController::class, 'getorganization']);
+    Route::post('organizationstore', [OrganizationController::class, 'organizationstore']);
+    Route::post('organizationupdate', [OrganizationController::class, 'organizationupdate']);
+    
+    Route::post('organizationshow', [OrganizationController::class, 'organizationshow']);
 
     // Branches
     Route::post('/getRegions', [RegionController::class, 'getRegions']);
@@ -375,6 +392,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteCourse', [CourseController::class, 'deleteCourse']);
     Route::post('/addCourses', [CourseController::class, 'addCourses']);
     Route::post('/getCourseDetail', [CourseController::class, 'getCourseDetail']);
+    Route::post('/pluckCourse', [CourseController::class, 'pluckCourse']);
 
     //  Job Applications
     Route::post('/candidate', [JobApplicationController::class, 'candidate']);
@@ -500,7 +518,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
     Route::post('/Country', [GeneralController::class, 'Country']);
+    Route::post('/Country/by/code', [GeneralController::class, 'CountryByCode']);
+    Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);
     Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
-
+    Route::post('/GetBranchByType', [GeneralController::class, 'GetBranchByType']);
+    Route::post('/leadsrequireddata', [GeneralController::class, 'leadsrequireddata']);
+    Route::post('/getCitiesOnCode', [GeneralController::class, 'getCitiesOnCode']);
 
 });
