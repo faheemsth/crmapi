@@ -15,7 +15,7 @@ class AgencyController extends Controller
     private function organizationsFilter(Request $request)
     {
         $filters = [];
-        $fields = ['agencyname' => 'name', 'agencyemail' => 'email', 'agencyphone' => 'phone', 'country' => 'country', 'city' => 'city', 'brand_id' => 'brand_id'];
+        $fields = ['organization_name' => 'organization_name', 'organization_email' => 'organization_email', 'billing_country' => 'billing_country', 'billing_country' => 'billing_country'];
 
         foreach ($fields as $queryKey => $filterKey) {
             if ($request->has($queryKey) && !empty($request->input($queryKey))) {
@@ -33,7 +33,7 @@ class AgencyController extends Controller
             'num_results_on_page' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
-            'agencyname' => 'nullable|string',
+            'organization_name' => 'nullable|string',
             'agencyemail' => 'nullable|string',
             'agencyphone' => 'nullable|string',
             'country' => 'nullable|string',

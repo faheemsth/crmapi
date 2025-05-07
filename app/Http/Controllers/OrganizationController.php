@@ -15,14 +15,42 @@ class OrganizationController extends Controller
     private function organizationsFilter(Request $request)
     {
         $filters = [];
-        $filterableFields = ['name', 'phone', 'street', 'state', 'city', 'country'];
-
-        foreach ($filterableFields as $field) {
-            if ($request->has($field) && !empty($request->$field)) {
-                $filters[$field] = $request->$field;
-            }
+        if (isset($_POST['name']) && !empty($_POST['name'])) {
+            $filters['name'] = $_POST['name'];
         }
 
+        if (isset($_POST['phone']) && !empty($_POST['phone'])) {
+            $filters['phone'] = $_POST['phone'];
+        }
+
+        if (isset($_POST['billing_city']) && !empty($_POST['billing_city'])) {
+            $filters['billing_city_id'] = $_POST['billing_city'];
+        }
+
+        if (isset($_POST['billing_country']) && !empty($_POST['billing_country'])) {
+            $filters['billing_country'] = $_POST['billing_country'];
+        }
+
+        if (isset($_POST['billing_street']) && !empty($_POST['billing_street'])) {
+            $filters['billing_street'] = $_POST['billing_street'];
+        }
+
+        if (isset($_POST['billing_state']) && !empty($_POST['billing_state'])) {
+            $filters['billing_state'] = $_POST['billing_state'];
+        }
+
+        if (isset($_POST['perPage']) && !empty($_POST['perPage'])) {
+            $filters['perPage'] = $_POST['perPage'];
+        }
+
+        if (isset($_POST['page']) && !empty($_POST['page'])) {
+            $filters['page'] = $_POST['page'];
+        }
+
+        if (isset($_POST['search']) && !empty($_POST['search'])) {
+            $filters['search'] = $_POST['search'];
+        }
+        
         return $filters;
     }
 
@@ -41,12 +69,21 @@ class OrganizationController extends Controller
 
         $filters = $this->organizationsFilter($request);
         foreach ($filters as $column => $value) {
-            if ($column === 'name' || $column === 'country') {
-                $query->whereIn($column, (array)$value);
-            } else {
-                $query->where("organizations.billing_$column", 'LIKE', "%$value%");
+            if ($column === 'billing_street') {
+                $query->where('organizations.billing_street', $value);
+            } elseif ($column === 'billing_city') {
+                $query->where('organizations.billing_city', $value);
+            } elseif ($column === 'billing_state') {
+                $query->where('organizations.billing_state', $value);
+            } elseif ($column === 'billing_country') {
+                $query->where('organizations.billing_country', $value);
+            } elseif ($column === 'phone') {
+                $query->where('organizations.phone', $value);
+            } elseif ($column === 'name') {
+                $query->whereDate('users.name', $value);
             }
         }
+
 
         if ($request->has('search')) {
             $search = $request->input('search');
