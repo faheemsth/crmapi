@@ -71,6 +71,8 @@ class LeadController extends Controller
     {
 
 
+        
+
         $validator = Validator::make($request->all(), [
 
             'perPage' => 'nullable|integer|min:1',
@@ -178,7 +180,7 @@ class LeadController extends Controller
                     ->orWhere('leads.phone', 'like', "%$search%");
             });
         }
-
+      
         // Apply Pagination
         // Apply Pagination
         $leads = $leadsQuery
@@ -187,12 +189,14 @@ class LeadController extends Controller
             
             $leadsWithTags = $leads->getCollection()->map(function ($lead) {
             $lead->tags = LeadTag::whereRaw("FIND_IN_SET(id, ?)", [$lead->tag_ids])->get();
-            return $lead;
+             return $lead;
         });
+
+        
 
         return response()->json([
             'status' => 'success',
-            'data' => $leads->setCollection($leadsWithTags),
+            'data' => $leadsWithTags,
             'current_page' => $leads->currentPage(),
             'last_page' => $leads->lastPage(),
             'total_records' => $leads->total(),

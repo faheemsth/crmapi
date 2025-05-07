@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\ApplicationsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\CompetenciesController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
+use App\Http\Controllers\DealController;
 use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\DeductionOptionController;
 use App\Http\Controllers\InterviewScheduleController;
@@ -486,6 +488,15 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
      Route::post('/updateUniversityRulePosition', [UniversityRuleController::class, 'updateUniversityRulePosition']);
 
+
+     //     adminission
+     Route::post('/getAdmission', [DealController::class, 'getAdmission']);
+     Route::post('/getAdmissionDetails', [DealController::class, 'getAdmissionDetails']);
+
+
+     //     application
+     Route::post('/getApplications', [ApplicationsController::class, 'getApplications']);
+     Route::post('/getDetailApplication', [ApplicationsController::class, 'getDetailApplication']);
 
      //     University Rules
      Route::post('/addMOIInstitutes', [MoiAcceptedController::class, 'addMOIInstitutes']);
