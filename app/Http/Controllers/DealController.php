@@ -55,6 +55,52 @@ use Illuminate\Support\Facades\Validator;
 
 class DealController extends Controller
 {
+
+    private function dealFilters()
+    {
+        $filters = [];
+        if (isset($_POST['name']) && !empty($_POST['name'])) {
+            $filters['name'] = $_POST['name'];
+        }
+
+        if (isset($_POST['brand_id']) && !empty($_POST['brand_id'])) {
+            $filters['brand_id'] = $_POST['brand_id'];
+        }
+
+        if (isset($_POST['region_id']) && !empty($_POST['region_id'])) {
+            $filters['region_id'] = $_POST['region_id'];
+        }
+
+        if (isset($_POST['branch_id']) && !empty($_POST['branch_id'])) {
+            $filters['branch_id'] = $_POST['branch_id'];
+        }
+
+        if (isset($_POST['lead_assigned_user']) && !empty($_POST['lead_assigned_user'])) {
+            $filters['deal_assigned_user'] = $_POST['lead_assigned_user'];
+        }
+
+
+        if (isset($_POST['stages']) && !empty($_POST['stages'])) {
+            $filters['stage_id'] = $_POST['stages'];
+        }
+
+        if (isset($_POST['users']) && !empty($_POST['users'])) {
+            $filters['users'] = $_POST['users'];
+        }
+
+        if (isset($_POST['created_at_from']) && !empty($_POST['created_at_from'])) {
+            $filters['created_at_from'] = $_POST['created_at_from'];
+        }
+
+        if (isset($_POST['created_at_to']) && !empty($_POST['created_at_to'])) {
+            $filters['created_at_to'] = $_POST['created_at_to'];
+        }
+        if (isset($_POST['tag']) && !empty($_POST['tag'])) {
+            $filters['tag'] = $_POST['tag'];
+        }
+        return $filters;
+    }
+
     public function getAdmission(Request $request)
 {
     $user = Auth::user();
@@ -66,7 +112,25 @@ class DealController extends Controller
         ], 403);
     }
 
-    $query = Deal::query();
+    $query = Deal::select(
+        'deals.id',
+        'deals.name',
+        'deals.stage_id',
+        'deals.tag_ids',
+        'deals.assigned_to',
+        'deals.intake_month',
+        'deals.intake_year',
+        'sources.name as sources',
+        'assignedUser.name as assigName',
+        'clientUser.passport_number as passport',
+        'leads.id as lead_id'
+    )->distinct()
+        ->leftJoin('user_deals', 'user_deals.deal_id', '=', 'deals.id')
+        ->leftJoin('sources', 'sources.id', '=', 'deals.sources')
+        ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'deals.assigned_to')
+        ->leftJoin('client_deals', 'client_deals.deal_id', '=', 'deals.id')
+        ->leftJoin('users as clientUser', 'clientUser.id', '=', 'client_deals.client_id')
+        ->leftJoin('leads', 'leads.is_converted', '=', 'deals.id');
 
     // Permissions logic
     if (in_array($user->type, ['super admin', 'Admin Team']) || $user->can('level 1')) {
@@ -99,34 +163,31 @@ class DealController extends Controller
     }
 
     // Filters
-    if ($request->filled('lead_id')) {
-        $query->where('lead_id', $request->get('lead_id'));
-    }
-
-    if ($request->filled('brand_id')) {
-        $query->whereHas('lead', function ($q) use ($request) {
-            $q->where('brand_id', $request->get('brand_id'));
-        });
-    }
-
-    if ($request->filled('branch_id')) {
-        $query->whereHas('lead', function ($q) use ($request) {
-            $q->where('branch_id', $request->get('branch_id'));
-        });
-    }
-
-    if ($request->filled('assigned_to')) {
-        $query->whereHas('lead', function ($q) use ($request) {
-            $q->where('assigned_to', $request->get('assigned_to'));
-        });
-    }
-
-    if ($request->filled('created_at_from')) {
-        $query->whereDate('created_at', '>=', $request->get('created_at_from'));
-    }
-
-    if ($request->filled('created_at_to')) {
-        $query->whereDate('created_at', '<=', $request->get('created_at_to'));
+    $filters = $this->dealFilters();
+    foreach ($filters as $column => $value) {
+        if ($column === 'name') {
+            $query->where('deals.name', 'like', "%{$value}%");
+        } elseif ($column === 'stage_id') {
+            $query->whereIn('deals.stage_id', $value);
+        } elseif ($column == 'users') {
+            $query->whereIn('deals.created_by', $value);
+        } elseif ($column == 'created_at') {
+            $query->whereDate('deals.created_at', 'LIKE', '%' . substr($value, 0, 10) . '%');
+        } elseif ($column == 'brand') {
+            $query->where('deals.brand_id', $value);
+        } elseif ($column == 'region_id') {
+            $query->where('deals.region_id', $value);
+        } elseif ($column == 'branch_id') {
+            $query->where('deals.branch_id', $value);
+        } elseif ($column == 'deal_assigned_user') {
+            $query->where('deals.assigned_to', $value);
+        } else if ($column == 'created_at_from') {
+            $query->whereDate('deals.created_at', '>=', $value);
+        } else if ($column == 'created_at_to') {
+            $query->whereDate('deals.created_at', '<=', $value);
+        } else if ($column == 'tag') {
+            $query->whereRaw('FIND_IN_SET(?, deals.tag_ids)', [$value]);
+        }
     }
 
     if ($request->filled('search')) {
