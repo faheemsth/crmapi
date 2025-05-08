@@ -123,7 +123,6 @@ class DealController extends Controller
         'sources.name as sources',
         'assignedUser.name as assigName',
         'clientUser.passport_number as passport',
-        'leads.id as lead_id'
     )->distinct()
         ->leftJoin('user_deals', 'user_deals.deal_id', '=', 'deals.id')
         ->leftJoin('sources', 'sources.id', '=', 'deals.sources')
@@ -202,8 +201,14 @@ class DealController extends Controller
               });
         });
     }
+    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+    $page = $request->input('page', 1);
 
-    $deals = $query->orderByDesc('id')->paginate($request->get('per_page', 10));
+
+
+    $deals = $query
+    ->orderByDesc('deals.id')
+    ->paginate($perPage, ['*'], 'page', $page);
 
     return response()->json([
         'status' => 'success',
