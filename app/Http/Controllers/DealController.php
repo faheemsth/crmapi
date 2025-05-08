@@ -168,7 +168,7 @@ class DealController extends Controller
         if ($column === 'name') {
             $query->where('deals.name', 'like', "%{$value}%");
         } elseif ($column === 'stage_id') {
-            $query->whereIn('deals.stage_id', $value);
+            $query->where('deals.stage_id', $value);
         } elseif ($column == 'users') {
             $query->whereIn('deals.created_by', $value);
         } elseif ($column == 'created_at') {
