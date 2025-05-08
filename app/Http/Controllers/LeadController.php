@@ -184,7 +184,7 @@ class LeadController extends Controller
         // Apply Pagination
         // Apply Pagination
         $leads = $leadsQuery
-            ->orderBy('leads.created_at', 'desc')
+            ->orderBy('leads.created_at', 'desc')->where('is_converted',0)
             ->paginate($perPage, ['*'], 'page', $page);
             
             $leadsWithTags = $leads->getCollection()->map(function ($lead) {
