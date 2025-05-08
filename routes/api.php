@@ -117,7 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteBulkLeads', [LeadController::class, 'deleteBulkLeads']);
     Route::post('/updateBulkLead', [LeadController::class, 'updateBulkLead']);
     Route::post('/addLeadTags', [LeadController::class, 'addLeadTags']);
-    Route::post('/convertToApplication', [LeadController::class, 'convertToApplication']);
+    Route::post('/convertToAdmission', [LeadController::class, 'convertToAdmission']);
     Route::post('/leadsLabels', [LeadController::class, 'leadsLabels']);
     Route::post('/leadLabelStore', [LeadController::class, 'leadLabelStore']);
     Route::post('/leadsDelete', [LeadController::class, 'leadsDelete']);

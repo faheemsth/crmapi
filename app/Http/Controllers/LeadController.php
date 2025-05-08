@@ -1383,7 +1383,7 @@ class LeadController extends Controller
         ], 400);
     }
 
-    public function convertToApplication(Request $request)
+    public function convertToAdmission(Request $request)
     {
         $user = \Auth::user();
 
