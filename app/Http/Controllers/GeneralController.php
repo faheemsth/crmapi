@@ -509,7 +509,7 @@ class GeneralController extends Controller
     }
 
     // Fetch log activity records
-    $logs = LogActivity::where('module_id', $request->id)
+    $logs = LogActivity::with('createdBy')->where('module_id', $request->id)
                 ->where('module_type', $request->type)
                 ->orderBy('created_at', 'desc')
                 ->get();
