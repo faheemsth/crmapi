@@ -450,7 +450,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/instituteDetail', [InstituteController::class, 'instituteDetail']);
     Route::post('/getInstitutes', [InstituteController::class, 'getInstitutes']);
-    Route::post('/pluckInstitutes', [InstituteController::class, 'pluckInstitutes']);
+    Route::post('/pluckInstitute', [InstituteController::class, 'pluckInstitutes']);
     Route::post('/addInstitute', [InstituteController::class, 'addInstitute']);
     Route::post('/updateInstitute', [InstituteController::class, 'updateInstitute']);
     Route::post('/deleteInstitute', [InstituteController::class, 'deleteInstitute']);
