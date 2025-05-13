@@ -804,22 +804,23 @@ class TaskController extends Controller
 
         // Fetch Task Details
         $taskId = $request->task_id;
-        $task = DealTask::findOrFail($taskId);
-
-        // Fetch Related Data
-        // $branches = Branch::get()->pluck('name', 'id');
-        // $users = User::get()->pluck('name', 'id');
-        // $stages = Stage::get()->pluck('name', 'id');
-        // $universities = University::get()->pluck('name', 'id');
-        // $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
-        // $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-        // $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-        // $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
-        // $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
-        //     ->where('deals.branch_id', $task->branch_id)
-        //     ->orderBy('deal_applications.name', 'ASC')
-        //     ->pluck('deal_applications.application_key', 'deal_applications.id');
-        // $Agency = \App\Models\Agency::find($task->related_to);
+        $task = DealTask::where('id',$taskId)->select(
+                'deal_applications.university_id',
+                'deal_tasks.stage_request',
+                'deal_tasks.name',
+                'deal_tasks.brand_id',
+                'deal_tasks.id',
+                'deal_tasks.due_date',
+                'deal_tasks.status',
+                'deal_tasks.assigned_to'
+            )
+            ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
+            ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id')
+            ->leftJoin('deal_applications', function ($join) {
+                $join->on('deal_applications.id', '=', 'deal_tasks.related_to')
+                     ->where('deal_tasks.related_type', '=', 'application');
+            })
+            ->leftJoin('universities', 'universities.id', '=', 'deal_applications.university_id')->first();
 
         // Fetch Discussions
         $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')

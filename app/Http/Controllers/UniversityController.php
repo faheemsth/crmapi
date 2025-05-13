@@ -866,7 +866,7 @@ public function get_course_campus()
         ->flatMap(function ($campusString) {
             return array_map('trim', explode(',', $campusString));
         })
-        ->toArray();
+        ->first();
 
     if (empty($campus)) {
         return response()->json([
