@@ -804,23 +804,22 @@ class TaskController extends Controller
 
         // Fetch Task Details
         $taskId = $request->task_id;
-        $task = DealTask::where('id',$taskId)->select(
-                'deal_applications.university_id',
-                'deal_tasks.stage_request',
-                'deal_tasks.name',
-                'deal_tasks.brand_id',
-                'deal_tasks.id',
-                'deal_tasks.due_date',
-                'deal_tasks.status',
-                'deal_tasks.assigned_to'
-            )
-            ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
-            ->join('users as brand', 'brand.id', '=', 'deal_tasks.brand_id')
-            ->leftJoin('deal_applications', function ($join) {
-                $join->on('deal_applications.id', '=', 'deal_tasks.related_to')
-                     ->where('deal_tasks.related_type', '=', 'application');
-            })
-            ->leftJoin('universities', 'universities.id', '=', 'deal_applications.university_id')->first();
+        $task = DealTask::findOrFail($taskId);
+
+        // Fetch Related Data
+        // $branches = Branch::get()->pluck('name', 'id');
+        // $users = User::get()->pluck('name', 'id');
+        // $stages = Stage::get()->pluck('name', 'id');
+        // $universities = University::get()->pluck('name', 'id');
+        // $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
+        // $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        // $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        // $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
+        // $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
+        //     ->where('deals.branch_id', $task->branch_id)
+        //     ->orderBy('deal_applications.name', 'ASC')
+        //     ->pluck('deal_applications.application_key', 'deal_applications.id');
+        // $Agency = \App\Models\Agency::find($task->related_to);
 
         // Fetch Discussions
         $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
@@ -855,6 +854,114 @@ class TaskController extends Controller
         ], 200);
     }
 
+
+    public function TaskDetails(Request $request)
+    {
+        $taskId = $request->query('task_id');
+
+        if (!$taskId) {
+            return response()->json(['status' => 'error', 'message' => 'Task ID is required'], 400);
+        }
+
+        $task = DealTask::find($taskId);
+
+        if (!$task) {
+            return response()->json(['status' => 'error', 'message' => 'Task not found'], 404);
+        }
+
+        $branches = Branch::pluck('name', 'id');
+        $users = User::pluck('name', 'id');
+        $stages = Stage::pluck('name', 'id');
+        $universities = University::pluck('name', 'id');
+        $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
+        $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
+        $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
+        $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
+            ->where('deals.branch_id', $task->branch_id)
+            ->orderBy('deal_applications.name', 'ASC')
+            ->pluck('deal_applications.application_key', 'deal_applications.id');
+
+        $applied_meta = DB::table('meta')
+            ->select('meta_key', 'meta_value')
+            ->where('parent_id', $task->related_to)
+            ->where('stage_id', 6)
+            ->get()
+            ->map(fn($item) => (array) $item)
+            ->filter(fn($item) => isset($item['meta_key'], $item['meta_value']))
+            ->toArray();
+
+        $deal_details_get = null;
+        $FirstApp = null;
+
+        if ($task->related_type == "application") {
+            $FirstApp = DealApplication::find($task->related_to);
+
+            if ($FirstApp) {
+                $deal_details_get = DB::table('deals')
+                    ->leftJoin('client_deals', 'client_deals.deal_id', '=', 'deals.id')
+                    ->leftJoin('users as clientUser', 'clientUser.id', '=', 'client_deals.client_id')
+                    ->leftJoin('users as brandUser', 'brandUser.id', '=', 'deals.brand_id')
+                    ->leftJoin('regions', 'regions.id', '=', 'deals.region_id')
+                    ->leftJoin('branches', 'branches.id', '=', 'deals.branch_id')
+                    ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'deals.assigned_to')
+                    ->leftJoin('sources', 'sources.id', '=', 'deals.sources')
+                    ->where('deals.id', $FirstApp->deal_id)
+                    ->select(
+                        'deals.id',
+                        'deals.name',
+                        'clientUser.name as clientUserName',
+                        'sources.name as sourceName',
+                        'clientUser.id as clientUserID',
+                        'clientUser.passport_number as passportnumber',
+                        'clientUser.email as clientUserEmail',
+                        'clientUser.phone as clientUserPhone',
+                        'clientUser.address as clientUserAddress',
+                        'brandUser.name as brandName',
+                        'regions.name as RegionName',
+                        'branches.name as branchName',
+                        'assignedUser.name as assignedName',
+                        'brandUser.id as brandId',
+                        'regions.id as RegionId',
+                        'branches.id as branchId',
+                        'assignedUser.id as assignedId',
+                        'assignedUser.email as assignedUserEmail',
+                        'branches.email as branchEmail'
+                    )->first();
+            }
+        }
+
+        $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
+            ->join('users', 'task_discussions.created_by', '=', 'users.id')
+            ->where('task_discussions.task_id', $taskId)
+            ->orderBy('task_discussions.created_at', 'DESC')
+            ->get();
+
+        $log_activities = getLogActivity($taskId, 'task', $task->created_at);
+        $Agency = Agency::find($task->related_to);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => compact(
+                'FirstApp',
+                'deal_details_get',
+                'applied_meta',
+                'Agency',
+                'applications',
+                'organizations',
+                'leads',
+                'deals',
+                'toolkits',
+                'universities',
+                'task',
+                'branches',
+                'users',
+                'stages',
+                'log_activities',
+                'discussions'
+            )
+        ]);
+    }
 
     public function taskDiscussionStore(Request $request)
     {

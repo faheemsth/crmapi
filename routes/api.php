@@ -101,6 +101,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateTaskStatus', [TaskController::class, 'updateTaskStatus']);
     Route::post('/ShuffleTaskOwnership', [TaskController::class, 'ShuffleTaskOwnership']);
     Route::post('/getTaskDetails', [TaskController::class, 'getTaskDetails']);
+    Route::post('/TaskDetails', [TaskController::class, 'TaskDetails']);
+    
     Route::post('/taskDiscussionStore', [TaskController::class, 'taskDiscussionStore']);
     Route::post('/taskDelete', [TaskController::class, 'taskDelete']);
     Route::get('/downloadTasks', [TaskController::class, 'downloadTasks']);
