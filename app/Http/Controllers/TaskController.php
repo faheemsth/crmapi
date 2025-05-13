@@ -857,11 +857,21 @@ class TaskController extends Controller
 
     public function TaskDetails(Request $request)
     {
-        $taskId = $request->query('task_id');
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+        ];
 
-        if (!$taskId) {
-            return response()->json(['status' => 'error', 'message' => 'Task ID is required'], 400);
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
         }
+
+        // Fetch Task Details
+        $taskId = $request->task_id;
 
         $task = DealTask::find($taskId);
 
