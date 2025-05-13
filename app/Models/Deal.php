@@ -187,5 +187,17 @@ public function lead()
 {
     return $this->belongsTo(Lead::class);
 }
+public function client()
+{
+    return $this->hasOneThrough(
+        User::class,        // Final model
+        ClientDeal::class,  // Intermediate model
+        'deal_id',          // Foreign key on client_deals
+        'id',               // Foreign key on users
+        'id',               // Local key on deals
+        'client_id'         // Local key on client_deals
+    );
+}
+
 
 }
