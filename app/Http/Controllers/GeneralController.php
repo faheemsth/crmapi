@@ -509,7 +509,7 @@ class GeneralController extends Controller
     }
 
     // Fetch log activity records
-    $logs = LogActivity::where('module_id', $request->id)
+    $logs = LogActivity::with('createdBy')->where('module_id', $request->id)
                 ->where('module_type', $request->type)
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -668,6 +668,25 @@ public function GetBranchByType()
             'status' => 'success',
             'data' => $cities
             
+        ]);
+    }
+
+
+    public function DealTagPluck()
+    {
+        $LeadTag = LeadTag::pluck('id', 'tag')->toArray();
+        return response()->json([
+            'status' => 'success',
+            'data' => $LeadTag
+        ]);
+    }
+
+    public function DealStagPluck()
+    {
+        $Stage = Stage::pluck('name', 'id')->toArray();
+        return response()->json([
+            'status' => 'success',
+            'data' => $Stage
         ]);
     }
 }

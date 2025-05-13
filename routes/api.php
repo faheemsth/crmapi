@@ -101,6 +101,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateTaskStatus', [TaskController::class, 'updateTaskStatus']);
     Route::post('/ShuffleTaskOwnership', [TaskController::class, 'ShuffleTaskOwnership']);
     Route::post('/getTaskDetails', [TaskController::class, 'getTaskDetails']);
+    Route::post('/TaskDetails', [TaskController::class, 'TaskDetails']);
+    
     Route::post('/taskDiscussionStore', [TaskController::class, 'taskDiscussionStore']);
     Route::post('/taskDelete', [TaskController::class, 'taskDelete']);
     Route::get('/downloadTasks', [TaskController::class, 'downloadTasks']);
@@ -450,7 +452,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/instituteDetail', [InstituteController::class, 'instituteDetail']);
     Route::post('/getInstitutes', [InstituteController::class, 'getInstitutes']);
-    Route::post('/pluckInstitutes', [InstituteController::class, 'pluckInstitutes']);
+    Route::post('/pluckInstitute', [InstituteController::class, 'pluckInstitutes']);
     Route::post('/addInstitute', [InstituteController::class, 'addInstitute']);
     Route::post('/updateInstitute', [InstituteController::class, 'updateInstitute']);
     Route::post('/deleteInstitute', [InstituteController::class, 'deleteInstitute']);
@@ -467,6 +469,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateUniversityCourseStatus', [UniversityController::class, 'updateUniversityCourseStatus']);
     Route::post('/updateUniversityMOIStatus', [UniversityController::class, 'updateUniversityMOIStatus']);
     Route::post('/updateAboutUniversity', [UniversityController::class, 'updateAboutUniversity']);
+    Route::post('/getIntakeMonthByUniversity', [UniversityController::class, 'getIntakeMonthByUniversity']);
+    Route::post('/get_course_campus', [UniversityController::class, 'get_course_campus']);
 
      //   Institute Category
      Route::post('/addInstituteCategory', [InstituteCategoryController::class, 'addInstituteCategory']);
@@ -542,4 +546,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/leadsrequireddata', [GeneralController::class, 'leadsrequireddata']);
     Route::post('/getCitiesOnCode', [GeneralController::class, 'getCitiesOnCode']);
 
+    Route::post('/DealTagPluck', [GeneralController::class, 'DealTagPluck']);
+    Route::post('/DealStagPluck', [GeneralController::class, 'DealStagPluck']);
 });

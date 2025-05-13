@@ -546,79 +546,120 @@ class UniversityController extends Controller
     }
 
 
-    public function getIntakeMonths()
-    {
-        $id = $_GET['id'];
-        $university = University::where('id', $id)->first();
-        $courses = Course::where('university_id', $id)->get();
-        $intake_html = '';
-        $course_html = '';
-        $intake_year_html= '';
+    // public function getIntakeMonthByUniversity()
+    // {
+    //     $id = $_POST['id'];
+    //     $university = University::where('id', $id)->first();
+    //     $courses = Course::where('university_id', $id)->get();
+    
+    //     $monthNames = [
+    //         'JAN' => 'JAN',
+    //         'FEB' => 'FEB',
+    //         'MAR' => 'MAR',
+    //         'APR' => 'APR',
+    //         'MAY' => 'MAY',
+    //         'JUN' => 'JUN',
+    //         'JUL' => 'JUL',
+    //         'AUG' => 'AUG',
+    //         'SEP' => 'SEP',
+    //         'OCT' => 'OCT',
+    //         'NOV' => 'NOV',
+    //         'DEC' => 'DEC'
+    //     ];
+        
+    //     // Process intake months
+    //     $intake_months = [];
+    //     if ($university && $university->intake_months) {
+    //         $intake_months = collect(explode(',', $university->intake_months))
+    //             ->map(function ($monthAbbr) use ($monthNames) {
+    //                 $trimmed = trim($monthAbbr);
+    //                 return $monthNames[$trimmed] ?? $trimmed;
+    //             })
+    //             ->filter()
+    //             ->unique()
+    //             ->values()
+    //             ->toArray();
+    //     }
+    
+    //     // Process courses
+    //     $course_options = [];
+    //     foreach ($courses as $course) {
+    //         $course_options[] = [
+    //             $course->id => $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')'
+    //         ];
+    //     }
+    
+    //     // Process intake years
+    //     $intake_years = [];
+    //     $years = intakeYear() ?? [];
+    //     foreach ($years as $year) {
+    //         $intake_years[] = [
+    //             $year => $year
+    //         ];
+    //     }
+    
+    //     return [
+    //         'status' => 'success',
+    //         'university_status' => $university->status ?? null,
+    //         'intake_months' => $intake_months,
+    //         'courses' => $course_options,
+    //         'intake_years' => $intake_years
+    //     ];
+    // }
+    public function getIntakeMonthByUniversity()
+     {
+            $id = $_POST['id'];
+            $university = University::where('id', $id)->first();
+            $courses = Course::where('university_id', $id)->get();
 
-        $monthNames = [
-            'JAN' => 'January',
-            'FEB' => 'February',
-            'MAR' => 'March',
-            'APR' => 'April',
-            'MAY' => 'May',
-            'JUN' => 'June',
-            'JUL' => 'July',
-            'AUG' => 'August',
-            'SEP' => 'September',
-            'OCT' => 'October',
-            'NOV' => 'November',
-            'DEC' => 'December'
-        ];
-
-        $intake_month = University::where('id', $id)
-            ->whereNotNull('intake_months')
-            ->pluck('intake_months')
-            ->flatMap(function ($campusString) use ($monthNames) {
-                return array_map(function ($monthAbbr) use ($monthNames) {
-                    return $monthNames[trim($monthAbbr)] ?? $monthAbbr;
-                }, explode(',', $campusString));
-            })
-            ->toArray();
-
-        $intake_html = '<select name="intake_month" class="form form-control select2 validationSideColor" id="intake_month" ' . ($university->status == '1' ? 'disabled' : '') . '>';
-        $intake_html .= '<option value="">Select Month</option>';
-        if (!empty($intake_month)) {
-            foreach ($intake_month as $intake) {
-                $intake_html .= '<option value="' . $intake . '"> ' . $intake . ' </option>';
+            $monthNames = [
+                'JAN' => 'JAN',
+                'FEB' => 'FEB',
+                'MAR' => 'MAR',
+                'APR' => 'APR',
+                'MAY' => 'MAY',
+                'JUN' => 'JUN',
+                'JUL' => 'JUL',
+                'AUG' => 'AUG',
+                'SEP' => 'SEP',
+                'OCT' => 'OCT',
+                'NOV' => 'NOV',
+                'DEC' => 'DEC'
+            ];
+            
+            // Process intake months - already in pluck-like format
+            $intake_months = [];
+            if ($university && $university->intake_months) {
+                $intake_months = collect(explode(',', $university->intake_months))
+                    ->mapWithKeys(function ($monthAbbr) use ($monthNames) {
+                        $trimmed = trim($monthAbbr);
+                        $value = $monthNames[$trimmed] ?? $trimmed;
+                        return [$value => $value];
+                    })
+                    ->filter()
+                    ->unique()
+                    ->toArray();
             }
+
+            // Process courses in pluck-like format
+            $course_options = $courses->mapWithKeys(function ($course) {
+                $label = $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')';
+                return [$course->id => $label];
+            })->toArray();
+
+            // Process intake years in pluck-like format
+            $intake_years = collect(intakeYear() ?? [])->mapWithKeys(function ($year) {
+                return [$year => $year];
+            })->toArray();
+
+            return [
+                'status' => 'success',
+                'university_status' => $university->status ?? null,
+                'intake_months' => $intake_months,
+                'courses' => $course_options,
+                'intake_years' => $intake_years
+            ];
         }
-        $intake_html .= '</select>';
-
-        $course_html = '<select name="course" class="form form-control select2 validationSideColor" id="course_id">';
-        $course_html .= '<option value="">Select Course</option>';
-        if (!empty($courses)) {
-            foreach ($courses as $key => $course) {
-                $course_html .= '<option value="' . $course->id.'"> ' . $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')</option>';
-            }
-        }
-        $course_html .= '</select>';
-
-
-
-        $intake_year_html = '<select name="intakeYear" class="form form-control select2 validationSideColor" id="intakeYear" ' . ($university->status == '1' ? 'disabled' : '') . '>';
-        $intake_year_html .= '<option value="">Select Year</option>';
-
-        // Check if $campusfetch is not null before accessing intakeYear
-        if (!empty(intakeYear())) {
-            foreach (intakeYear() as $intakeYear) {
-                $intake_year_html .= '<option value="' . $intakeYear . '"> ' . $intakeYear . ' </option>';
-            }
-        }
-        $intake_year_html .= '</select>';
-
-        return json_encode([
-            'status' => 'success',
-            'university_status' => $university->status,
-            'intake_html' => $intake_html,
-            'course_html' => $course_html,
-            'intake_year_html' => $intake_year_html
-        ]);
-    }
 
     public function SaveToggleCourse(Request $request)
     {
@@ -814,4 +855,75 @@ public function pluckInstitutes(Request $request)
     ]);
 }
 
+
+public function get_course_campus()
+{
+    $id = $_POST['id'];
+    // Fetch campus details
+    $campus = Course::where('id', $id)
+        ->whereNotNull('campus')
+        ->pluck('campus')
+        ->flatMap(function ($campusString) {
+            return array_map('trim', explode(',', $campusString));
+        })
+        ->first();
+
+    if (empty($campus)) {
+        return response()->json([
+            'status' => 'success',
+            'campus' => [],
+            'intake_month' => [],
+            'intake_year' => null,
+        ]);
+    }
+
+    // Fetch intake month details
+
+    $intake_month = Course::where('id', $id)
+    ->whereNotNull('intake_month')
+    ->pluck('intake_month')
+    ->flatMap(function ($campusString) {
+        return array_map('trim', explode(',', $campusString));
+    })
+    ->map(function ($month) {
+        // Convert full month name to 3-letter abbreviation
+        return substr(strtoupper($month), 0, 3);
+    })
+    ->toArray();
+
+    // Then you can compare with your monthNames array
+    $monthNames = [
+        'JAN' => 'JAN',
+        'FEB' => 'FEB',
+        'MAR' => 'MAR',
+        'APR' => 'APR',
+        'MAY' => 'MAY',
+        'JUN' => 'JUN',
+        'JUL' => 'JUL',
+        'AUG' => 'AUG',
+        'SEP' => 'SEP',
+        'OCT' => 'OCT',
+        'NOV' => 'NOV',
+        'DEC' => 'DEC'
+    ];
+
+    // Filter only valid month abbreviations
+    $validMonths = array_filter($intake_month, function ($month) use ($monthNames) {
+        return isset($monthNames[$month]);
+    });
+
+    // If you need unique values
+    $validMonths = implode(',', array_unique($validMonths));
+
+    // Fetch intake year
+    $campusfetch = Course::find($id);
+    $intake_year = $campusfetch ? $campusfetch->intakeYear : null;
+
+    return response()->json([
+        'status' => 'success',
+        'campus' => $campus,
+        'intake_month' => $validMonths,
+        'intake_year' => $intake_year,
+    ]);
+}
 }
