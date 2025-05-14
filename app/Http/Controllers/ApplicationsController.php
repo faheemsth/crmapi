@@ -22,7 +22,9 @@ use App\Models\SavedFilter;
 use App\Models\StageHistory;
 use Illuminate\Http\Request;
 use App\Models\DealApplication;
+use App\Models\DealTask;
 use App\Models\LeadTag;
+use Illuminate\Support\Facades\Validator;
 use Session;
 
 class ApplicationsController extends Controller
@@ -230,6 +232,890 @@ public function getDetailApplication(Request $request)
         ]
     ]);
 }
+
+public function updateApplication(Request $request)
+{
+    $user = auth()->user();
+
+    $validator = Validator::make(
+        $request->all(),
+        [
+            'id' => 'required|exists:deal_applications,id',
+            'university' => 'required|exists:universities,id',
+            'status' => 'required|integer',
+            'intake_month' => 'required|string',
+        ]
+    );
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => $validator->errors()->first(),
+        ], 422);
+    }
+
+    if (!$user->can('edit application')) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Permission Denied.',
+        ], 403);
+    }
+
+    $application = DealApplication::find($request->id);
+    $deal = Deal::findOrFail($application->deal_id);
+
+    $university = University::find($request->university);
+    $university_name = str_replace(' ', '-', $university->name);
+    $passport_number = $request->passport_number;
+    $application_key = $passport_number . '-' . $university_name;
+
+    // Duplicate Check
+    $duplicate = DealApplication::join('deals', 'deal_applications.deal_id', '=', 'deals.id')
+        ->whereRaw("application_key LIKE ?", ["%$application_key%"])
+        ->select('deal_applications.*')
+        ->first();
+
+    if ($passport_number && $duplicate && $duplicate->id != $application->id && User::find($duplicate->created_by)) {
+        $existing_deal = Deal::find($duplicate->deal_id);
+        $existing_brand = User::find($existing_deal?->brand_id)?->name ?? '';
+        $regionName = Region::find($deal->region_id)?->name;
+        $branchName = Branch::find($deal->branch_id)?->name;
+        $admissionName = $deal?->name;
+
+        return response()->json([
+            'status' => false,
+            'message' => __('Application already created by ' . allUsers()[$duplicate->created_by] . ' from ' . '“' . $existing_brand . '”' . '-' . '“' . $regionName . '”' . '-' . '“' . $branchName . '”' . ' for ' . '“' . $admissionName . '”' . ' in ' . allUniversities()[$duplicate->university_id] . '. You can still apply for this application in any other university.'),
+        ], 409);
+    }
+
+    // Course info
+    if (!empty($request->course)) {
+        $course = Course::find($request->course);
+        if (!empty($course)) {
+            $course_id = $course->id;
+            $course_name = $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')';
+        }
+    } else {
+        $course_id = null;
+        $course_name = $request->course2;
+    }
+
+    $originalData = $application->getOriginal();
+
+    $application->student_origin_country = $request->student_origin_country ?? null;
+    $application->student_origin_city = $request->student_origin_city ?? null;
+    $application->student_previous_university = $request->student_previous_university ?? null;
+    $application->application_key = $application_key;
+    $application->university_id = $request->university;
+    $application->stage_id = $request->status;
+    $application->intakeYear = $request->intakeYear;
+    $application->course = $course_name;
+    $application->campus = $request->campus;
+    $application->external_app_id = $request->application_key;
+    $application->intake = $request->intake_month;
+    $application->name = !empty($request->name) ? $request->name : $deal->name . '-' . $course_name . '-' . $university_name . '-' . $request->application_key;
+    $application->tag_ids = !empty($request->tag_ids) ? implode(',', $request->tag_ids) : '';
+    $application->course_id = $course_id;
+
+    // Track changes
+    $changes = [];
+    foreach ($originalData as $field => $oldValue) {
+        if (array_key_exists($field, $application->getAttributes()) && $application->$field != $oldValue) {
+            $changes[$field] = [
+                'old' => $oldValue,
+                'new' => $application->$field,
+            ];
+        }
+    }
+
+    $application->save();
+
+    if (!empty($changes)) {
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'Application Updated',
+                'message' => 'Fields updated successfully',
+                'changes' => $changes
+            ]),
+            'module_id' => $application->id,
+            'module_type' => 'application',
+            'notification_type' => 'Application Updated'
+        ]);
+    }
+
+    // Update Deal stage
+    $latestStage = DealApplication::where('deal_id', $application->deal_id)->orderByDesc('stage_id')->first();
+    if ($latestStage) {
+        $deal->stage_id = match (true) {
+            in_array($latestStage->stage_id, [0]) => 0,
+            in_array($latestStage->stage_id, [1, 2]) => 1,
+            in_array($latestStage->stage_id, [3, 4]) => 2,
+            in_array($latestStage->stage_id, [5, 6]) => 3,
+            in_array($latestStage->stage_id, [7, 8]) => 4,
+            in_array($latestStage->stage_id, [9, 10]) => 5,
+            $latestStage->stage_id == 11 => 6,
+            $latestStage->stage_id == 12 => 7,
+            default => 0,
+        };
+    } else {
+        $deal->stage_id = 0;
+    }
+    $deal->save();
+
+    // Add stage history
+    addLeadHistory([
+        'stage_id' => $request->status,
+        'type_id' => $application->id,
+        'type' => 'application',
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'app_id' => $application->id,
+        'message' => 'Application successfully updated!',
+    ]);
+}
+
+public function deleteApplication(Request $request)
+{
+    // Validate the request
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|exists:deal_applications,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
+    }
+
+    // Check permission
+    if (!\Auth::user()->can('delete application')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission Denied.')
+        ], 403);
+    }
+
+    // Fetch application
+    $dealApplication = DealApplication::find($request->id);
+
+    if (!$dealApplication) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Application not found.')
+        ], 404);
+    }
+
+    $dealId = $dealApplication->deal_id;
+
+    // Delete application
+    $dealApplication->delete();
+
+    // Update deal stage
+    $deal = Deal::find($dealId);
+    if ($deal) {
+        $latestApplication = DealApplication::where('deal_id', $dealId)
+            ->orderBy('stage_id', 'desc')
+            ->first();
+
+        if ($latestApplication) {
+            $stageId = (int) $latestApplication->stage_id;
+            if ($stageId === 0) {
+                $deal->stage_id = 0;
+            } elseif (in_array($stageId, [1, 2])) {
+                $deal->stage_id = 1;
+            } elseif (in_array($stageId, [3, 4])) {
+                $deal->stage_id = 2;
+            } elseif (in_array($stageId, [5, 6])) {
+                $deal->stage_id = 3;
+            } elseif (in_array($stageId, [7, 8])) {
+                $deal->stage_id = 4;
+            } elseif (in_array($stageId, [9, 10])) {
+                $deal->stage_id = 5;
+            } elseif ($stageId === 11) {
+                $deal->stage_id = 6;
+            } elseif ($stageId === 12) {
+                $deal->stage_id = 7;
+            }
+        } else {
+            $deal->stage_id = 0;
+        }
+
+        $deal->save();
+    }
+
+    // Log activity
+    $logData = [
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => 'Application Deleted',
+            'message' => 'Application deleted and deal stage updated.'
+        ]),
+        'module_id' => $request->id,
+        'module_type' => 'application',
+        'notification_type' => 'Application Deleted'
+    ];
+    addLogActivity($logData);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => __('Application successfully deleted!')
+    ], 200);
+}
+
+public function updateApplicationStage(Request $request)
+{
+    
+
+      // Validate the request
+      $validator = Validator::make($request->all(), [
+       'application_id' => 'required|integer|exists:deal_applications,id',
+        'stage_id' => 'required|integer|exists:application_stages,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
+    }
+
+    $application = DealApplication::find( $request->application_id);
+    $stage_id =  $request->stage_id;
+    $current_stage = $application->stage_id;
+
+    $hasUncompletedTasks = DealTask::where([
+        'related_to' => $application->id,
+        'related_type' => 'application',
+    ])->where('tasks_type', 'Quality')->latest()->first();
+
+    $hasUncompletedTasksCompliance = DealTask::where([
+        'related_to' => $application->id,
+        'related_type' => 'application',
+    ])->where('tasks_type', 'Compliance')->latest()->first();
+
+    $tasksStatusInvalid = isset($hasUncompletedTasks->tasks_type_status) &&
+        in_array($hasUncompletedTasks->tasks_type_status, ['2', '0']);
+
+    $request_stage = explode(',', trim($application->request_stage ?? '', ','));
+    $initial_stages = [0, 1, 2, 3, 4, 5, 6];
+    $final_stages = [7, 8, 9, 10, 11, 12];
+
+    // Validation: Cannot move to stage 1 or 6 with uncompleted tasks
+    if (in_array($stage_id, [1, 6]) && $tasksStatusInvalid) {
+        return response()->json(['status' => 'error', 'message' => 'Cannot move to stages 1 or 6 with uncompleted tasks']);
+    }
+
+    // === Initial Stages ===
+    if (in_array($stage_id, $initial_stages)) {
+        if ($stage_id < 12 && $current_stage !== 12) {
+            if (!in_array($current_stage, [2, 3, 4]) && $current_stage > $stage_id) {
+                return response()->json(['status' => 'error', 'message' => 'Stage ID cannot be decreased']);
+            }
+
+            if (!in_array(1, $request_stage) || $tasksStatusInvalid) {
+                if ($application->university_id != 7 && (!isset($hasUncompletedTasks->tasks_type_status) || $hasUncompletedTasks->tasks_type_status != '1')) {
+                    $newStage = ApplicationStage::find($stage_id);
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Quality Check is mandatory before moving to stage ' . ($newStage->name ?? '')
+                    ]);
+                }
+            }
+
+            $application->update([
+                'stage_id' => $stage_id,
+                'request_stage' => null,
+            ]);
+        } else {
+            if (!in_array(1, $request_stage) || $tasksStatusInvalid) {
+                if ($application->university_id != 7 && (!isset($hasUncompletedTasks->tasks_type_status) || $hasUncompletedTasks->tasks_type_status != '1')) {
+                    $newStage = ApplicationStage::find($stage_id);
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Quality Check is mandatory before moving to stage ' . ($newStage->name ?? '')
+                    ]);
+                }
+            }
+
+            if (!empty($hasUncompletedTasksCompliance) && $hasUncompletedTasksCompliance->tasks_type == 'Quality') {
+                StageHistory::where('type_id', $application->id)->where('type', 'application')->whereIn('stage_id', range(2, 11))->delete();
+            }
+
+            if (!empty($hasUncompletedTasksCompliance)) {
+                if (!in_array($hasUncompletedTasksCompliance->tasks_type_status, ['1', '2'])) {
+                    $hasUncompletedTasksCompliance->update(['tasks_type_status' => '0', 'stage_request' => '']);
+                    $application->request_stage = '';
+                } elseif ($hasUncompletedTasksCompliance->tasks_type == 'Compliance') {
+                    $application->request_stage = '1,';
+                    StageHistory::where('type_id', $application->id)->where('type', 'application')->whereIn('stage_id', range(7, 11))->delete();
+                    $hasUncompletedTasksCompliance->update(['tasks_type_status' => '0', 'stage_request' => '']);
+                }
+            }
+
+            $application->save();
+            $application->update(['stage_id' => $stage_id]);
+        }
+    }
+    // === Final Stages ===
+    elseif (in_array($stage_id, $final_stages)) {
+        if ($stage_id < 12 && $current_stage !== 12) {
+            if (!in_array(6, $request_stage) || $tasksStatusInvalid) {
+                $newStage = ApplicationStage::find($stage_id);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Compliance Checks is mandatory before moving to stage ' . ($newStage->name ?? '')
+                ]);
+            }
+
+            if ($current_stage >= $stage_id) {
+                return response()->json(['status' => 'error', 'message' => 'Stage ID cannot be decreased']);
+            }
+
+            if (($stage_id < 11 && $stage_id === $current_stage + 1) || ($stage_id >= 11 && $current_stage >= 10)) {
+                $application->update(['stage_id' => $stage_id]);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "Stage " . ($current_stage + 1) . " is required before moving to stage $stage_id."
+                ]);
+            }
+        } else {
+            if ($current_stage != 11) {
+                if (in_array($stage_id, range(7, 11)) && $current_stage > $stage_id) {
+                    return response()->json(['status' => 'error', 'message' => 'Stage ID cannot be decreased']);
+                }
+
+                if (!empty($hasUncompletedTasks) && $hasUncompletedTasks->tasks_type == 'Quality') {
+                    StageHistory::where('type_id', $application->id)->where('type', 'application')->whereIn('stage_id', range(2, 11))->delete();
+                }
+
+                if (!empty($hasUncompletedTasks)) {
+                    if (!in_array($hasUncompletedTasks->tasks_type_status, ['1', '2'])) {
+                        $hasUncompletedTasks->update(['tasks_type_status' => '0', 'stage_request' => '']);
+                        $application->request_stage = '';
+                    } elseif ($hasUncompletedTasks->tasks_type == 'Compliance') {
+                        $application->request_stage = '1,';
+                        StageHistory::where('type_id', $application->id)->where('type', 'application')->whereIn('stage_id', range(7, 11))->delete();
+                        $hasUncompletedTasks->update(['tasks_type_status' => '0', 'stage_request' => '']);
+                    }
+                }
+
+                $application->save();
+                $application->update(['stage_id' => $stage_id]);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Enrolled application has been completed and is now locked in the system.'
+                ]);
+            }
+        }
+    } else {
+        return response()->json(['status' => 'error', 'message' => 'Invalid stage transition']);
+    }
+
+    // Update Deal's latest stage
+    $deal = Deal::find($application->deal_id);
+    if ($deal) {
+        $latestStage = DealApplication::where('deal_id', $deal->id)->orderBy('stage_id', 'desc')->first();
+
+        if ($latestStage) {
+            $deal_stage_map = [
+                0 => 0,
+                1 => 1,
+                2 => 1,
+                3 => 2,
+                4 => 2,
+                5 => 3,
+                6 => 3,
+                7 => 4,
+                8 => 4,
+                9 => 5,
+                10 => 5,
+                11 => 6,
+                12 => 7,
+            ];
+
+            foreach ($deal_stage_map as $stage_ids => $mapped) {
+                if (in_array($latestStage->stage_id, $stage_ids)) {
+                    $deal->stage_id = $mapped;
+                    break;
+                }
+            }
+        } else {
+            $deal->stage_id = 0;
+        }
+        $deal->save();
+    }
+
+    // Add Stage History
+    addLeadHistory([
+        'stage_id' => $stage_id,
+        'type_id' => $application->id,
+        'type' => 'application',
+    ]);
+
+    // Log Activity
+    addLogActivity([
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => 'Stage Updated',
+            'message' => 'Application stage updated successfully.',
+        ]),
+        'module_id' => $application->id,
+        'module_type' => 'application',
+        'notification_type' => 'application stage update',
+    ]);
+
+    return response()->json(['status' => 'success']);
+}
+
+
+public function applicationAppliedStage(Request $request)
+{
+    // ✅ Validate the request
+    $validator = Validator::make($request->all(), [
+        'application_id' => 'required|integer|exists:deal_applications,id',
+        'stage_id' => 'required|integer|exists:application_stages,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
+    }
+
+    $applicationId = (int) $request->application_id;
+    $stageId = (int) $request->stage_id;
+
+    $application = DealApplication::with(['deal.client', 'university', 'course'])->find($applicationId);
+    if (!$application) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Application not found.',
+        ], 404);
+    }
+
+    $currentStage = $application->stage_id;
+
+    $hasQualityTask = DealTask::where([
+        'related_to' => $applicationId,
+        'related_type' => 'application',
+        'tasks_type' => 'Quality',
+    ])->latest()->first();
+
+    $hasComplianceTask = DealTask::where([
+        'related_to' => $applicationId,
+        'related_type' => 'application',
+        'tasks_type' => 'Compliance',
+    ])->latest()->first();
+
+    $qualityInvalid = isset($hasQualityTask->tasks_type_status) && !in_array($hasQualityTask->tasks_type_status, ['2', '0']);
+    $complianceValid = isset($hasComplianceTask->tasks_type_status) && in_array($hasComplianceTask->tasks_type_status, ['2', '0']);
+
+    $requestStages = explode(',', trim($application->request_stage ?? '', ','));
+
+    $initialStages = [0, 1, 2, 3, 4, 5, 6];
+    $finalStages = [7, 8, 9, 10, 11, 12];
+
+    // ✅ Check permission
+    if (!auth()->user()->can('edit application')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Permission Denied.',
+        ], 403);
+    }
+
+    // ✅ Stage transition logic
+    if (in_array($stageId, $initialStages)) {
+        if (!in_array($currentStage, [1, 5])) {
+            if ($currentStage > $stageId || !in_array(1, $requestStages) || $qualityInvalid) {
+                if ($hasQualityTask && $hasQualityTask->tasks_type_status !== '1') {
+                    $stageName = ApplicationStage::find($stageId)->name ?? '';
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Quality Check is mandatory before moving to stage ' . $stageName,
+                    ]);
+                }
+            }
+        }
+
+        if (!in_array($currentStage, [5])) {
+            if ($currentStage > $stageId || !in_array(1, $requestStages) || $complianceValid) {
+                $stageName = ApplicationStage::find($stageId)->name ?? '';
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Deposit is mandatory before moving to stage ' . $stageName,
+                ]);
+            }
+
+            $stageName = ApplicationStage::find($stageId)->name ?? '';
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Deposit is mandatory before moving to stage ' . $stageName,
+            ]);
+        }
+
+    } elseif (in_array($stageId, $finalStages)) {
+        if ($currentStage >= $stageId || !in_array(6, $requestStages) || $complianceValid) {
+            $stageName = ApplicationStage::find($stageId)->name ?? '';
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Compliance Checks are mandatory before moving to stage ' . $stageName,
+            ]);
+        }
+    } else {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Invalid stage transition.',
+        ]);
+    }
+
+    // ✅ Collect required data
+    $universities = University::select('id', 'name')->get();
+    $statuses = ['Pending', 'Approved', 'Rejected'];
+    $dealPassport = $application->deal->client ?? null;
+    $stages = ApplicationStage::select('id', 'name')->get();
+    $campuss = Course::where('id', $application->course_id)
+        ->where('university_id', $application->university_id)
+        ->whereNotNull('campus')
+        ->pluck('campus')
+        ->flatMap(fn($c) => array_map('trim', explode(',', $c)))
+        ->toArray();
+
+    $course = Course::where('university_id', $application->university_id)->get();
+
+    // Intake Month logic
+    $intake_month = [];
+    $IntakeMonths = [];
+    $university = $application->university;
+
+    if ($university) {
+        $monthsMap = [
+            'JAN' => 'January', 'FEB' => 'February', 'MAR' => 'March', 'APR' => 'April',
+            'MAY' => 'May', 'JUN' => 'June', 'JUL' => 'July', 'AUG' => 'August',
+            'SEP' => 'September', 'OCT' => 'October', 'NOV' => 'November', 'DEC' => 'December'
+        ];
+
+        if ($university->status == '0') {
+            $intake_month = array_map('trim', explode(',', $university->intake_months ?? ''));
+            $intake_month = array_map(fn($m) => $monthsMap[$m] ?? $m, $intake_month);
+        } elseif ($university->status == '1') {
+            $intake_month = Course::where('id', $application->course_id)
+                ->pluck('intake_month')
+                ->flatMap(fn($val) => array_map('trim', explode(',', $val)))
+                ->toArray();
+        }
+    }
+
+    // ✅ Return JSON API response
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Application can be moved to the selected stage.',
+        'data' => [
+            'stageId' => $stageId,
+            'deal' => $application->deal,
+            'university' => $university,
+            'intake_month' => $intake_month,
+            'campuss' => $campuss,
+            'course' => $course,
+            'IntakeMonths' => $IntakeMonths,
+            'application' => $application,
+            'universities' => $universities,
+            'statuses' => $statuses,
+            'deal_passport' => $dealPassport,
+            'stages' => $stages,
+        ]
+    ]);
+}
+
+public function saveApplicationDepositRequest(Request $request)
+{
+    // ✅ Initial validation
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|exists:deal_applications,id'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()
+        ], 422);
+    }
+
+    $id = $request->id;
+
+    // 🔐 Permission check
+    if (!auth()->user()->can('edit application')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Permission denied.'
+        ], 403);
+    }
+
+    // ✅ Fetch application
+    $application = DealApplication::where('id', $id)->first();
+
+    // ✅ Dynamic stage-specific validation
+    $rules = [];
+    if ($request->stage_id == 6) {
+        if (in_array($request->english_test, ['IELTS', 'OIDI (ELLT)', 'PTE', 'TOEFL'])) {
+            $rules = [
+                'disability' => 'required',
+                'english_test' => 'required',
+                'drive_link' => 'required',
+                'Mode_of_Verification' => 'required',
+                'Mode_of_Payment' => 'required',
+                'username' => 'required',
+                'password' => 'required',
+                'email' => ['required', 'email', Rule::unique('users')->ignore($request->clientUserID)],
+                'CAS_Documents_Checklist' => 'required|array',
+            ];
+        } else {
+            $rules = [
+                'Mode_of_Verification' => 'required',
+                'Mode_of_Payment' => 'required',
+                'disability' => 'required',
+                'english_test' => 'required',
+                'drive_link' => 'required',
+                'email' => ['required', 'email', Rule::unique('users')->ignore($request->clientUserID)],
+                'CAS_Documents_Checklist' => 'required|array',
+            ];
+        }
+    } else {
+        $rules = [
+            'destination' => 'required',
+            'Source' => 'required',
+            'institution' => 'required',
+            'Date_of_deposit' => 'required|date',
+            'Amount_of_deposit' => 'required',
+            'Mode_of_payment' => 'required',
+            'Folder_link' => 'required',
+            'Mode_of_verification' => 'required',
+            'Declaration' => 'required|array',
+        ];
+        if (isset($request->DealTask)) {
+            $rules['Reasons_for_resubmission'] = 'required';
+        }
+    }
+
+    $validator = Validator::make($request->all(), $rules);
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()
+        ], 422);
+    }
+
+    // ✅ Update client info
+    $client = User::find($request->clientUserID);
+    if ($client) {
+        $client->email = $request->email;
+        $client->phone = $request->mobile_number;
+        $client->address = $request->address;
+        $client->save();
+    }
+
+    // ✅ Update application request_stage
+    $currentStages = array_filter(explode(',', trim($application->request_stage, ',')));
+    $requestedStage = (string)$request->stage_id;
+
+    if ($requestedStage === '4') {
+        if (in_array('6', $currentStages)) {
+            $currentStages = array_diff($currentStages, ['5']);
+        }
+        $currentStages[] = '4';
+    } elseif ($requestedStage === '6') {
+        if (in_array('4', $currentStages) && !in_array('6', $currentStages)) {
+            $currentStages[] = '6';
+        } else {
+            $currentStages[] = '6';
+        }
+    }
+
+    $currentStages = array_unique($currentStages);
+    sort($currentStages);
+    $application->request_stage = ',' . implode(',', $currentStages);
+    $application->save();
+
+    // ✅ Save meta data
+    foreach ($request->except(['_token', '_method', 'submit']) as $key => $value) {
+        DB::table('meta')->updateOrInsert(
+            [
+                'created_by' => Auth::id(),
+                'parent_id' => $id,
+                'stage_id' => $request->stage_id,
+                'meta_key' => $key
+            ],
+            [
+                'meta_value' => is_array($value) ? json_encode($value) : $value
+            ]
+        );
+    }
+
+    // ✅ Create or update DealTask
+    $dealTask = DealTask::where([
+        ['related_to', '=', $id],
+        ['related_type', '=', 'application'],
+        ['tasks_type', '=', 'Compliance']
+    ])->first();
+
+    $passport_number = optional($client)->passport_number ?? 'APC' . $id;
+    $taskName = $passport_number . ($request->stage_id == 1 ? ' Quality Checks' : ' Compliance Checks');
+    $taskType = $request->stage_id == 1 ? 'Quality' : 'Compliance';
+
+    if (!$dealTask) {
+        $dealTask = new DealTask();
+        $dealTask->related_to = $id;
+        $dealTask->related_type = 'application';
+        $dealTask->created_by = Auth::id();      
+        $dealTask->deal_id = $id;
+        $dealTask->branch_id = 262;
+        $dealTask->region_id = 56;
+        $dealTask->brand_id = 3751;
+        $dealTask->assigned_to = 3751;
+        $dealTask->due_date = now()->toDateString();
+        $dealTask->start_date = now()->toDateString();
+        $dealTask->date = now()->toDateString();
+        $dealTask->remainder_date = now()->toDateString();
+        $dealTask->status = 0;
+        $dealTask->description = '';
+        $dealTask->visibility = 'Public';
+        $dealTask->priority = 1;
+        $dealTask->time = now()->toTimeString();
+        $dealTask->stage_request = $request->stage_id;
+        $dealTask->name = $taskName;
+        $dealTask->tasks_type = $taskType;
+        $dealTask->tasks_type_status = '0';
+     
+
+    $dealTask->save();
+
+    }
+
+    // ✅ Add activity log
+   $logData = [
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => 'Application Updated',
+            'message' => 'Application stage request and deposit details were updated successfully.'
+        ]),
+        'module_id' => $id,
+        'module_type' => 'application',
+        'notification_type' => 'Application Updated'
+    ];
+    addLogActivity($logData);
+
+    return response()->json([
+        'status' => 'success',
+        'app_id' => $id,
+        'message' => 'Application updated successfully!'
+    ]);
+}
+
+public function applicationNotesStore(Request $request)
+{
+    $validator = \Validator::make($request->all(), [
+        'id' => 'required|exists:deal_applications,id', // application ID
+        'description' => 'required',
+        'note_id' => 'nullable|exists:application_notes,id',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()->first(),
+        ]);
+    }
+
+    $applicationId = $request->id;
+    $authId = Session::get('auth_type_id') ?? \Auth::id();
+
+    if (!empty($request->note_id)) {
+        // Update existing note
+        $note = ApplicationNote::where('id', $request->note_id)->first();
+        $note->description = $request->description;
+        $note->update();
+
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'Application Notes Updated',
+                'message' => 'Application notes updated successfully',
+            ]),
+            'module_id' => $applicationId,
+            'module_type' => 'application',
+            'notification_type' => 'Application Notes Updated',
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Notes updated successfully'),
+            'note' => $note,
+        ]);
+    }
+
+    // Create new note
+    $note = new ApplicationNote();
+    $note->description = $request->description;
+    $note->created_by = $authId;
+    $note->application_id = $applicationId;
+    $note->save();
+
+    addLogActivity([
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => 'Notes Created',
+            'message' => 'Application notes created successfully',
+        ]),
+        'module_id' => $applicationId,
+        'module_type' => 'application',
+        'notification_type' => 'Application Notes Created',
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => __('Notes added successfully'),
+        'note' => $note,
+    ]);
+}
+
+public function getApplicationNotes(Request $request)
+{
+    // ✅ Validate required input
+    $request->validate([
+        'application_id' => 'required|exists:deal_applications,id',
+    ]);
+
+    $user = Auth::user();
+
+    // ✅ Permission check
+    if (!$user->can('view application') && $user->type !== 'super admin') {
+        return response()->json([
+            'status' => false,
+            'message' => 'Permission Denied.',
+        ], 403);
+    }
+
+    // ✅ Fetch notes
+    $notes = ApplicationNote::where('application_id', $request->application_id)
+        ->orderBy('created_at', 'DESC')
+        ->get();
+
+    // ✅ Return structured response
+    return response()->json([
+        'status' => true,
+        'message' => 'Application notes fetched successfully.',
+        'data' => $notes,
+    ]);
+}
+
+
+
 
 
 

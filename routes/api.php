@@ -496,13 +496,22 @@ Route::middleware('auth:sanctum')->group(function () {
      //     adminission
      Route::post('/getAdmission', [DealController::class, 'getAdmission']);
      Route::post('/getAdmissionDetails', [DealController::class, 'getAdmissionDetails']);
-     Route::post('/UpdateAdmissionDetails', [DealController::class, 'UpdateAdmissionDetails']);
+     Route::post('/getMoveApplicationPluck', [DealController::class, 'getMoveApplicationPluck']);
+     Route::post('/moveApplicationsave', [DealController::class, 'moveApplicationsave']);
+
      
 
 
      //     application
      Route::post('/getApplications', [ApplicationsController::class, 'getApplications']);
      Route::post('/getDetailApplication', [ApplicationsController::class, 'getDetailApplication']);
+     Route::post('/updateApplication', [ApplicationsController::class, 'updateApplication']);
+     Route::post('/deleteApplication', [ApplicationsController::class, 'deleteApplication']);
+     Route::post('/updateApplicationStage', [ApplicationsController::class, 'updateApplicationStage']);
+     Route::post('/applicationAppliedStage', [ApplicationsController::class, 'applicationAppliedStage']);
+     Route::post('/saveApplicationDepositRequest', [ApplicationsController::class, 'saveApplicationDepositRequest']);
+     Route::post('/applicationNotesStore', [ApplicationsController::class, 'applicationNotesStore']);
+     Route::post('/getApplicationNotes', [ApplicationsController::class, 'getApplicationNotes']);
 
      //     University Rules
      Route::post('/addMOIInstitutes', [MoiAcceptedController::class, 'addMOIInstitutes']);

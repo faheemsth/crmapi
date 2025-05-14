@@ -105,6 +105,17 @@ public function country()
 {
     return $this->belongsTo(Country::class, 'student_origin_country', 'country_code', 'country_code');
 }
-
+public function deal()
+{
+    return $this->belongsTo(Deal::class, 'deal_id');
+}
+public function university()
+{
+    return $this->belongsTo(University::class, 'university_id');
+}
+public function course()
+{
+    return $this->belongsTo(Course::class, 'course_id');
+}
 
 }
