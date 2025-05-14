@@ -510,7 +510,7 @@ class TaskController extends Controller
         $dealTask->due_date = $request->due_date ?? '';
         $dealTask->start_date = $request->start_date;
         $dealTask->date = $request->start_date;
-        $dealTask->status = 0;
+        $dealTask->status = $request->status ?? 0;
         $dealTask->remainder_date = $request->remainder_date;
         $dealTask->description = $request->description;
         $dealTask->visibility = $request->visibility;
@@ -1539,4 +1539,91 @@ class TaskController extends Controller
     {
         return $this->updateTaskStatus($request, 'approve');
     }
+
+    public function GetTaskByRelatedToRelatedType(Request $request)
+    {
+        // Validate the input
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'related_to' => 'required|exists:deal_tasks,related_to',
+                'related_type' => 'required|exists:deal_tasks,related_type',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 400);
+        }
+
+        $related_type = $request->related_type;
+        $related_to = $request->related_to;
+
+        // Initialize query
+        $tasksQuery = DealTask::query()
+            ->where('deal_tasks.related_type', $related_type)
+            ->where('deal_tasks.related_to', $related_to)
+            ->select(
+                'users.name as AssignedTo',
+                'deal_tasks.name as TaskName',
+                'deal_tasks.id',
+                'deal_tasks.created_at',
+                'deal_tasks.status',
+                'createdByUser.name as CreatedByUsers'
+            )
+            ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
+            ->join('users as createdByUser', 'createdByUser.id', '=', 'deal_tasks.created_by')
+            ->leftJoin('deal_applications', function ($join) {
+                $join->on('deal_applications.id', '=', 'deal_tasks.related_to')
+                    ->where('deal_tasks.related_type', '=', 'application');
+            })
+            ->leftJoin('universities', 'universities.id', '=', 'deal_applications.university_id');
+
+        // Add filters based on user roles
+        $FiltersBrands = array_keys(FiltersBrands());
+
+        if (\Auth::user()->type !== 'HR') {
+            if (\Auth::user()->type === 'super admin' || \Auth::user()->can('level 1')) {
+                $FiltersBrands[] = '3751';
+                $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+            } elseif (\Auth::user()->type === 'company') {
+                $tasksQuery->where('deal_tasks.brand_id', \Auth::user()->id);
+            } elseif (\Auth::user()->type === 'Project Director' || \Auth::user()->type === 'Project Manager' || \Auth::user()->can('level 2')) {
+                $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+            } elseif (\Auth::user()->type === 'Region Manager' || (\Auth::user()->can('level 3') && !empty(\Auth::user()->region_id))) {
+                $tasksQuery->where('deal_tasks.region_id', \Auth::user()->region_id);
+            } elseif (\Auth::user()->type === 'Branch Manager' || \Auth::user()->type === 'Admissions Officer' || 
+                    \Auth::user()->type === 'Careers Consultant' || \Auth::user()->type === 'Admissions Manager' || 
+                    \Auth::user()->type === 'Marketing Officer' || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
+                $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+            } elseif (\Auth::user()->type === 'Agent') {
+                $tasksQuery->where(function ($query) {
+                    $query->where('deal_tasks.assigned_to', \Auth::user()->id)
+                        ->orWhere('deal_tasks.created_by', \Auth::user()->id);
+                });
+            } else {
+                $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+            }
+        }
+
+        // Fetch tasks and transform them
+        $tasks = $tasksQuery->get()->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'text' => htmlspecialchars_decode($task->TaskName),
+                'author' => $task->CreatedByUsers,
+                'time' => $task->created_at->diffForHumans(),
+                'status' => $task->status == 1 ? 'Completed' : 'On Going',
+                'timestamp' => $task->created_at->toISOString(),
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $tasks
+        ], 200);
+    }
+
 }

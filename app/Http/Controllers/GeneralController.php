@@ -553,8 +553,9 @@ public function UniversityByCountryCode(Request $request)
 
 public function GetBranchByType()
 {
+    ini_set('memory_limit', '256M');
     $type = $_POST['type'] ?? null;
-    $BranchId = Auth::user()->type == 'super admin' ? null : Auth::user()->id;
+    $BranchId = Auth::user()->type == 'super admin' ? 0 : Auth::user()->branch_id;
     if (!$type) {
         return json_encode([
             'status' => 'error',
@@ -564,9 +565,22 @@ public function GetBranchByType()
     try {
         switch ($type) {
             case 'lead':
-                $data = \App\Models\Lead::where('branch_id', $BranchId)->pluck('name', 'id')->toArray();
-                break;
+                $leadsQuery = \App\Models\Lead::query();
+                $userType = \Auth::user()->type;
 
+                if ($userType === 'company') {
+                    $leadsQuery->where('brand_id', \Auth::user()->id);
+                } elseif ($userType === 'Region Manager' && !empty(\Auth::user()->region_id)) {
+                    $leadsQuery->where('region_id', \Auth::user()->region_id);
+                } elseif ($userType === 'Branch Manager' && !empty(\Auth::user()->branch_id)) {
+                    $leadsQuery->where('branch_id', \Auth::user()->branch_id);
+                } elseif ($userType === 'Agent') {
+                    $leadsQuery->where('user_id', \Auth::user()->id);
+                }
+
+                // Ensure data exists in the query result
+                $data = $leadsQuery->select('id', 'name')->pluck('name', 'id')->toArray();
+                break;
             case 'organization':
                 $data = User::where('type', 'organization')->pluck('name', 'id')->toArray();
                 break;
