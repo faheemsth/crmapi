@@ -907,7 +907,7 @@ class TaskController extends Controller
         if (!empty($applied_meta)) {
             foreach ($applied_meta as $item) {
                 $applied_meta_html .= '<tr>';
-                $applied_meta_html .= '<td style="width: 400px; font-size: 14px;">' . htmlspecialchars(formatKey($item['meta_key'])) . '</td>';
+                $applied_meta_html .= '<td style="width: 400px; font-size: 14px;border-bottom: 1px solid gray;">' . htmlspecialchars(formatKey($item['meta_key'])) . '</td>';
                 
                 // Decode JSON if applicable
                 $meta_value = $item['meta_value'];
@@ -917,7 +917,7 @@ class TaskController extends Controller
                 
                 // Check if meta_value is iterable (array or object)
                 if (is_iterable($meta_value)) {
-                    $applied_meta_html .= '<td class="description-td" style="padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">';
+                    $applied_meta_html .= '<td class="description-td" style="border-bottom: 1px solid gray;padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">';
                     foreach ($meta_value as $value) {
                         $applied_meta_html .= '<span class="badge bg-primary me-1">' . htmlspecialchars($value) . '</span>';
                     }
@@ -925,9 +925,9 @@ class TaskController extends Controller
                 } else {
                     // Fallback: Display meta_value as plain text
                     if ($item['meta_key'] == 'stage_id' && $meta_value == 6) {
-                        $applied_meta_html .= '<td class="description-td" style="padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">' . htmlspecialchars("Compliance Checks") . '</td>';
+                        $applied_meta_html .= '<td class="description-td" style="border-bottom: 1px solid gray;padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">' . htmlspecialchars("Compliance Checks") . '</td>';
                     } else {
-                        $applied_meta_html .= '<td class="description-td" style="padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">' . htmlspecialchars($meta_value) . '</td>';
+                        $applied_meta_html .= '<td class="description-td" style="border-bottom: 1px solid gray;padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">' . htmlspecialchars($meta_value) . '</td>';
                     }
                 }
         
@@ -1059,7 +1059,6 @@ class TaskController extends Controller
 
     public function taskDiscussionStore(Request $request)
     {
-
         $rules = [
             'task_id' => 'required|integer|min:1',
             'comment' => 'required',
@@ -1070,61 +1069,191 @@ class TaskController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
-        $id = $request->task_id;
-        $usr = \Auth::user();
-        $discussion = !empty($request->id) ? TaskDiscussion::find($request->id) : new TaskDiscussion();
+
+        // Retrieve task and validate existence
+        $dealTask = DealTask::find($request->task_id);
+        if (!$dealTask) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Task not found!'),
+            ], 404);
+        }
+
+        // Create a new task discussion
+        $discussion = new TaskDiscussion();
         $discussion->fill([
             'comment'    => $request->comment,
-            'task_id'    => $id,
+            'task_id'    => $request->task_id,
             'created_by' => \Auth::id(),
         ])->save();
-        $dealTask = DealTask::find($id);
-        $discussion_comment = (strlen($text = strip_tags($discussion->comment)) > 20) ? substr($text, 0, 20) . "..." : $text;
-        $html = '<p class="mb-0">
-    On This Task
-    <span class="fw-bold">
-       <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
-    onclick="openSidebar(\'/get-task-detail?task_id=' . $dealTask->id . '\')"
-    data-task-id="' . $dealTask->id . '">' . $dealTask->name . '</span>
-     </span>
-     Note
-     <span style="font-weight:bold;color:black !important">' . $discussion_comment . '</span>
-    Created By <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
-    onclick="openSidebar(\'/users/' . \Auth::id() . '/user_detail\')">
-    ' . User::find(\Auth::id())->name ?? '' . '
-   </p>';
 
+        // Prepare notification data
         $Notification_data = [
             'type' => 'Tasks',
             'data_type' => 'Notes_Created',
-            'sender_id' =>  $dealTask->created_by,
+            'sender_id' => $dealTask->created_by,
             'receiver_id' => $dealTask->assigned_to,
-            'data' => $html,
+            'data' => 'Create New Notes',
             'is_read' => 0,
             'related_id' => $dealTask->id,
             'created_by' => \Auth::id(),
-            'created_at' => \Carbon\Carbon::now()
+            'created_at' => \Carbon\Carbon::now(),
         ];
-        if ($dealTask->created_by !== (int)$dealTask->assigned_to && (int)$dealTask->assigned_to !== \Auth::id()) {
-            addNotifications($Notification_data);
+
+        // Add notification if applicable
+        if (
+            $dealTask->created_by !== (int)$dealTask->assigned_to &&
+            (int)$dealTask->assigned_to !== \Auth::id()
+        ) {
+            if (function_exists('addNotifications')) {
+                addNotifications($Notification_data);
+            } else {
+                \Log::error('Notification function not found');
+            }
         }
 
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Message successfully added!'),
+        ], 201);
+    }
+
+    public function taskDiscussionUpdate(Request $request)
+    {
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+            'id' => 'required|integer|min:1',
+            'comment' => 'required',
+        ];
+
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        // Find the discussion and validate existence
+        $discussion = TaskDiscussion::find($request->id);
+        if (!$discussion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Discussion not found!'),
+            ], 404);
+        }
+
+        // Find the task and validate existence
+        $dealTask = DealTask::find($request->task_id);
+        if (!$dealTask) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Task not found!'),
+            ], 404);
+        }
+
+        // Update the discussion
+        $discussion->fill([
+            'comment'    => $request->comment,
+            'task_id'    => $request->task_id,
+            'created_by' => \Auth::id(),
+        ])->save();
+
+        // Prepare notification data
+        $Notification_data = [
+            'type' => 'Tasks',
+            'data_type' => 'Notes_Created',
+            'sender_id' => $dealTask->created_by,
+            'receiver_id' => $dealTask->assigned_to,
+            'data' => 'Update notes',
+            'is_read' => 0,
+            'related_id' => $dealTask->id,
+            'created_by' => \Auth::id(),
+            'created_at' => \Carbon\Carbon::now(),
+        ];
+
+        // Add notification if applicable
+        if (
+            $dealTask->created_by !== (int)$dealTask->assigned_to &&
+            (int)$dealTask->assigned_to !== \Auth::id()
+        ) {
+            if (function_exists('addNotifications')) {
+                addNotifications($Notification_data);
+            } else {
+                \Log::error('Notification function not found');
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Message successfully added!'),
+        ], 201);
+    }
+
+    public function GetTaskDiscussion(Request $request)
+    {
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+        ];
+
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $id = $request->task_id;
         $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
             ->join('users', 'task_discussions.created_by', 'users.id')
             ->where(['task_discussions.task_id' => $id])
             ->orderBy('task_discussions.created_at', 'DESC')
             ->get()
-            ->toArray();
-
-
+            ->map(function ($discussion) {
+                return [
+                    'id' => $discussion->id,
+                    'text' => htmlspecialchars_decode($discussion->comment),
+                    'author' => $discussion->name,
+                    'time' => $discussion->created_at->diffForHumans(),
+                    'pinned' => false, // Default value as per the requirement
+                    'timestamp' => $discussion->created_at->toISOString()
+                ];
+            });
 
         return response()->json([
             'status' => 'success',
-            'discussions' => $discussions,
-            'message' => __('Message successfully added!')
+            'data' => $discussions
+        ], 201);
+    }
+
+    
+    public function taskDiscussionDelete(Request $request)
+    {
+
+        $rules = [
+            'id' => 'required|integer|min:1',
+        ];
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        $discussions = TaskDiscussion::find($request->id);
+        if (!empty($discussions)) {
+            $discussions->delete();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Task Discussion deleted!')
         ], 201);
     }
 
