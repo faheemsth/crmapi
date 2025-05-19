@@ -243,434 +243,238 @@ class DealController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Permission Denied.'], 403);
         }
 
-
-public function getMoveApplicationPluck(Request $request)
-{
-    
-    $validator = \Validator::make($request->all(), [
-        'passport_number' => 'required|string',
-        'id' => 'required|integer|exists:deal_applications,id',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $validator->errors(),
+    }
+    public function getMoveApplicationPluck(Request $request)
+    {
+        
+        $validator = \Validator::make($request->all(), [
+            'passport_number' => 'required|string',
+            'id' => 'required|integer|exists:deal_applications,id',
         ]);
-    }
 
-    if (auth()->user()->type === 'super admin' || auth()->user()->type === 'Admin Team') {
-
-        $admissions = \DB::table('deals')
-            ->leftJoin('client_deals', 'client_deals.deal_id', '=', 'deals.id')
-            ->leftJoin('users as clientUser', 'clientUser.id', '=', 'client_deals.client_id')
-            ->leftJoin('users as brandUser', 'brandUser.id', '=', 'deals.brand_id')
-            ->leftJoin('regions', 'regions.id', '=', 'deals.region_id')
-            ->leftJoin('branches', 'branches.id', '=', 'deals.branch_id')
-            ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'deals.assigned_to')
-            ->where('clientUser.passport_number', $request->passport_number)
-            ->select(
-                'deals.id',
-                'deals.name',
-                'brandUser.name as brandName',
-                'regions.name as RegionName',
-                'branches.name as branchName',
-                'assignedUser.name as assignedName'
-            )
-            ->get();
-
-        $pluckFormatted = $admissions->mapWithKeys(function ($admission) {
-            $label = $admission->name . '-' . $admission->brandName . '-' . $admission->RegionName . '-' . $admission->branchName . '-' . $admission->assignedName;
-            return [$admission->id => $label];
-        });
-
-        return response()->json([
-            'status' => true,
-            'data' => $pluckFormatted
-        ]);
-    }
-
-    return response()->json([
-        'status' => false,
-        'message' => __('Permission Denied.')
-    ], 403);
-}
-
-public function moveApplicationsave(Request $request)
-{
-    if (!in_array(\Auth::user()->type, ['super admin', 'Admin Team'])) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Permission Denied.',
-        ]);
-    }
-
-    $validator = \Validator::make($request->all(), [
-        'id' => 'required|exists:deal_applications,id',
-        'deal_id' => 'required|exists:deals,id',
-        'old_deal_id' => 'required|exists:deals,id',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $validator->errors(),
-        ]);
-    }
-
-    if ($request->deal_id == $request->old_deal_id) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'The selected deal already contains this application.',
-        ]);
-    }
-
-    $oldApplication = DealApplication::where('id', $request->id)->first();
-
-    if (!$oldApplication) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Original application not found.',
-        ]);
-    }
-
-    // Duplicate Application
-    $newApplication = new DealApplication();
-    $newApplication->application_key = $oldApplication->application_key;
-    $newApplication->university_id = $oldApplication->university_id;
-    $newApplication->deal_id = $request->deal_id;
-    $newApplication->course = $oldApplication->course;
-    $newApplication->stage_id = $oldApplication->stage_id;
-    $newApplication->name = $oldApplication->name;
-    $newApplication->intake = $oldApplication->intake;
-    $newApplication->external_app_id = $oldApplication->external_app_id;
-    $newApplication->status = $oldApplication->status;
-    $newApplication->created_by = $oldApplication->created_by;
-    $newApplication->brand_id = $oldApplication->brand_id;
-    $newApplication->created_at = $oldApplication->created_at;
-    $newApplication->updated_at = $oldApplication->updated_at;
-    $newApplication->save();
-
-    // Clone notes
-    $notes = ApplicationNote::where('application_id', $request->id)->get();
-    foreach ($notes as $note) {
-        $newNote = new ApplicationNote();
-        $newNote->title = $note->title;
-        $newNote->description = $note->description;
-        $newNote->application_id = $newApplication->id;
-        $newNote->created_by = $note->created_by;
-        $newNote->created_at = $note->created_at;
-        $newNote->updated_at = $note->updated_at;
-        $newNote->save();
-    }
-
-    // Clone tasks
-    $tasks = DealTask::where(['related_to' => $request->id, 'related_type' => 'application'])->get();
-    foreach ($tasks as $task) {
-        $newTask = new DealTask();
-        $newTask->deal_id = $newApplication->id;
-        $newTask->name = $task->name;
-        $newTask->date = $task->date;
-        $newTask->time = $task->time;
-        $newTask->priority = $task->priority;
-        $newTask->status = 1;
-        $newTask->organization_id = $task->organization_id;
-        $newTask->assigned_to = $task->assigned_to;
-        $newTask->assigned_type = $task->assigned_type;
-        $newTask->related_type = $task->related_type;
-        $newTask->related_to = $newApplication->id;
-        $newTask->branch_id = $task->branch_id;
-        $newTask->due_date = $task->due_date;
-        $newTask->start_date = $task->start_date;
-        $newTask->remainder_date = $task->remainder_date;
-        $newTask->description = $task->description;
-        $newTask->visibility = $task->visibility;
-        $newTask->deal_stage_id = $task->deal_stage_id;
-        $newTask->created_by = $task->created_by;
-        $newTask->brand_id = $task->brand_id;
-        $newTask->region_id = $task->region_id;
-        $newTask->created_at = $task->created_at;
-        $newTask->updated_at = $task->updated_at;
-        $newTask->save();
-    }
-
-    // Update stages
-    $this->updateDealStageByDealId($request->deal_id);
-    $this->updateDealStageByDealId($request->old_deal_id);
-
-    // Delete old application
-    $oldApplication->delete();
-
-    // Compare old and new application fields
-    $differences = [];
-    $fieldsToCheck = [
-        'application_key', 'university_id', 'deal_id', 'course',
-        'stage_id', 'name', 'intake', 'external_app_id',
-        'status', 'created_by', 'brand_id', 'created_at', 'updated_at'
-    ];
-
-    foreach ($fieldsToCheck as $field) {
-        $oldValue = $oldApplication->$field;
-        $newValue = $newApplication->$field;
-
-        if ($oldValue != $newValue) {
-            $differences[$field] = [
-                'old' => $oldValue,
-                'new' => $newValue,
-            ];
-        }
-    }
-
-    // Activity Log
-    addLogActivity([
-        'type' => 'info',
-        'note' => json_encode([
-            'title' => 'Application Moved',
-            'message' => 'Application moved to another deal successfully.',
-            'differences' => $differences,
-        ]),
-        'module_id' => $newApplication->id,
-        'module_type' => 'application',
-        'notification_type' => 'Application Moved',
-    ]);
-
-    return response()->json([
-        'status' => 'success',
-        'app_id' => $newApplication->id,
-        'message' => __('Application moved successfully.'),
-    ]);
-}
-
-private function updateDealStageByDealId($dealId)
-{
-    $latestApplication = DealApplication::where('deal_id', $dealId)
-        ->orderByDesc('stage_id')
-        ->first();
-
-    $deal = Deal::find($dealId);
-
-    if (!$deal || !$latestApplication) return;
-
-    $stage_id = $latestApplication->stage_id;
-
-    $stageMap = [
-        0 => 0,
-        1 => 1, 2 => 1,
-        3 => 2, 4 => 2,
-        5 => 3, 6 => 3,
-        7 => 4, 8 => 4,
-        9 => 5, 10 => 5,
-        11 => 6,
-        12 => 7,
-    ];
-
-    $deal->stage_id = $stageMap[$stage_id] ?? 0;
-    $deal->save();
-}
-
-
-    
-        $stages = Stage::orderBy('id')->pluck('name', 'id');
-        $appStages = ApplicationStage::orderBy('id')->pluck('name', 'id');
-
-        $clientDeal = ClientDeal::where('deal_id', $deal->id)->first();
-        $clientUser = User::find($clientDeal->client_id);
-        $applications = DealApplication::where('deal_id', $deal->id)->get();
-        $tasks = DealTask::where(['related_to' => $deal->id, 'related_type' => 'deal'])->orderBy('status')->get();
-        $lead = Lead::where('is_converted', $deal->id)->first();
-        $stageHistories = StageHistory::where('type', 'deal')->where('type_id', $deal->id)->pluck('stage_id');
-
-        $discussions = DealDiscussion::select('deal_discussions.id', 'deal_discussions.comment', 'deal_discussions.created_at', 'users.name', 'users.avatar')
-            ->join('users', 'deal_discussions.created_by', '=', 'users.id')
-            ->where('deal_discussions.deal_id', $deal->id)
-            ->orderBy('deal_discussions.created_by', 'DESC')
-            ->get();
-
-        $notesQuery = DealNote::select('deal_notes.*')
-            ->join('deals', 'deals.id', '=', 'deal_notes.deal_id')
-            ->where('deal_notes.deal_id', $deal->id);
-
-        $user = auth()->user();
-
-        if ($user->can('level 2') || $user->can('level 3') || $user->can('level 4')) {
-            $notesQuery->whereIn('deals.brand_id', array_keys(FiltersBrands()));
-        } else {
-            $notesQuery->where('deal_notes.created_by', $user->id);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ]);
         }
 
-        $notes = $notesQuery->orderBy('created_at', 'DESC')->get();
+        if (auth()->user()->type === 'super admin' || auth()->user()->type === 'Admin Team') {
 
-        // Tags by role
-        if (in_array($user->type, ['super admin', 'Admin Team'])) {
-            $tags = LeadTag::pluck('id', 'tag');
-        } elseif (in_array($user->type, ['Project Director', 'Project Manager', 'Admissions Officer'])) {
-            $tags = LeadTag::whereIn('brand_id', array_keys(FiltersBrands()))->pluck('id', 'tag');
-        } elseif ($user->type === 'Region Manager') {
-            $tags = LeadTag::where('region_id', $user->region_id)->pluck('id', 'tag');
-        } else {
-            $tags = LeadTag::where('branch_id', $user->branch_id)->pluck('id', 'tag');
+            $admissions = \DB::table('deals')
+                ->leftJoin('client_deals', 'client_deals.deal_id', '=', 'deals.id')
+                ->leftJoin('users as clientUser', 'clientUser.id', '=', 'client_deals.client_id')
+                ->leftJoin('users as brandUser', 'brandUser.id', '=', 'deals.brand_id')
+                ->leftJoin('regions', 'regions.id', '=', 'deals.region_id')
+                ->leftJoin('branches', 'branches.id', '=', 'deals.branch_id')
+                ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'deals.assigned_to')
+                ->where('clientUser.passport_number', $request->passport_number)
+                ->select(
+                    'deals.id',
+                    'deals.name',
+                    'brandUser.name as brandName',
+                    'regions.name as RegionName',
+                    'branches.name as branchName',
+                    'assignedUser.name as assignedName'
+                )
+                ->get();
+
+            $pluckFormatted = $admissions->mapWithKeys(function ($admission) {
+                $label = $admission->name . '-' . $admission->brandName . '-' . $admission->RegionName . '-' . $admission->branchName . '-' . $admission->assignedName;
+                return [$admission->id => $label];
+            });
+
+            return response()->json([
+                'status' => true,
+                'data' => $pluckFormatted
+            ]);
         }
+
+        return response()->json([
+            'status' => false,
+            'message' => __('Permission Denied.')
+        ], 403);
+    }
+
+    public function moveApplicationsave(Request $request)
+    {
+        if (!in_array(\Auth::user()->type, ['super admin', 'Admin Team'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission Denied.',
+            ]);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'id' => 'required|exists:deal_applications,id',
+            'deal_id' => 'required|exists:deals,id',
+            'old_deal_id' => 'required|exists:deals,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ]);
+        }
+
+        if ($request->deal_id == $request->old_deal_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The selected deal already contains this application.',
+            ]);
+        }
+
+        $oldApplication = DealApplication::where('id', $request->id)->first();
+
+        if (!$oldApplication) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Original application not found.',
+            ]);
+        }
+
+        // Duplicate Application
+        $newApplication = new DealApplication();
+        $newApplication->application_key = $oldApplication->application_key;
+        $newApplication->university_id = $oldApplication->university_id;
+        $newApplication->deal_id = $request->deal_id;
+        $newApplication->course = $oldApplication->course;
+        $newApplication->stage_id = $oldApplication->stage_id;
+        $newApplication->name = $oldApplication->name;
+        $newApplication->intake = $oldApplication->intake;
+        $newApplication->external_app_id = $oldApplication->external_app_id;
+        $newApplication->status = $oldApplication->status;
+        $newApplication->created_by = $oldApplication->created_by;
+        $newApplication->brand_id = $oldApplication->brand_id;
+        $newApplication->created_at = $oldApplication->created_at;
+        $newApplication->updated_at = $oldApplication->updated_at;
+        $newApplication->save();
+
+        // Clone notes
+        $notes = ApplicationNote::where('application_id', $request->id)->get();
+        foreach ($notes as $note) {
+            $newNote = new ApplicationNote();
+            $newNote->title = $note->title;
+            $newNote->description = $note->description;
+            $newNote->application_id = $newApplication->id;
+            $newNote->created_by = $note->created_by;
+            $newNote->created_at = $note->created_at;
+            $newNote->updated_at = $note->updated_at;
+            $newNote->save();
+        }
+
+        // Clone tasks
+        $tasks = DealTask::where(['related_to' => $request->id, 'related_type' => 'application'])->get();
+        foreach ($tasks as $task) {
+            $newTask = new DealTask();
+            $newTask->deal_id = $newApplication->id;
+            $newTask->name = $task->name;
+            $newTask->date = $task->date;
+            $newTask->time = $task->time;
+            $newTask->priority = $task->priority;
+            $newTask->status = 1;
+            $newTask->organization_id = $task->organization_id;
+            $newTask->assigned_to = $task->assigned_to;
+            $newTask->assigned_type = $task->assigned_type;
+            $newTask->related_type = $task->related_type;
+            $newTask->related_to = $newApplication->id;
+            $newTask->branch_id = $task->branch_id;
+            $newTask->due_date = $task->due_date;
+            $newTask->start_date = $task->start_date;
+            $newTask->remainder_date = $task->remainder_date;
+            $newTask->description = $task->description;
+            $newTask->visibility = $task->visibility;
+            $newTask->deal_stage_id = $task->deal_stage_id;
+            $newTask->created_by = $task->created_by;
+            $newTask->brand_id = $task->brand_id;
+            $newTask->region_id = $task->region_id;
+            $newTask->created_at = $task->created_at;
+            $newTask->updated_at = $task->updated_at;
+            $newTask->save();
+        }
+
+        // Update stages
+        $this->updateDealStageByDealId($request->deal_id);
+        $this->updateDealStageByDealId($request->old_deal_id);
+
+        // Delete old application
+        $oldApplication->delete();
+
+        // Compare old and new application fields
+        $differences = [];
+        $fieldsToCheck = [
+            'application_key', 'university_id', 'deal_id', 'course',
+            'stage_id', 'name', 'intake', 'external_app_id',
+            'status', 'created_by', 'brand_id', 'created_at', 'updated_at'
+        ];
+
+        foreach ($fieldsToCheck as $field) {
+            $oldValue = $oldApplication->$field;
+            $newValue = $newApplication->$field;
+
+            if ($oldValue != $newValue) {
+                $differences[$field] = [
+                    'old' => $oldValue,
+                    'new' => $newValue,
+                ];
+            }
+        }
+
+        // Activity Log
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'Application Moved',
+                'message' => 'Application moved to another deal successfully.',
+                'differences' => $differences,
+            ]),
+            'module_id' => $newApplication->id,
+            'module_type' => 'application',
+            'notification_type' => 'Application Moved',
+        ]);
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'admission' => $deal, 
-                'stages' => $stages,
-                'application_stages' => $appStages,
-                'applications' => $applications,
-                'tasks' => $tasks,
-                'clientUser' => $clientUser,
-                'lead' => $lead,
-                'stage_histories' => $stageHistories, 
-                'client_deal' => $clientDeal,
-                'notes' => $notes,
-                'discussions' => $discussions,
-                'tags' => $tags,
-            ]
+            'app_id' => $newApplication->id,
+            'message' => __('Application moved successfully.'),
         ]);
     }
 
-    
-
-    public function UpdateAdmissionDetails(Request $request)
+    private function updateDealStageByDealId(int $dealId): void
     {
-        $id = $request->id ?? '';
-        $deal = Deal::findOrFail($id);
-        
-        // Get the first user associated with this deal (if any)
-        $user_who_have_password = User::whereIn('id', function($query) use ($id) {
-            $query->select('client_id')->from('client_deals')->where('deal_id', $id);
-        })->first();
+        // Get the latest application based on the highest stage_id
+        $latestApplication = DealApplication::where('deal_id', $dealId)
+            ->orderByDesc('stage_id')
+            ->first();
 
-        if (\Auth::user()->can('edit deal') || \Auth::user()->type == 'super admin') {
-            if (\Auth::user()->can('edit deal') || $deal->created_by == \Auth::user()->ownerId() || \Auth::user()->type == 'super admin') {
-                // Prepare validation rules
-                $validationRules = [
-                    'name' => 'required',
-                    'intake_month' => 'required',
-                    'intake_year' => 'required',
-                    'brand_id' => 'required|gt:0',
-                    'region_id' => 'required|gt:0',
-                    'lead_branch' => 'required|gt:0',
-                    'lead_assigned_user' => 'required|gt:0',
-                    'pipeline_id' => 'required',
-                ];
+        // Retrieve the deal
+        $deal = Deal::find($dealId);
 
-                // Add passport_number validation only if user exists
-                if ($user_who_have_password) {
-                    $validationRules['passport_number'] = ['required', 'unique:users,passport_number,' . $user_who_have_password->id];
-                }
-
-                $validator = \Validator::make($request->all(), $validationRules);
-
-                if ($validator->fails()) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => $validator->errors()
-                    ], 422);
-                }
-
-                $usr = \Auth::user();
-                $deal->name  = $request->name;
-                $deal->category = $request->input('category');
-                $deal->university_id = $request->input('university_id');
-                $deal->organization_id = $request->input('organization_id');
-                $deal->phone = $request->input('lead_phone');
-                $deal->brand_id = $request->input('brand_id');
-                $deal->region_id = $request->input('region_id');
-                $deal->branch_id = $request->input('lead_branch');
-                $deal->assigned_to = $request->input('lead_assigned_user');
-                
-                if (isset($request->lead_branch)) {
-                    $deal->branch_id = $request->input('lead_branch');
-                }
-                $deal->intake_month = $request->input('intake_month');
-                $deal->intake_year = $request->input('intake_year');
-                $deal->price = 0;
-                $deal->pipeline_id = $request->input('pipeline_id');
-                $deal->description = $request->input('deal_description');
-                $deal->status      = 'Active';
-                $deal->created_by  = $usr->ownerId();
-                $deal->save();
-
-                // Update passport number if user exists
-                if ($user_who_have_password) {
-                    $user_who_have_password->passport_number = $request->passport_number;
-                    $user_who_have_password->save();
-                }
-
-                // Handle lead update or creation
-                $lead = Lead::where('is_converted', $id)->first();
-                if(!empty($lead)) {
-                    if (!empty($request->lead_email)) {
-                        $lead->email = $request->lead_email;
-                    }
-                
-                    if (!empty($request->lead_phone)) {
-                        $lead->phone = $request->full_number;
-                    }
-                
-                    $lead->save();  
-                } else {
-                    $lead = new Lead();
-                    $lead->title       = $request->name;
-                    $lead->name        = $request->name;
-                    $lead->email       = $request->lead_email ?? '--';
-                    $lead->phone       = $request->full_number ?? '--';
-                    $lead->mobile_phone = $request->full_number ?? '--';
-                    $lead->branch_id      = $request->lead_branch;
-                    $lead->brand_id      = $request->brand_id;
-                    $lead->region_id      = $request->region_id;
-                    $lead->organization_id = "--";
-                    $lead->organization_link = "--";
-                    $lead->sources = "--";
-                    $lead->referrer_email = $request->lead_email ?? '--';
-                    $lead->street = "--";
-                    $lead->city = "--";
-                    $lead->state = "--";
-                    $lead->postal_code = "--";
-                    $lead->country = "--";
-                    $lead->keynotes = "--";
-                    $lead->tags = "--";
-                    $lead->stage_id    = "1";
-                    $lead->subject     = $request->name;
-                    $lead->user_id     = $deal->assigned_to;
-                    $lead->tag_ids     = "";
-                    $lead->pipeline_id = "1";
-                    $lead->created_by  = $deal->created_by;
-                    $lead->date        = date('Y-m-d');
-                    $lead->drive_link = "";
-                    $lead->is_converted = $deal->id;
-                    $lead->save();
-                }
-
-                $data = [
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => 'Deal Updated',
-                        'message' => 'Deal updated successfully.'
-                    ]),
-                    'module_id' => $deal->id,
-                    'module_type' => 'deal',
-                    'notification_type' => 'Deal Updated'
-                ];
-                addLogActivity($data);
-
-                return response()->json([
-                    'status' => 'success',
-                    'message' => __('Deal successfully updated!')
-                ]);
-            } else {
-                 return response()->json([
-                    'status' => 'error',
-                    'message' => __('Permission Denied.')
-                ]);
-            }
-        } else {
-             return response()->json([
-                'status' => 'error',
-                'message' => __('Permission Denied.')
-            ]);
+        // If deal or application doesn't exist, stop
+        if (!$deal || !$latestApplication) {
+            return;
         }
+
+        // Map application stage_id to deal stage_id
+        $stageMap = [
+            0 => 0,
+            1 => 1, 2 => 1,
+            3 => 2, 4 => 2,
+            5 => 3, 6 => 3,
+            7 => 4, 8 => 4,
+            9 => 5, 10 => 5,
+            11 => 6,
+            12 => 7,
+        ];
+
+        $applicationStageId = $latestApplication->stage_id;
+        $dealStageId = $stageMap[$applicationStageId] ?? 0;
+
+        // Update the deal's stage_id
+        $deal->stage_id = $dealStageId;
+        $deal->save();
     }
+
 }
+ 
