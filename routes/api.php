@@ -104,9 +104,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/TaskDetails', [TaskController::class, 'TaskDetails']);
     
     Route::post('/taskDiscussionStore', [TaskController::class, 'taskDiscussionStore']);
+    Route::post('/taskDiscussionUpdate', [TaskController::class, 'taskDiscussionUpdate']);
+    Route::post('/taskDiscussionDelete', [TaskController::class, 'taskDiscussionDelete']);
+    Route::post('/GetTaskDiscussion', [TaskController::class, 'GetTaskDiscussion']);
+
     Route::post('/taskDelete', [TaskController::class, 'taskDelete']);
     Route::get('/downloadTasks', [TaskController::class, 'downloadTasks']);
     Route::post('/ApprovedTaskStatus', [TaskController::class, 'ApprovedTaskStatus']);
+    Route::post('/GetTaskByRelatedToRelatedType', [TaskController::class, 'GetTaskByRelatedToRelatedType']);
+
+    
 
     // Leads start here
     Route::post('/getLeads', [LeadController::class, 'getLeads']);
@@ -126,7 +133,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateLeadStage', [LeadController::class, 'updateLeadStage']);
     Route::post('/LeadOrgnizationUpdate', [LeadController::class, 'LeadOrgnizationUpdate']);
     Route::post('/LeadDriveLinkUpdate', [LeadController::class, 'LeadDriveLinkUpdate']);
-    Route::post('/notesCreateOrUpdate', [LeadController::class, 'notesCreateOrUpdate']);
+    Route::post('/CreateOrUpdateLeadNotes', [LeadController::class, 'CreateOrUpdateLeadNotes']);
+    Route::post('/GetLeadNotes', [LeadController::class, 'GetLeadNotes']);
+    Route::post('/DeleteLeadNotes', [LeadController::class, 'DeleteLeadNotes']);
 
 
 

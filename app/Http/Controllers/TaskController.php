@@ -510,7 +510,7 @@ class TaskController extends Controller
         $dealTask->due_date = $request->due_date ?? '';
         $dealTask->start_date = $request->start_date;
         $dealTask->date = $request->start_date;
-        $dealTask->status = 0;
+        $dealTask->status = $request->status ?? 0;
         $dealTask->remainder_date = $request->remainder_date;
         $dealTask->description = $request->description;
         $dealTask->visibility = $request->visibility;
@@ -873,42 +873,83 @@ class TaskController extends Controller
         // Fetch Task Details
         $taskId = $request->task_id;
 
-        $task = DealTask::find($taskId);
+        $task = DealTask::select(
+                    'deal_tasks.*',
+                    'brandUser.name as brandName',
+                    'regions.name as RegionName',
+                    'branches.name as BranchName',
+                    'assignedUser.name as AssignedName',
+                    'assignedByUser.name as assignedByName'
+                )
+                ->leftJoin('users as brandUser', 'brandUser.id', '=', 'deal_tasks.brand_id')
+                ->leftJoin('regions', 'regions.id', '=', 'deal_tasks.region_id')
+                ->leftJoin('branches', 'branches.id', '=', 'deal_tasks.branch_id')
+                ->leftJoin('users as assignedByUser', 'assignedByUser.id', '=', 'deal_tasks.created_by')
+                ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'deal_tasks.assigned_to')->find($taskId);
 
-        if (!$task) {
-            return response()->json(['status' => 'error', 'message' => 'Task not found'], 404);
-        }
 
-        $branches = Branch::pluck('name', 'id');
-        $users = User::pluck('name', 'id');
-        $stages = Stage::pluck('name', 'id');
-        $universities = University::pluck('name', 'id');
-        $organizations = User::where('type', 'organization')->orderBy('name', 'ASC')->pluck('name', 'id');
-        $leads = Lead::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-        $deals = Deal::where('branch_id', $task->branch_id)->orderBy('name', 'ASC')->pluck('name', 'id');
-        $toolkits = University::orderBy('name', 'ASC')->pluck('name', 'id');
-        $applications = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
-            ->where('deals.branch_id', $task->branch_id)
-            ->orderBy('deal_applications.name', 'ASC')
-            ->pluck('deal_applications.application_key', 'deal_applications.id');
-
-        $applied_meta = DB::table('meta')
+            $applied_meta = \DB::table('meta')
             ->select('meta_key', 'meta_value')
             ->where('parent_id', $task->related_to)
             ->where('stage_id', 6)
             ->get()
-            ->map(fn($item) => (array) $item)
-            ->filter(fn($item) => isset($item['meta_key'], $item['meta_value']))
+            ->map(function ($item) {
+                return (array) $item;
+            })
             ->toArray();
+            
+        $applied_meta = array_filter($applied_meta, function ($item) {
+            return is_array($item) && isset($item['meta_key']) && isset($item['meta_value']);
+        });
+    
+        // Generate the HTML in the controller
+        $applied_meta_html = '';
+        if (!empty($applied_meta)) {
+            foreach ($applied_meta as $item) {
+                $applied_meta_html .= '<tr>';
+                $applied_meta_html .= '<td style="width: 400px; font-size: 14px;border-bottom: 1px solid gray;">' . htmlspecialchars(formatKey($item['meta_key'])) . '</td>';
+                
+                // Decode JSON if applicable
+                $meta_value = $item['meta_value'];
+                if (is_string($meta_value) && is_json($meta_value)) {
+                    $meta_value = json_decode($meta_value, true);
+                }
+                
+                // Check if meta_value is iterable (array or object)
+                if (is_iterable($meta_value)) {
+                    $applied_meta_html .= '<td class="description-td" style="border-bottom: 1px solid gray;padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">';
+                    foreach ($meta_value as $value) {
+                        $applied_meta_html .= '<span class="badge bg-primary me-1">' . htmlspecialchars($value) . '</span>';
+                    }
+                    $applied_meta_html .= '</td>';
+                } else {
+                    // Fallback: Display meta_value as plain text
+                    if ($item['meta_key'] == 'stage_id' && $meta_value == 6) {
+                        $applied_meta_html .= '<td class="description-td" style="border-bottom: 1px solid gray;padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">' . htmlspecialchars("Compliance Checks") . '</td>';
+                    } else {
+                        $applied_meta_html .= '<td class="description-td" style="border-bottom: 1px solid gray;padding-left:52px; width: 550px; text-align: justify; font-size: 14px;">' . htmlspecialchars($meta_value) . '</td>';
+                    }
+                }
+        
+                $applied_meta_html .= '</tr>';
+            }
+        }
 
         $deal_details_get = null;
         $FirstApp = null;
-
+        $CourseName = null;
+        
         if ($task->related_type == "application") {
             $FirstApp = DealApplication::find($task->related_to);
 
+            $Course = Course::where('id', $FirstApp->course_id ?? '--')->first();
+                        if(!empty($Course)){
+                           $CourseName = $Course->name . ' - ' . $Course->campus . ' - ' . $Course->intake_month . ' - ' . $Course->intakeYear . ' (' . $Course->duration . ')';
+                        }else{
+                           $CourseName = $FirstApp?->course;
+                }
             if ($FirstApp) {
-                $deal_details_get = DB::table('deals')
+                $deal_details_get = \DB::table('deals')
                     ->leftJoin('client_deals', 'client_deals.deal_id', '=', 'deals.id')
                     ->leftJoin('users as clientUser', 'clientUser.id', '=', 'client_deals.client_id')
                     ->leftJoin('users as brandUser', 'brandUser.id', '=', 'deals.brand_id')
@@ -936,46 +977,88 @@ class TaskController extends Controller
                         'branches.id as branchId',
                         'assignedUser.id as assignedId',
                         'assignedUser.email as assignedUserEmail',
-                        'branches.email as branchEmail'
+                        'branches.email as branchEmail',
                     )->first();
             }
         }
 
-        $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
-            ->join('users', 'task_discussions.created_by', '=', 'users.id')
-            ->where('task_discussions.task_id', $taskId)
-            ->orderBy('task_discussions.created_at', 'DESC')
-            ->get();
-
-        $log_activities = getLogActivity($taskId, 'task', $task->created_at);
-        $Agency = Agency::find($task->related_to);
+        $RelatedTo = $this->GetBranchByType($task->related_type,$task->related_to);
 
         return response()->json([
             'status' => 'success',
             'data' => compact(
-                'FirstApp',
-                'deal_details_get',
-                'applied_meta',
-                'Agency',
-                'applications',
-                'organizations',
-                'leads',
-                'deals',
-                'toolkits',
-                'universities',
+                'RelatedTo',
                 'task',
-                'branches',
-                'users',
-                'stages',
-                'log_activities',
-                'discussions'
+                'deal_details_get',
+                'FirstApp',
+                'CourseName',
+                'applied_meta_html',
             )
         ]);
     }
 
+
+
+
+    private function GetBranchByType($type,$id)
+    {
+        if ($type == 'lead') {
+            $data = \App\Models\Lead::where('id', $id)->first();
+        } else if ($type == 'organization') {
+            $data = User::where('type', 'organization')->where('id',$id)->first();
+        } else if ($type == 'deal') {
+            $data = Deal::where('id', $id)->first();
+        } else if ($type == 'application') {
+            $data = DealApplication::join('deals', 'deals.id', '=', 'deal_applications.deal_id')
+            ->leftJoin('client_deals', 'client_deals.deal_id', '=', 'deals.id')
+            ->leftJoin('users as clientUser', 'clientUser.id', '=', 'client_deals.client_id')
+            ->leftJoin('users as brandUser', 'brandUser.id', '=', 'deals.brand_id')
+            ->leftJoin('regions', 'regions.id', '=', 'deals.region_id')
+            ->leftJoin('branches', 'branches.id', '=', 'deals.branch_id')
+            ->leftJoin('users as assignedUser', 'assignedUser.id', '=', 'deals.assigned_to')
+            ->leftJoin('sources', 'sources.id', '=', 'deals.sources')
+            ->leftJoin('leads', 'leads.is_converted', '=', 'deals.id')
+            ->where('deal_applications.id', $id)
+            ->select(
+                'deal_applications.name as name',
+                'deal_applications.id as dealApplicationId',
+                'deals.id as dealId',
+                'deals.name as dealName',
+                'clientUser.name as clientUserName',
+                'sources.name as sourceName',
+                'clientUser.id as clientUserID',
+                'clientUser.passport_number as passportNumber',
+                'clientUser.email as clientUserEmail',
+                'clientUser.phone as clientUserPhone',
+                'clientUser.address as clientUserAddress',
+                'brandUser.name as brandName',
+                'regions.name as regionName',
+                'branches.name as branchName',
+                'assignedUser.name as assignedName',
+                'brandUser.id as brandId',
+                'regions.id as regionId',
+                'branches.id as branchId',
+                'assignedUser.id as assignedId',
+                'assignedUser.email as assignedUserEmail',
+                'branches.email as branchEmail',
+                'leads.drive_link as DriveLink'
+            )
+            ->first();
+
+
+        } else if ($type == 'toolkit') {
+            $data = University::pluck('name')->first();
+        } else if ($type == 'agency') {
+            $data = User::select('agencies.organization_name as name')->join('agencies','agencies.user_id','users.id')->where('users.id',$id)->first();
+        } else {
+            $data = User::where('id',$id)->where('type', 'organization')->first();
+        }
+
+        return $data;
+    }
+
     public function taskDiscussionStore(Request $request)
     {
-
         $rules = [
             'task_id' => 'required|integer|min:1',
             'comment' => 'required',
@@ -986,61 +1069,191 @@ class TaskController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()->first(),
             ], 422);
         }
-        $id = $request->task_id;
-        $usr = \Auth::user();
-        $discussion = !empty($request->id) ? TaskDiscussion::find($request->id) : new TaskDiscussion();
+
+        // Retrieve task and validate existence
+        $dealTask = DealTask::find($request->task_id);
+        if (!$dealTask) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Task not found!'),
+            ], 404);
+        }
+
+        // Create a new task discussion
+        $discussion = new TaskDiscussion();
         $discussion->fill([
             'comment'    => $request->comment,
-            'task_id'    => $id,
+            'task_id'    => $request->task_id,
             'created_by' => \Auth::id(),
         ])->save();
-        $dealTask = DealTask::find($id);
-        $discussion_comment = (strlen($text = strip_tags($discussion->comment)) > 20) ? substr($text, 0, 20) . "..." : $text;
-        $html = '<p class="mb-0">
-    On This Task
-    <span class="fw-bold">
-       <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
-    onclick="openSidebar(\'/get-task-detail?task_id=' . $dealTask->id . '\')"
-    data-task-id="' . $dealTask->id . '">' . $dealTask->name . '</span>
-     </span>
-     Note
-     <span style="font-weight:bold;color:black !important">' . $discussion_comment . '</span>
-    Created By <span style="cursor:pointer;font-weight:bold;color:#1770b4 !important"
-    onclick="openSidebar(\'/users/' . \Auth::id() . '/user_detail\')">
-    ' . User::find(\Auth::id())->name ?? '' . '
-   </p>';
 
+        // Prepare notification data
         $Notification_data = [
             'type' => 'Tasks',
             'data_type' => 'Notes_Created',
-            'sender_id' =>  $dealTask->created_by,
+            'sender_id' => $dealTask->created_by,
             'receiver_id' => $dealTask->assigned_to,
-            'data' => $html,
+            'data' => 'Create New Notes',
             'is_read' => 0,
             'related_id' => $dealTask->id,
             'created_by' => \Auth::id(),
-            'created_at' => \Carbon\Carbon::now()
+            'created_at' => \Carbon\Carbon::now(),
         ];
-        if ($dealTask->created_by !== (int)$dealTask->assigned_to && (int)$dealTask->assigned_to !== \Auth::id()) {
-            addNotifications($Notification_data);
+
+        // Add notification if applicable
+        if (
+            $dealTask->created_by !== (int)$dealTask->assigned_to &&
+            (int)$dealTask->assigned_to !== \Auth::id()
+        ) {
+            if (function_exists('addNotifications')) {
+                addNotifications($Notification_data);
+            } else {
+                \Log::error('Notification function not found');
+            }
         }
 
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Message successfully added!'),
+        ], 201);
+    }
+
+    public function taskDiscussionUpdate(Request $request)
+    {
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+            'id' => 'required|integer|min:1',
+            'comment' => 'required',
+        ];
+
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        // Find the discussion and validate existence
+        $discussion = TaskDiscussion::find($request->id);
+        if (!$discussion) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Discussion not found!'),
+            ], 404);
+        }
+
+        // Find the task and validate existence
+        $dealTask = DealTask::find($request->task_id);
+        if (!$dealTask) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Task not found!'),
+            ], 404);
+        }
+
+        // Update the discussion
+        $discussion->fill([
+            'comment'    => $request->comment,
+            'task_id'    => $request->task_id,
+            'created_by' => \Auth::id(),
+        ])->save();
+
+        // Prepare notification data
+        $Notification_data = [
+            'type' => 'Tasks',
+            'data_type' => 'Notes_Created',
+            'sender_id' => $dealTask->created_by,
+            'receiver_id' => $dealTask->assigned_to,
+            'data' => 'Update notes',
+            'is_read' => 0,
+            'related_id' => $dealTask->id,
+            'created_by' => \Auth::id(),
+            'created_at' => \Carbon\Carbon::now(),
+        ];
+
+        // Add notification if applicable
+        if (
+            $dealTask->created_by !== (int)$dealTask->assigned_to &&
+            (int)$dealTask->assigned_to !== \Auth::id()
+        ) {
+            if (function_exists('addNotifications')) {
+                addNotifications($Notification_data);
+            } else {
+                \Log::error('Notification function not found');
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Message successfully added!'),
+        ], 201);
+    }
+
+    public function GetTaskDiscussion(Request $request)
+    {
+        $rules = [
+            'task_id' => 'required|integer|min:1',
+        ];
+
+        // Validation
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        $id = $request->task_id;
         $discussions = TaskDiscussion::select('task_discussions.id', 'task_discussions.comment', 'task_discussions.created_at', 'users.name', 'users.avatar')
             ->join('users', 'task_discussions.created_by', 'users.id')
             ->where(['task_discussions.task_id' => $id])
             ->orderBy('task_discussions.created_at', 'DESC')
             ->get()
-            ->toArray();
-
-
+            ->map(function ($discussion) {
+                return [
+                    'id' => $discussion->id,
+                    'text' => htmlspecialchars_decode($discussion->comment),
+                    'author' => $discussion->name,
+                    'time' => $discussion->created_at->diffForHumans(),
+                    'pinned' => false, // Default value as per the requirement
+                    'timestamp' => $discussion->created_at->toISOString()
+                ];
+            });
 
         return response()->json([
             'status' => 'success',
-            'discussions' => $discussions,
-            'message' => __('Message successfully added!')
+            'data' => $discussions
+        ], 201);
+    }
+
+    
+    public function taskDiscussionDelete(Request $request)
+    {
+
+        $rules = [
+            'id' => 'required|integer|min:1',
+        ];
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        $discussions = TaskDiscussion::find($request->id);
+        if (!empty($discussions)) {
+            $discussions->delete();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Task Discussion deleted!')
         ], 201);
     }
 
@@ -1326,4 +1539,91 @@ class TaskController extends Controller
     {
         return $this->updateTaskStatus($request, 'approve');
     }
+
+    public function GetTaskByRelatedToRelatedType(Request $request)
+    {
+        // Validate the input
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'related_to' => 'required|exists:deal_tasks,related_to',
+                'related_type' => 'required|exists:deal_tasks,related_type',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 400);
+        }
+
+        $related_type = $request->related_type;
+        $related_to = $request->related_to;
+
+        // Initialize query
+        $tasksQuery = DealTask::query()
+            ->where('deal_tasks.related_type', $related_type)
+            ->where('deal_tasks.related_to', $related_to)
+            ->select(
+                'users.name as AssignedTo',
+                'deal_tasks.name as TaskName',
+                'deal_tasks.id',
+                'deal_tasks.created_at',
+                'deal_tasks.status',
+                'createdByUser.name as CreatedByUsers'
+            )
+            ->join('users', 'users.id', '=', 'deal_tasks.assigned_to')
+            ->join('users as createdByUser', 'createdByUser.id', '=', 'deal_tasks.created_by')
+            ->leftJoin('deal_applications', function ($join) {
+                $join->on('deal_applications.id', '=', 'deal_tasks.related_to')
+                    ->where('deal_tasks.related_type', '=', 'application');
+            })
+            ->leftJoin('universities', 'universities.id', '=', 'deal_applications.university_id');
+
+        // Add filters based on user roles
+        $FiltersBrands = array_keys(FiltersBrands());
+
+        if (\Auth::user()->type !== 'HR') {
+            if (\Auth::user()->type === 'super admin' || \Auth::user()->can('level 1')) {
+                $FiltersBrands[] = '3751';
+                $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+            } elseif (\Auth::user()->type === 'company') {
+                $tasksQuery->where('deal_tasks.brand_id', \Auth::user()->id);
+            } elseif (\Auth::user()->type === 'Project Director' || \Auth::user()->type === 'Project Manager' || \Auth::user()->can('level 2')) {
+                $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+            } elseif (\Auth::user()->type === 'Region Manager' || (\Auth::user()->can('level 3') && !empty(\Auth::user()->region_id))) {
+                $tasksQuery->where('deal_tasks.region_id', \Auth::user()->region_id);
+            } elseif (\Auth::user()->type === 'Branch Manager' || \Auth::user()->type === 'Admissions Officer' || 
+                    \Auth::user()->type === 'Careers Consultant' || \Auth::user()->type === 'Admissions Manager' || 
+                    \Auth::user()->type === 'Marketing Officer' || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
+                $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+            } elseif (\Auth::user()->type === 'Agent') {
+                $tasksQuery->where(function ($query) {
+                    $query->where('deal_tasks.assigned_to', \Auth::user()->id)
+                        ->orWhere('deal_tasks.created_by', \Auth::user()->id);
+                });
+            } else {
+                $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+            }
+        }
+
+        // Fetch tasks and transform them
+        $tasks = $tasksQuery->get()->map(function ($task) {
+            return [
+                'id' => $task->id,
+                'text' => htmlspecialchars_decode($task->TaskName),
+                'author' => $task->CreatedByUsers,
+                'time' => $task->created_at->diffForHumans(),
+                'status' => $task->status == 1 ? 'Completed' : 'On Going',
+                'timestamp' => $task->created_at->toISOString(),
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $tasks
+        ], 200);
+    }
+
 }
