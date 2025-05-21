@@ -233,6 +233,134 @@ public function getDetailApplication(Request $request)
     ]);
 }
 
+public function storeApplication(Request $request)
+{
+    if (!\Auth::user()->can('create application')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission Denied.')
+        ]);
+    }
+
+    $validator = \Validator::make($request->all(), [
+        'university' => 'required|exists:universities,id',
+        'status' => 'required',
+        'intake_month' => 'required',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()->first()
+        ]);
+    }
+
+    $university_name = optional(University::find($request->university))->name;
+    if (!$university_name) {
+       return response()->json([
+            'status' => 'error',
+            'message' => __('Invalid university selected.')
+        ]);
+    }
+    $university_name = str_replace(' ', '-', $university_name);
+
+    $deal = Deal::find($request->Deal_id);
+    if ($deal && $deal->clients->first()) {
+        $passport_number = $deal->clients->first()->passport_number;
+    } else {
+            // Handle case where Deal or related Client is not found
+        $passport_number = null; 
+    }
+    if (!$deal) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Invalid deal selected.')
+        ]);
+    }
+
+    $userName = optional(User::find(optional(ClientDeal::where('deal_id', $request->Deal_id)->first())->client_id))->name;
+    $is_exist = DealApplication::whereRaw(
+        "application_key LIKE ?",
+        ['%' . $passport_number . '-' . $university_name . '%']
+    )->first();
+
+    if ($passport_number && $is_exist) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('An application with the passport number <b style="font-size: 1.2em;">' . $passport_number . '</b> already exists. Please use the Contacts section and search by passport number to view the student\'s application details.')
+        ], 409);
+    }
+    if (!empty($request->courses)) {
+        $courseName = $request->coursesName; // Ensure 'coursesName' matches the actual request key.
+    } else {
+        $course = Course::find($request->courses_id);
+        if (!empty($course)) {
+            $courseName = "{$course->name} - {$course->campus} - {$course->intake_month} - {$course->intakeYear} ({$course->duration})";
+        } else {
+            $courseName = null; // Handle the case where the course is not found.
+        }
+    }
+
+    $new_app = DealApplication::create([
+        'student_origin_country' => $request->student_origin_country,
+        'student_origin_city' => $request->student_origin_city,
+        'student_previous_university' => $request->student_previous_university,
+        'application_key' => "{$userName}-{$passport_number}-{$university_name}",
+        'deal_id' => $request->Deal_id,
+        'university_id' => $request->university,
+        'course' => $courseName,
+        'stage_id' => $request->status,
+        'external_app_id' => $request->application_key,
+        'intake' => $request->intake_month,
+        'name' => "{$deal->name}-{$courseName}-{$university_name}-{$request->application_key}",
+        'created_by' => Session::get('auth_type_id') ?? \Auth::id(),
+    ]);
+
+    $new_app->update([
+        'tag_ids' => $request->tag_id ?? '',
+        'brand_id' => $deal->brand_id,
+        'campus' => $request->campus,
+        'intakeYear' => $request->intakeYear,
+        'course_id' => $request->courses_id ?? "0",
+    ]);
+
+    // Update deal stage
+    $highestStageApp = DealApplication::where('deal_id', $request->Deal_id)->orderByDesc('stage_id')->first();
+    $deal->stage_id = match ($highestStageApp?->stage_id) {
+        '0' => 0,
+        '1', '2' => 1,
+        '3', '4' => 2,
+        '5', '6' => 3,
+        '7', '8' => 4,
+        '9', '10' => 5,
+        '11' => 6,
+        '12' => 7,
+        default => 0,
+    };
+    $deal->save();
+
+    addLeadHistory([
+        'stage_id' => $request->status,
+        'type_id' => $new_app->id,
+        'type' => 'application'
+    ]);
+
+    addLogActivity([
+        'type' => 'info',
+        'note' => json_encode(['title' => 'Stage Updated', 'message' => 'Application stage updated successfully.']),
+        'module_id' => $new_app->id,
+        'module_type' => 'application',
+        'notification_type' => 'Stage Updated',
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'app_id' => $new_app->id,
+        'message' => __('Application successfully created!')
+    ]);
+}
+
+
 public function updateApplication(Request $request)
 {
     $user = auth()->user();

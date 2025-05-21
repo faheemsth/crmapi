@@ -516,6 +516,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/getApplications', [ApplicationsController::class, 'getApplications']);
      Route::post('/getDetailApplication', [ApplicationsController::class, 'getDetailApplication']);
      Route::post('/updateApplication', [ApplicationsController::class, 'updateApplication']);
+     Route::post('/storeApplication', [ApplicationsController::class, 'storeApplication']);
      Route::post('/deleteApplication', [ApplicationsController::class, 'deleteApplication']);
      Route::post('/updateApplicationStage', [ApplicationsController::class, 'updateApplicationStage']);
      Route::post('/applicationAppliedStage', [ApplicationsController::class, 'applicationAppliedStage']);
