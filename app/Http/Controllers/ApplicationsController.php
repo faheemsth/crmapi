@@ -104,7 +104,7 @@ class ApplicationsController extends Controller
 
    
     // Get paginated results
-    $applications = $app_query->groupBy('deal_applications.deal_id','deal_applications.id','deal_applications.application_key','deal_applications.university_id')->paginate($perPage);
+    $applications = $app_query->distinct()->paginate($perPage);
    
 
     return response()->json([
