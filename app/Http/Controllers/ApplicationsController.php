@@ -14,6 +14,7 @@ use App\Models\ActivityLog;
 use App\Models\Agency;
 use App\Models\ApplicationNote;
 use App\Models\ApplicationStage;
+use App\Models\Branch;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Course;
@@ -24,6 +25,7 @@ use Illuminate\Http\Request;
 use App\Models\DealApplication;
 use App\Models\DealTask;
 use App\Models\LeadTag;
+use App\Models\Region;
 use Illuminate\Support\Facades\Validator;
 use Session;
 
@@ -42,9 +44,11 @@ class ApplicationsController extends Controller
     $companies = FiltersBrands();
     $brand_ids = array_keys($companies);
 
-    $app_query = DealApplication::select('deal_applications.*')
+    $app_query = DealApplication::select('deal_applications.*','users.name as UserName','lead_tags.tag as TagName')
         ->join('deals', 'deals.id', 'deal_applications.deal_id')
         ->leftJoin('leads', 'leads.is_converted', '=', 'deal_applications.deal_id')
+        ->leftJoin('lead_tags', 'lead_tags.id', '=', 'deal_applications.tag_ids')
+        ->leftJoin('users', 'users.id', '=', 'deals.assigned_to')
         ->orderBy('deal_applications.created_at', 'desc');
 
     // Role-based filtering
@@ -182,6 +186,18 @@ public function getDetailApplication(Request $request)
         'country:country_code,name'
     ])->where('id', $id)->first();
 
+    if ($application && $application->university_id) {
+        $university = University::where('id', $application->university_id)->first();
+
+        if ($university) {
+            $country = Country::where('name', 'like', '%' . $university->country . '%')->first();
+        } else {
+            $country = null; // Handle case where the university doesn't exist
+        }
+    } else {
+        $country = null; // Handle case where the application or university_id is invalid
+    }
+
     if (!$application) {
         return response()->json([
             'status' => 'error',
@@ -225,6 +241,7 @@ public function getDetailApplication(Request $request)
         'status' => 'success',
         'data' => [
             'application' => $application,
+            'country' => $country,
             'stages' => $stages, 
             'tags' => $tags,
             'stage_histories' => $stage_histories, 
@@ -291,21 +308,15 @@ public function storeApplication(Request $request)
             'message' => __('An application with the passport number <b style="font-size: 1.2em;">' . $passport_number . '</b> already exists. Please use the Contacts section and search by passport number to view the student\'s application details.')
         ], 409);
     }
-    if (!empty($request->courses)) {
-        $courseName = $request->coursesName; // Ensure 'coursesName' matches the actual request key.
-    } else {
+    if (!empty($request->courses_id)) {
         $course = Course::find($request->courses_id);
-        if (!empty($course)) {
-            $courseName = "{$course->name} - {$course->campus} - {$course->intake_month} - {$course->intakeYear} ({$course->duration})";
-        } else {
-            $courseName = null; // Handle the case where the course is not found.
-        }
+        $courseName = $course ? 
+            "{$course->name} - {$course->campus} - {$course->intake_month} - {$course->intakeYear} ({$course->duration})" 
+            : null;
+    } else {
+        $courseName = $request->CoursesName ?? null;
     }
-
     $new_app = DealApplication::create([
-        'student_origin_country' => $request->student_origin_country,
-        'student_origin_city' => $request->student_origin_city,
-        'student_previous_university' => $request->student_previous_university,
         'application_key' => "{$userName}-{$passport_number}-{$university_name}",
         'deal_id' => $request->Deal_id,
         'university_id' => $request->university,
@@ -317,14 +328,20 @@ public function storeApplication(Request $request)
         'created_by' => Session::get('auth_type_id') ?? \Auth::id(),
     ]);
 
-    $new_app->update([
-        'tag_ids' => $request->tag_id ?? '',
-        'brand_id' => $deal->brand_id,
-        'campus' => $request->campus,
-        'intakeYear' => $request->intakeYear,
-        'course_id' => $request->courses_id ?? "0",
-    ]);
-
+    $new_app->student_origin_country = $request->student_origin_country;
+    $new_app->student_origin_city = $request->student_origin_city;
+    $new_app->student_previous_university = $request->student_previous_university;
+    $new_app->tag_ids = $request->tag_ids ?? '';
+    $new_app->brand_id = $deal->brand_id;
+    $new_app->region_id = $deal->region_id;
+    $new_app->region_id = $deal->region_id;
+    $new_app->assigned_to = $deal->assigned_to;
+    $new_app->country_id = Country::where('country_code', $request?->countryId)->first()?->id;
+    $new_app->campus = $request->campus;
+    $new_app->intakeYear = $request->intakeYear;
+    $new_app->course_id = $request->courses_id ?? "0";
+    $new_app->course_id = $request->courses_id ?? "0";
+    $new_app->save();
     // Update deal stage
     $highestStageApp = DealApplication::where('deal_id', $request->Deal_id)->orderByDesc('stage_id')->first();
     $deal->stage_id = match ($highestStageApp?->stage_id) {
@@ -364,33 +381,51 @@ public function storeApplication(Request $request)
 
 public function updateApplication(Request $request)
 {
-    $user = auth()->user();
+    if (!\Auth::user()->can('create application')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Permission Denied.')
+        ]);
+    }
 
-    $validator = Validator::make(
-        $request->all(),
-        [
+    $validator = \Validator::make($request->all(), [
             'id' => 'required|exists:deal_applications,id',
             'university' => 'required|exists:universities,id',
             'status' => 'required|integer',
             'intake_month' => 'required|string',
-        ]
-    );
+        ]);
 
     if ($validator->fails()) {
         return response()->json([
-            'status' => false,
-            'message' => $validator->errors()->first(),
-        ], 422);
+            'status' => 'error',
+            'message' => $validator->errors()->first()
+        ]);
     }
 
-    if (!$user->can('edit application')) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Permission Denied.',
-        ], 403);
+    $university_name = optional(University::find($request->university))->name;
+    if (!$university_name) {
+       return response()->json([
+            'status' => 'error',
+            'message' => __('Invalid university selected.')
+        ]);
     }
-
+    $university_name = str_replace(' ', '-', $university_name);
     $application = DealApplication::find($request->id);
+    $deal = Deal::find($application->deal_id);
+    if ($deal && $deal->clients->first()) {
+        $passport_number = $deal->clients->first()->passport_number;
+    } else {
+            // Handle case where Deal or related Client is not found
+        $passport_number = null; 
+    }
+    if (!$deal) {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Invalid deal selected.')
+        ]);
+    }
+
+    $userName = optional(User::find(optional(ClientDeal::where('deal_id', $application->deal_id)->first())->client_id))->name;
     $deal = Deal::findOrFail($application->deal_id);
 
     $university = University::find($request->university);
@@ -417,46 +452,37 @@ public function updateApplication(Request $request)
         ], 409);
     }
 
-    // Course info
-    if (!empty($request->course)) {
-        $course = Course::find($request->course);
-        if (!empty($course)) {
-            $course_id = $course->id;
-            $course_name = $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')';
-        }
+    if (!empty($request->courses_id)) {
+        $course = Course::find($request->courses_id);
+        $courseName = $course ? 
+            "{$course->name} - {$course->campus} - {$course->intake_month} - {$course->intakeYear} ({$course->duration})" 
+            : null;
     } else {
-        $course_id = null;
-        $course_name = $request->course2;
+        $courseName = $request->CoursesName ?? null;
     }
-
-    $originalData = $application->getOriginal();
-
-    $application->student_origin_country = $request->student_origin_country ?? null;
-    $application->student_origin_city = $request->student_origin_city ?? null;
-    $application->student_previous_university = $request->student_previous_university ?? null;
-    $application->application_key = $application_key;
+    $application->country_id = $request->country_id;
+    $application->student_origin_country = $request->student_origin_country;
+    $application->student_origin_city = $request->student_origin_city;
+    $application->student_previous_university = $request->student_previous_university;
+    $application->application_key = "{$userName}-{$passport_number}-{$university_name}";
+    $application->deal_id = $application->deal_id;
     $application->university_id = $request->university;
+    $application->course = $courseName;
     $application->stage_id = $request->status;
-    $application->intakeYear = $request->intakeYear;
-    $application->course = $course_name;
-    $application->campus = $request->campus;
     $application->external_app_id = $request->application_key;
     $application->intake = $request->intake_month;
-    $application->name = !empty($request->name) ? $request->name : $deal->name . '-' . $course_name . '-' . $university_name . '-' . $request->application_key;
-    $application->tag_ids = !empty($request->tag_ids) ? implode(',', $request->tag_ids) : '';
-    $application->course_id = $course_id;
-
-    // Track changes
-    $changes = [];
-    foreach ($originalData as $field => $oldValue) {
-        if (array_key_exists($field, $application->getAttributes()) && $application->$field != $oldValue) {
-            $changes[$field] = [
-                'old' => $oldValue,
-                'new' => $application->$field,
-            ];
-        }
-    }
-
+    $application->name = "{$deal->name}-{$courseName}-{$university_name}-{$request->application_key}";
+    $application->created_by = Session::get('auth_type_id') ?? \Auth::id();
+    $application->tag_ids = $request->tag_ids ?? '';
+    $application->brand_id = $deal->brand_id;
+     $application->region_id = $deal->region_id;
+      $application->region_id = $deal->region_id;
+       $application->assigned_to = $deal->assigned_to;
+    $application->campus = $request->campus;
+    $application->country_id = Country::where('country_code', $request?->countryId)->first()?->id;
+    $application->intakeYear = $request->intakeYear;
+    $application->course_id = $request->courses_id ?? "0";
+    $application->course_id = $request->courses_id ?? "0";
     $application->save();
 
     if (!empty($changes)) {
@@ -500,8 +526,7 @@ public function updateApplication(Request $request)
     ]);
 
     return response()->json([
-        'status' => true,
-        'app_id' => $application->id,
+        'status' => "success",
         'message' => 'Application successfully updated!',
     ]);
 }

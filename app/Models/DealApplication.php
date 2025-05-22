@@ -11,8 +11,8 @@ class DealApplication extends Model
     protected $labels;
     protected $products;
     protected $sources;
-    protected $fillable = ['labels','application_key','deal_id', 'university_id', 'course', 'stage_id', 'external_app_id', 'name', 'intake', 'created_by'];
-    protected $with = ['stage:id,name','source:id,name','assignedUser:id,name','brand:id,name','branch:id,name','lead']; // Always eager load this relationship
+    protected $fillable = ['labels','application_key','deal_id', 'university_id', 'course','courses_id','country_id', 'stage_id', 'external_app_id', 'name', 'intake', 'created_by'];
+    protected $with = ['stage:id,name','source:id,name','assignedUser:id,name','brand:id,name','branch:id,name','university:id,name','lead']; // Always eager load this relationship
    
     public function getUniversity($id)
     {
