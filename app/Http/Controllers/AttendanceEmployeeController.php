@@ -38,6 +38,7 @@ class AttendanceEmployeeController extends Controller
                 'type'      => 'nullable|in:monthly,daily',
                 'month'     => 'nullable|date_format:Y-m',
                 'date'      => 'nullable|date_format:Y-m-d',
+                'download_csv' => 'nullable|boolean', // Add this parameter
             ]);
 
             if ($validator->fails()) {
@@ -85,11 +86,45 @@ class AttendanceEmployeeController extends Controller
                 });
             }
 
-            // Apply sorting and pagination
+
+             if ($request->input('download_csv')) {
+                $employees = $query->get(); 
+                $csvFileName = 'Attendance_' . time() . '.csv';
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+                ];
+                $callback = function () use ($employees) {
+                    $file = fopen('php://output', 'w');
+                    fputcsv($file, [
+                        'ID',
+                        'Employee',
+                        'Date',
+                        'Status',
+                        'Clock In',
+                        'Clock Out',
+                        'Early Leaving',
+                        'Overtime',
+                    ]);
+                    foreach ($employees as $employee) {
+                        fputcsv($file, [
+                            $employee->id,
+                            $employee?->employees?->name,
+                            $employee?->date,
+                            $employee?->status,
+                            $employee?->clock_in ?? '',
+                            $employee?->clock_out ?? '',
+                            $employee?->late,
+                            $employee?->early_leaving,
+                            $employee?->overtime,
+                        ]);
+                    }
+                    fclose($file);
+                };
+                return response()->stream($callback, 200, $headers);
+            }
             $attendanceRecords = $query->orderBy('date', 'DESC')
                                     ->paginate($perPage, ['*'], 'page', $page);
-
-            // Return the paginated data
             return response()->json([
                 'status' => 'success',
                 'data' => $attendanceRecords->items(),
