@@ -18,112 +18,94 @@ class AttendanceEmployeeController extends Controller
 {
     public function getAttendances(Request $request)
     {
-        // Permission check
-        if (!Auth::user()->can('manage attendance')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
-
-        // Validate request parameters
-        $validator = Validator::make($request->all(), [
-            'perPage'   => 'nullable|integer|min:1',
-            'page'      => 'nullable|integer|min:1',
-            'search'    => 'nullable|string',
-            'brand_id'  => 'nullable|integer|exists:brands,id',
-            'region_id' => 'nullable|integer|exists:regions,id',
-            'branch_id' => 'nullable|integer|exists:branches,id',
-            'type'      => 'nullable|in:monthly,daily',
-            'month'     => 'nullable|date_format:Y-m',
-            'date'      => 'nullable|date_format:Y-m-d',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Pagination settings
-        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
-        $page = $request->input('page', 1);
-
-
-
-
-
-
-        // Base query with necessary joins
-        $query = AttendanceEmployee::with(['employees', 'employee.user']);
-        if(isset($request->emp_id)){
-            $employee=Employee::where('user_id',$request->emp_id)->first();
-            $query->where('employee_id',$employee->id ?? 1);
-         }
-        // Apply role-based filtering
-       // $query = RoleBaseTableGet($query, 'employees.brand_id', 'employees.region_id', 'employees.branch_id', 'employees.created_by');
-
-        $user = Auth::user();
-
-        if (!$user->can('level1')) {
-            // Fetch attendance for a single employee
-            // $empId = $user->employee->id ?? 0;
-            // $query->where('employee_id', $empId);
-        } else {
-            // Filter based on selected brand, region, and branch
-            $employeeQuery = Employee::select('employees.id')->join('users', 'users.id', '=', 'employees.user_id');
-
-            if ($request->filled('brand_id')) {
-                $employeeQuery->where('users.brand_id', $request->brand_id);
+        try {
+            // Permission check
+            if (!Auth::user()->can('manage attendance')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => __('Permission denied.')
+                ], 403);
             }
+
+            // Validate request parameters
+            $validator = Validator::make($request->all(), [
+                'perPage'   => 'nullable|integer|min:1',
+                'page'      => 'nullable|integer|min:1',
+                'search'    => 'nullable|string',
+                'brand_id'  => 'nullable|integer|exists:brands,id',
+                'region_id' => 'nullable|integer|exists:regions,id',
+                'branch_id' => 'nullable|integer|exists:branches,id',
+                'type'      => 'nullable|in:monthly,daily',
+                'month'     => 'nullable|date_format:Y-m',
+                'date'      => 'nullable|date_format:Y-m-d',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Pagination settings
+            $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+            $page = $request->input('page', 1);
+
+            // Base query with necessary joins
+            $query = AttendanceEmployee::with(['employees.user']);
+
+            if ($request->filled('brand')) {
+                $query->whereHas('employees.user', function ($query) use ($request) {
+                    $query->where('brand_id', $request->brand);
+                });
+            }
+
             if ($request->filled('region_id')) {
-                $employeeQuery->where('users.region_id', $request->region_id);
+                $query->whereHas('employees.user', function ($query) use ($request) {
+                    $query->where('region_id', $request->region_id);
+                });
             }
+
             if ($request->filled('branch_id')) {
-                $employeeQuery->where('users.branch_id', $request->branch_id);
+                $query->whereHas('employees.user', function ($query) use ($request) {
+                    $query->where('branch_id', $request->branch_id);
+                });
             }
 
-            $employeeIds = $employeeQuery->pluck('id');
-            $query->whereIn('employee_id', $employeeIds);
-        }
+            if ($request->filled('date')) {
+                    $query->where('date', $request->date);
+            }
+            
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $query->whereHas('employees', function ($query) use ($search) {
+                    $query->where('name', 'like', "%$search%")
+                        ->orWhere('email', 'like', "%$search%")
+                        ->orWhere('phone', 'like', "%$search%");
+                });
+            }
 
-        // Apply attendance filters (daily/monthly)
-        if ($request->type === 'monthly' && $request->filled('month')) {
-            $start_date = Carbon::parse($request->month)->startOfMonth()->toDateString();
-            $end_date = Carbon::parse($request->month)->endOfMonth()->toDateString();
-            $query->whereBetween('date', [$start_date, $end_date]);
-        } elseif ($request->type === 'daily' && $request->filled('date')) {
-            $query->whereDate('date', $request->date);
-        } else {
-            $start_date = Carbon::now()->startOfMonth()->toDateString();
-            $end_date = Carbon::now()->endOfMonth()->toDateString();
-            $query->whereBetween('date', [$start_date, $end_date]);
-        }
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->whereHas('employees', function ($query) use ($search) {
-                $query->where('name', 'like', "%$search%")
-                    ->orWhere('email', 'like', "%$search%")
-                    ->orWhere('phone', 'like', "%$search%");
-            });
-        }
-        // Apply sorting and pagination
-        $attendanceRecords = $query->orderBy('date', 'DESC')
-            ->paginate($perPage, ['*'], 'page', $page);
+            // Apply sorting and pagination
+            $attendanceRecords = $query->orderBy('date', 'DESC')
+                                    ->paginate($perPage, ['*'], 'page', $page);
 
-        // Return the paginated data
-        return response()->json([
-            'status' => 'success',
-            'data' => $attendanceRecords->items(),
-            'current_page' => $attendanceRecords->currentPage(),
-            'last_page' => $attendanceRecords->lastPage(),
-            'total_records' => $attendanceRecords->total(),
-            'per_page' => $attendanceRecords->perPage(),
-        ], 200);
+            // Return the paginated data
+            return response()->json([
+                'status' => 'success',
+                'data' => $attendanceRecords->items(),
+                'current_page' => $attendanceRecords->currentPage(),
+                'last_page' => $attendanceRecords->lastPage(),
+                'total_records' => $attendanceRecords->total(),
+                'per_page' => $attendanceRecords->perPage(),
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
-
-
 
 
     public function addAttendance(Request $request)
