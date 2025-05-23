@@ -56,7 +56,7 @@ class AttendanceEmployeeController extends Controller
 
 
         // Base query with necessary joins
-        $query = AttendanceEmployee::with(['employee', 'employee.user']);
+        $query = AttendanceEmployee::with(['employees', 'employee.user']);
         if(isset($request->emp_id)){
             $employee=Employee::where('user_id',$request->emp_id)->first();
             $query->where('employee_id',$employee->id ?? 1);
@@ -100,7 +100,14 @@ class AttendanceEmployeeController extends Controller
             $end_date = Carbon::now()->endOfMonth()->toDateString();
             $query->whereBetween('date', [$start_date, $end_date]);
         }
-
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('employees', function ($query) use ($search) {
+                $query->where('name', 'like', "%$search%")
+                    ->orWhere('email', 'like', "%$search%")
+                    ->orWhere('phone', 'like', "%$search%");
+            });
+        }
         // Apply sorting and pagination
         $attendanceRecords = $query->orderBy('date', 'DESC')
             ->paginate($perPage, ['*'], 'page', $page);

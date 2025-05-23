@@ -2165,9 +2165,9 @@ class LeadController extends Controller
             'message' => __('Lead Note deleted!')
         ], 201);
     }
-    public function LeadStageHistory(Request $request)
+    public function StageHistory(Request $request)
     {
-        $notes = StageHistory::where('type', 'lead')->where('type_id', $request->id)->pluck('stage_id')->toArray();
+        $notes = StageHistory::where('type', $request->type)->where('type_id', $request->id)->pluck('stage_id')->toArray();
          return response()->json([
             'status' => 'success',
             'data' => $notes
