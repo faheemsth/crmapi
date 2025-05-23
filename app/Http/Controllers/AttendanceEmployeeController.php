@@ -103,6 +103,7 @@ class AttendanceEmployeeController extends Controller
                         'Status',
                         'Clock In',
                         'Clock Out',
+                        'Late',
                         'Early Leaving',
                         'Overtime',
                     ]);
