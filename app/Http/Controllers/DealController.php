@@ -153,7 +153,7 @@ class DealController extends Controller
         } elseif ($user->type == 'Agent') {
             $query->whereHas('lead', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id)
-                ->orWhere('created_by', $user->id);
+                    ->orWhere('created_by', $user->id);
             });
         } else {
             $query->whereHas('lead', function ($q) use ($user) {
@@ -193,12 +193,12 @@ class DealController extends Controller
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
                 $q->where('deal_title', 'like', "%{$search}%")
-                ->orWhere('deal_value', 'like', "%{$search}%")
-                ->orWhereHas('lead', function ($subQ) use ($search) {
-                    $subQ->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('phone', 'like', "%{$search}%");
-                });
+                    ->orWhere('deal_value', 'like', "%{$search}%")
+                    ->orWhereHas('lead', function ($subQ) use ($search) {
+                        $subQ->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
             });
         }
         $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
@@ -207,8 +207,8 @@ class DealController extends Controller
 
 
         $deals = $query
-        ->orderByDesc('deals.id')
-        ->paginate($perPage, ['*'], 'page', $page);
+            ->orderByDesc('deals.id')
+            ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
             'status' => 'success',
@@ -242,11 +242,10 @@ class DealController extends Controller
         if (!$deal->is_active) {
             return response()->json(['status' => 'error', 'message' => 'Permission Denied.'], 403);
         }
-
     }
     public function getMoveApplicationPluck(Request $request)
     {
-        
+
         $validator = \Validator::make($request->all(), [
             'passport_number' => 'required|string',
             'id' => 'required|integer|exists:deal_applications,id',
@@ -404,9 +403,19 @@ class DealController extends Controller
         // Compare old and new application fields
         $differences = [];
         $fieldsToCheck = [
-            'application_key', 'university_id', 'deal_id', 'course',
-            'stage_id', 'name', 'intake', 'external_app_id',
-            'status', 'created_by', 'brand_id', 'created_at', 'updated_at'
+            'application_key',
+            'university_id',
+            'deal_id',
+            'course',
+            'stage_id',
+            'name',
+            'intake',
+            'external_app_id',
+            'status',
+            'created_by',
+            'brand_id',
+            'created_at',
+            'updated_at'
         ];
 
         foreach ($fieldsToCheck as $field) {
@@ -459,11 +468,16 @@ class DealController extends Controller
         // Map application stage_id to deal stage_id
         $stageMap = [
             0 => 0,
-            1 => 1, 2 => 1,
-            3 => 2, 4 => 2,
-            5 => 3, 6 => 3,
-            7 => 4, 8 => 4,
-            9 => 5, 10 => 5,
+            1 => 1,
+            2 => 1,
+            3 => 2,
+            4 => 2,
+            5 => 3,
+            6 => 3,
+            7 => 4,
+            8 => 4,
+            9 => 5,
+            10 => 5,
             11 => 6,
             12 => 7,
         ];
@@ -475,6 +489,4 @@ class DealController extends Controller
         $deal->stage_id = $dealStageId;
         $deal->save();
     }
-
 }
- 

@@ -47,6 +47,7 @@ use App\Http\Controllers\LoanController;
 use App\Http\Controllers\MoiAcceptedController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
@@ -528,7 +529,9 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updateMOIInstitutes', [MoiAcceptedController::class, 'updateMOIInstitutes']);
     //  Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
 
-
+    // reports 
+    Route::post('/reports/visa-analysis', [ReportsController::class, 'visaAnalysis']);
+    Route::get('/reports/deposit-analysis', [ReportsController::class, 'depositAnalysis']);
 
 
 
