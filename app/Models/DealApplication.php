@@ -64,7 +64,7 @@ class DealApplication extends Model
     }
     public function stage()
     {
-        return $this->hasOne('App\Models\Stage', 'id', 'stage_id');
+        return $this->hasOne('App\Models\ApplicationStage', 'id', 'stage_id');
     }
 
     
@@ -75,7 +75,7 @@ public function brand()
 
 public function branch()
 {
-    return $this->belongsTo(User::class, 'branch_id');
+    return $this->belongsTo(Branch::class, 'branch_id');
 }
 
 public function source()
@@ -96,14 +96,14 @@ public function city()
     return $this->belongsTo(City::class, 'student_origin_city');
 }
 
-public function institute()
+public function preinstitute()
 {
     return $this->belongsTo(Institute::class, 'student_previous_university');
 }
 
 public function country()
 {
-    return $this->belongsTo(Country::class, 'student_origin_country', 'country_code', 'country_code');
+    return $this->belongsTo(Country::class, 'country_id', 'country_code', 'country_code');
 }
 public function deal()
 {
@@ -117,5 +117,12 @@ public function course()
 {
     return $this->belongsTo(Course::class, 'course_id');
 }
+
+
+public function countryName()
+{
+    return $this->belongsTo(Country::class, 'country_id');
+}
+
 
 }
