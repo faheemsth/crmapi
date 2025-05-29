@@ -93,7 +93,10 @@ class UniversityController extends Controller
 
         $statuses = [];
         foreach ($universityStatsByCountries as $u) {
-            $statuses[$u->country] = $u->total_universities;
+            $statuses[$u->country] = array(
+                    'country_code'=>$u->country_code,
+                    'count'=>$u->total_universities
+            );
         }
 
         $customOrder = [
