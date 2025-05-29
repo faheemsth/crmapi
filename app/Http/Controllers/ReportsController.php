@@ -39,6 +39,7 @@ class ReportsController extends Controller
         $brandIds = $request->input('brand_ids', []);
         $regionIds = $request->input('region_ids', []);
         $branchIds = $request->input('branch_ids', []);
+        $institute_ids = $request->input('institute_ids', []);
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
         $intake = $request->input('intake');
@@ -56,6 +57,9 @@ class ReportsController extends Controller
         }
         if (!empty($branchIds)) {
             $query->whereIn('branch_id', $branchIds);
+        }
+        if (!empty($institute_ids)) {
+            $query->whereIn('university_id', $institute_ids);
         }
         if (!empty($intakeYear)) {
             $query->where('intakeYear', $intakeYear);
@@ -90,17 +94,18 @@ class ReportsController extends Controller
             ->get();
 
         // Intake-wise visa count (grouped by intake + intakeYear)
-         $intakeVisaCounts = (clone $query)->select(
-            DB::raw("CONCAT(intake, ' ', intakeYear) as intakeMonthYear"),
+        $intakeVisaCounts = (clone $query)->select(
+            'intake',
+            'intakeYear',
             DB::raw('count(*) as visa_count')
         )
-        ->whereIn('stage_id', $visaStages)
-        ->groupBy('intake', 'intakeYear')
-        ->get();
+            ->whereIn('stage_id', $visaStages)
+            ->groupBy('intake', 'intakeYear')
+            ->get();
 
         // Institute-wise application count (>0)
-        $instituteCounts = (clone $query)->select('institute_name', DB::raw('count(*) as application_count'))
-            ->groupBy('institute_name')
+        $instituteCounts = (clone $query)->select('university_name', DB::raw('count(*) as application_count'))
+            ->groupBy('university_name')
             ->having('application_count', '>', 0)
             ->get();
         if ($startDate) {
@@ -115,6 +120,9 @@ class ReportsController extends Controller
             }
             if (!empty($branchIds)) {
                 $monthWiseVisas->whereIn('branch_id', $branchIds);
+            }
+            if (!empty($institute_ids)) {
+                $query->whereIn('university_id', $institute_ids);
             }
 
             if (!empty($intakeYear)) {
