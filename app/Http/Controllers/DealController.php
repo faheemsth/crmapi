@@ -238,7 +238,13 @@ class DealController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-        $deal = Deal::where('id', $request->deal_id)->first();
+        $deal = Deal::with('clients')->where('id', $request->deal_id)->first();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $deal
+        ],200);
+
         if (!$deal->is_active) {
             return response()->json(['status' => 'error', 'message' => 'Permission Denied.'], 403);
         }

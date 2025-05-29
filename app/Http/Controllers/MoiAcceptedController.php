@@ -65,7 +65,7 @@ class MoiAcceptedController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'university_id' => 'required|integer|exists:universities,id',
-            'institute_id' => 'required|array',
+            'institute_id' => 'nullable|array',
             'institute_id.*' => 'integer|exists:institutes,id'
         ]);
 
@@ -78,9 +78,10 @@ class MoiAcceptedController extends Controller
         }
 
         try {
+            $instituteIds = $request->institute_id ?? []; 
             $results = MoiAccepted::updateInstitutes(
                 $request->university_id,
-                $request->institute_id,
+                $instituteIds,
                 auth()->id()
             );
 

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Deal extends Model
 {
-    protected $with = ['pipeline:id,name','stage:id,name','source:id,name','assignedUser:id,name','brand:id,name','branch:id,name','lead']; // Always eager load this relationship
+    protected $with = ['pipeline:id,name','stage:id,name','source:id,name','assignedUser:id,name','brand:id,name','branch:id,name','region:id,name','lead']; //  Always eager load this relationship
     protected $fillable = [
         'name',
         'price',
@@ -176,7 +176,12 @@ public function brand()
 
 public function branch()
 {
-    return $this->belongsTo(User::class, 'branch_id');
+    return $this->belongsTo(Branch::class, 'branch_id');
+}
+
+public function region()
+{
+    return $this->belongsTo(Region::class, 'region_id');
 }
 
 public function source()
@@ -185,7 +190,7 @@ public function source()
 }
 public function lead()
 {
-    return $this->belongsTo(Lead::class);
+    return $this->belongsTo(Lead::class,"id","is_converted");
 }
 public function client()
 {

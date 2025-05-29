@@ -132,6 +132,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/leadLabelStore', [LeadController::class, 'leadLabelStore']);
     Route::post('/leadsDelete', [LeadController::class, 'leadsDelete']);
     Route::post('/updateLeadStage', [LeadController::class, 'updateLeadStage']);
+    Route::post('/StageHistory', [LeadController::class, 'StageHistory']);
     Route::post('/LeadOrgnizationUpdate', [LeadController::class, 'LeadOrgnizationUpdate']);
     Route::post('/LeadDriveLinkUpdate', [LeadController::class, 'LeadDriveLinkUpdate']);
     Route::post('/CreateOrUpdateLeadNotes', [LeadController::class, 'CreateOrUpdateLeadNotes']);
@@ -516,6 +517,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/getApplications', [ApplicationsController::class, 'getApplications']);
      Route::post('/getDetailApplication', [ApplicationsController::class, 'getDetailApplication']);
      Route::post('/updateApplication', [ApplicationsController::class, 'updateApplication']);
+     Route::post('/storeApplication', [ApplicationsController::class, 'storeApplication']);
      Route::post('/deleteApplication', [ApplicationsController::class, 'deleteApplication']);
      Route::post('/updateApplicationStage', [ApplicationsController::class, 'updateApplicationStage']);
      Route::post('/applicationAppliedStage', [ApplicationsController::class, 'applicationAppliedStage']);
