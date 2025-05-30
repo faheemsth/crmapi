@@ -252,6 +252,14 @@ class AttendanceEmployeeController extends Controller
                     $startDate->addDay();
                 }
             }
+            // Sort data in descending order by date
+            usort($data, function ($a, $b) {
+                return strcmp($b['date'], $a['date']);
+            });
+            // usort($data, function ($a, $b) {
+            //     return strcmp($a['date'], $b['date']);
+            // });
+
 
             // Apply filters
             if ($request->filled('brand')) {
