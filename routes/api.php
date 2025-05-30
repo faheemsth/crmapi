@@ -546,6 +546,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getDefaultFiltersData', [GeneralController::class, 'getDefaultFiltersData']);
     Route::get('/getAllProjectDirectors', [GeneralController::class, 'getAllProjectDirectors']);
     Route::post('/getRegionBrands', [GeneralController::class, 'getRegionBrands']);
+    Route::post('/getMultiRegionBrands', [GeneralController::class, 'getMultiRegionBrands']);
     Route::post('/getFilterData', [GeneralController::class, 'getFilterData']);
     Route::post('/getFilterBranchUsers', [GeneralController::class, 'getFilterBranchUsers']);
     Route::post('/getSavedFilters', [GeneralController::class, 'getSavedFilters']);
