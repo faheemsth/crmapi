@@ -854,10 +854,10 @@ public function GetBranchByType()
 
     public function ApplicationStagPluck()
     {
-        $Stage = ApplicationStage::pluck('name', 'id')->toArray();
+        $stages = ApplicationStage::pluck('name', 'id');
         return response()->json([
             'status' => 'success',
-            'data' => $Stage
+            'data' => $stages
         ]);
     }
 }
