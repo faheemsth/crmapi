@@ -566,4 +566,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/DealTagPluck', [GeneralController::class, 'DealTagPluck']);
     Route::post('/DealStagPluck', [GeneralController::class, 'DealStagPluck']);
+    Route::post('/ApplicationStagPluck', [GeneralController::class, 'ApplicationStagPluck']);
 });

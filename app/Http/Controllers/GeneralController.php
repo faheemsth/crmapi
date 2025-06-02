@@ -851,4 +851,13 @@ public function GetBranchByType()
             'data' => $Stage
         ]);
     }
+
+    public function ApplicationStagPluck()
+    {
+        $Stage = ApplicationStage::pluck('name', 'id')->toArray();
+        return response()->json([
+            'status' => 'success',
+            'data' => $Stage
+        ]);
+    }
 }
