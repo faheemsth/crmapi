@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Models\Country;
 use Auth;
 use App\Models\Course;
 use App\Models\CourseDuration;
@@ -67,7 +68,12 @@ class UniversityController extends Controller
             if ($request->country === 'Europe') {
                 $query->whereIn('country', $europeanCountries);
             } else {
-                $query->where('country', 'like', '%' . $request->country . '%');
+                $country = Country::find($request->country);
+                if (!$country) {
+                    $query->where('country', 'like', '%' . $request->country . '%');
+                } else {
+                    $query->where('country', $country->name);
+                }
             }
         }
 
@@ -75,9 +81,14 @@ class UniversityController extends Controller
             $query->where('rank_id', 'like', '%' . $request->rank_id . '%');
         }
 
-        if ($request->filled('intake_months')) {
-            $query->whereIn('intake_months',$request->intake_months);
+if ($request->filled('intake_months')) {
+    $query->where(function($subQuery) use ($request) {
+        foreach ($request->intake_months as $month) {
+            $subQuery->orWhereRaw("FIND_IN_SET(?, intake_months)", [trim($month)]);
         }
+    });
+}
+
 
 
 
@@ -345,7 +356,7 @@ class UniversityController extends Controller
         $university->name = $request->name;
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
-        $university->campuses = $request->city;
+        // $university->campuses = $request->city;
         $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
