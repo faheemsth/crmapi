@@ -262,6 +262,7 @@ class UniversityController extends Controller
         }
 
         $university = new University();
+        $university->status = 1;
         $university->name = $request->name;
         $university->company_id = 1;
         $university->country = implode(',', $request->country);
@@ -286,8 +287,8 @@ class UniversityController extends Controller
         addLogActivity([
             'type' => 'info',
             'note' => json_encode([
-                'title' => 'University Created',
-                'message' => 'University Created successfully'
+                'title' => $university->name. '  created',
+                'message' => $university->name. '  created'
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
@@ -717,11 +718,13 @@ class UniversityController extends Controller
     $university->save();
 
     // Log activity
+   $statusText = $request->status == 1 ? 'Active' : 'Inactive';
+
     $logData = [
-        'type' => 'info',
+        'type' => 'warning',
         'note' => json_encode([
-            'title' => 'University Status Updated',
-            'message' => 'University status changed to ' . $request->status,
+            'title' => $university->name . ' status updated to ' . $statusText,
+            'message' => $university->name . ' status updated to ' . $statusText,
         ]),
         'module_id' => $university->id,
         'module_type' => 'university',
@@ -828,13 +831,16 @@ class UniversityController extends Controller
     // Update status
     $university->moi_status = $request->status;
     $university->save();
+ 
 
-    // Log activity
+
+    $statusText = $request->status == 1 ? 'active' : 'inactive';
+
     $logData = [
-        'type' => 'info',
+        'type' => 'warning',
         'note' => json_encode([
-            'title' => 'University course Status Updated',
-            'message' => 'University status changed to ' . $request->status,
+            'title' => $university->name . ' MOI status updated to ' . $statusText,
+            'message' => $university->name . ' MOI status updated to ' . $statusText,
         ]),
         'module_id' => $university->id,
         'module_type' => 'university',

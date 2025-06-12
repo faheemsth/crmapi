@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\UniversityRule;
+use App\Models\University;
 use Illuminate\Http\Request;
 
 class UniversityRuleController extends Controller
@@ -59,7 +60,7 @@ class UniversityRuleController extends Controller
                 'university_id' => 'required|integer|exists:universities,id',
                 'name' => 'required|string',
                 'position' => 'required|integer',
-                'rule_type' => 'required|string|in:restriction,document'
+                'rule_type' => 'required|string|in:restriction,requirement'
             ]
         );
 
@@ -78,11 +79,14 @@ class UniversityRuleController extends Controller
             'created_by' => \Auth::id()
         ]);
 
+        
+        $university = University::find($request->university_id);
+
         // Log activity
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => 'University Rule Created',
+                'title' => $university->name . ' ' . $request->rule_type .' created',
                 'message' => "A new rule '{$rule->name}' has been created successfully.",
             ]),
             'module_id' => $rule->university_id,
@@ -146,30 +150,21 @@ class UniversityRuleController extends Controller
         $rule->save();
 
         // Log changed fields only
-        $changes = [];
-        foreach ($originalData as $field => $oldValue) {
-            if ($rule->$field != $oldValue) {
-                $changes[$field] = [
-                    'old' => $oldValue,
-                    'new' => $rule->$field
-                ];
-            }
-        }
+          $university = University::find($request->university_id);
 
-        // If there are changes, log the activity
-        if (!empty($changes)) {
-            addLogActivity([
-                'type' => 'info',
-                'note' => json_encode([
-                    'title' => 'University Rule Updated',
-                    'message' => 'Fields updated successfully',
-                    'changes' => $changes
-                ]),
-                'module_id' => $rule->university_id,
-                'module_type' => 'university',
-                'notification_type' => 'Rule Updated'
-            ]);
-        }
+        // Log activity
+      // Log activity
+        addLogActivity([
+            'type' => 'success',
+            'note' => json_encode([
+                'title' => $university->name . ' ' . $request->rule_type . ' updated',
+                'message' => "The rule has been updated from '{$originalData['name']}' to '{$rule->name}'.",
+            ]),
+            'module_id' => $rule->university_id,
+            'module_type' => 'university',
+            'notification_type' => 'Rule Updated',
+        ]);
+
 
         return response()->json([
             'status' => 'success',
@@ -286,20 +281,27 @@ class UniversityRuleController extends Controller
         }
 
         $ruleName = $rule->name;
+        $rule_type = $rule->rule_type; 
         $ruleId = $rule->id;
+
+        $university = University::find($rule->university_id);
 
         $rule->delete();
 
         // Log activity
+       
+        
+
+        // Log activity
         addLogActivity([
-            'type' => 'success',
+            'type' => 'warning',
             'note' => json_encode([
-                'title' => 'University Rule Deleted',
-                'message' => "Rule '{$ruleName}' has been deleted successfully.",
+                'title' => $university->name . ' ' . $rule_type .' deleted',
+                'message' => "A new rule '{$ruleName}' has been deleted successfully.",
             ]),
             'module_id' => $rule->university_id,
-            'module_type' => 'university_rule',
-            'notification_type' => 'Rule Deleted',
+            'module_type' => 'university',
+            'notification_type' => 'Rule Created',
         ]);
 
         return response()->json([
