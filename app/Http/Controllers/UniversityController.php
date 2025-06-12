@@ -296,7 +296,7 @@ if ($request->filled('intake_months')) {
         $university->save();
 
         addLogActivity([
-            'type' => 'info',
+            'type' => 'success',
             'note' => json_encode([
                 'title' => $university->name. '  created',
                 'message' => $university->name. '  created'
@@ -520,7 +520,7 @@ if ($request->filled('intake_months')) {
         // addLogActivity($logData);
 
           addLogActivity([
-            'type' => 'info',
+            'type' => 'warning',
             'note' => json_encode([
                 'title' => $university->name. '  deleted',
                 'message' => $university->name. '  deleted',
@@ -755,7 +755,7 @@ if ($request->filled('intake_months')) {
    $statusText = $request->status == 1 ? 'Active' : 'Inactive';
 
     $logData = [
-        'type' => 'warning',
+        'type' => 'info',
         'note' => json_encode([
             'title' => $university->name . ' status updated to ' . $statusText,
             'message' => $university->name . ' status updated to ' . $statusText,
@@ -871,7 +871,7 @@ if ($request->filled('intake_months')) {
     $statusText = $request->status == 1 ? 'active' : 'inactive';
 
     $logData = [
-        'type' => 'warning',
+        'type' => 'info',
         'note' => json_encode([
             'title' => $university->name . ' MOI status updated to ' . $statusText,
             'message' => $university->name . ' MOI status updated to ' . $statusText,

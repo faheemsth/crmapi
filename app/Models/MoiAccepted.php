@@ -112,7 +112,7 @@ class MoiAccepted extends Model
             $results['added'][] = $record;
 
             addLogActivity([
-                'type' => 'info',
+                'type' => 'success',
                 'note' => json_encode([
                     'title' => 'MOI University added in '.$university->name,
                     'message' => "Added '{$instituteNames[$instituteId]}' to '{$university->name}'",
