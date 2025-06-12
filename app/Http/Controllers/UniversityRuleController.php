@@ -155,7 +155,7 @@ class UniversityRuleController extends Controller
         // Log activity
       // Log activity
         addLogActivity([
-            'type' => 'success',
+            'type' => 'info',
             'note' => json_encode([
                 'title' => $university->name . ' ' . $request->rule_type . ' updated',
                 'message' => "The rule has been updated from '{$originalData['name']}' to '{$rule->name}'.",
