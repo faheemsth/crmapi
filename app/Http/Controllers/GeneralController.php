@@ -676,7 +676,7 @@ public function DeleteLogActivity(Request $request)
     $validator = Validator::make(
         $request->all(),
         [
-            'id' => 'required|exists:log_activities,id',
+            'id' => 'required|exists:saved_filters,id',
         ]
     );
 
@@ -688,10 +688,15 @@ public function DeleteLogActivity(Request $request)
     }
 
     // Attempt to Find the Log Entry
-    $logs = LogActivity::find($request->id);
+    $SavedFilter = SavedFilter::find($request->id);
 
-    if ($logs) {
-        $logs->delete();
+    if ($SavedFilter) {
+        $SavedFilter->delete();
+        // Return Success Response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Filter successfully deleted!'),
+        ], 200);
     } else {
         return response()->json([
             'status' => 'error',
@@ -699,11 +704,7 @@ public function DeleteLogActivity(Request $request)
         ], 404); // Using 404 for "not found" is more appropriate
     }
 
-    // Return Success Response
-    return response()->json([
-        'status' => 'success',
-        'message' => __('Filter successfully deleted!'),
-    ], 200);
+
 }
 
 public function UniversityByCountryCode(Request $request)
