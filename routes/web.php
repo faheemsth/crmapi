@@ -16,3 +16,27 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/application', function () {
+    // Prefetch data
+    $universities = Illuminate\Support\Facades\DB::table('universities')->get()->keyBy('id');
+    $countries = Illuminate\Support\Facades\DB::table('countries')->get()->keyBy('name');
+
+    // Process applications in chunks
+    Illuminate\Support\Facades\DB::table('deal_applications')->chunkById(100, function ($applications) use ($universities, $countries) {
+        foreach ($applications as $application) {
+            if ($application->university_id && empty($application->country_id)) {
+                $university = $universities->get($application->university_id);
+
+                if ($university) {
+                    $country = $countries->firstWhere('name', $university->country);
+
+                    if ($country && $application->country_id !== $country->id) {
+                        Illuminate\Support\Facades\DB::table('deal_applications')
+                            ->where('id', $application->id)
+                            ->update(['country_id' => $country->id]);
+                    }
+                }
+            }
+        }
+    });
+});

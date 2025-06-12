@@ -112,9 +112,9 @@ class MoiAccepted extends Model
             $results['added'][] = $record;
 
             addLogActivity([
-                'type' => 'info',
+                'type' => 'success',
                 'note' => json_encode([
-                    'title' => 'Institute Added',
+                    'title' => 'MOI University added in '.$university->name,
                     'message' => "Added '{$instituteNames[$instituteId]}' to '{$university->name}'",
                     'action' => 'create',
                     'university_id' => $universityId,
@@ -142,7 +142,7 @@ class MoiAccepted extends Model
                 addLogActivity([
                     'type' => 'warning',
                     'note' => json_encode([
-                        'title' => 'Institute Removed',
+                        'title' =>  'MOI University removed in '.$university->name,
                         'message' => "Removed '{$instituteName}' from '{$university->name}'",
                         'action' => 'delete',
                         'university_id' => $universityId,

@@ -1,11 +1,14 @@
 <?php
 
+use App\Http\Controllers\AgencyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\ApplicationsController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PaySlipController;
 use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\AttendanceEmployeeController;
@@ -20,6 +23,7 @@ use App\Http\Controllers\CompetenciesController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\CustomQuestionController;
+use App\Http\Controllers\DealController;
 use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\DeductionOptionController;
 use App\Http\Controllers\InterviewScheduleController;
@@ -43,6 +47,7 @@ use App\Http\Controllers\LoanController;
 use App\Http\Controllers\MoiAcceptedController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
@@ -74,6 +79,7 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/registerAgent', 'registerAgent');
     Route::post('/login', 'login');
     Route::post('/validateEmpId', 'validateEmpId');
+    Route::post('/encryptDataEmpId', 'encryptDataEmpId');
     Route::post('/googlelogin', 'googlelogin');
     Route::post('/changePassword', 'changePassword');
 });
@@ -96,28 +102,42 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateTaskStatus', [TaskController::class, 'updateTaskStatus']);
     Route::post('/ShuffleTaskOwnership', [TaskController::class, 'ShuffleTaskOwnership']);
     Route::post('/getTaskDetails', [TaskController::class, 'getTaskDetails']);
+    Route::post('/TaskDetails', [TaskController::class, 'TaskDetails']);
+    
     Route::post('/taskDiscussionStore', [TaskController::class, 'taskDiscussionStore']);
+    Route::post('/taskDiscussionUpdate', [TaskController::class, 'taskDiscussionUpdate']);
+    Route::post('/taskDiscussionDelete', [TaskController::class, 'taskDiscussionDelete']);
+    Route::post('/GetTaskDiscussion', [TaskController::class, 'GetTaskDiscussion']);
+
     Route::post('/taskDelete', [TaskController::class, 'taskDelete']);
     Route::get('/downloadTasks', [TaskController::class, 'downloadTasks']);
     Route::post('/ApprovedTaskStatus', [TaskController::class, 'ApprovedTaskStatus']);
+    Route::post('/GetTaskByRelatedToRelatedType', [TaskController::class, 'GetTaskByRelatedToRelatedType']);
+
+    
 
     // Leads start here
     Route::post('/getLeads', [LeadController::class, 'getLeads']);
     Route::post('/fetchColumns', [LeadController::class, 'fetchColumns']);
     Route::post('/importCsv', [LeadController::class, 'importCsv']);
     Route::post('/getLeadDetails', [LeadController::class, 'getLeadDetails']);
+    Route::post('/getLeadDetailOnly', [LeadController::class, 'getLeadDetailOnly']);
+    Route::post('/saveLead', [LeadController::class, 'saveLead']);
     Route::post('/updateLead', [LeadController::class, 'updateLead']);
     Route::post('/deleteBulkLeads', [LeadController::class, 'deleteBulkLeads']);
     Route::post('/updateBulkLead', [LeadController::class, 'updateBulkLead']);
     Route::post('/addLeadTags', [LeadController::class, 'addLeadTags']);
-    Route::post('/convertToApplication', [LeadController::class, 'convertToApplication']);
+    Route::post('/convertToAdmission', [LeadController::class, 'convertToAdmission']);
     Route::post('/leadsLabels', [LeadController::class, 'leadsLabels']);
     Route::post('/leadLabelStore', [LeadController::class, 'leadLabelStore']);
     Route::post('/leadsDelete', [LeadController::class, 'leadsDelete']);
     Route::post('/updateLeadStage', [LeadController::class, 'updateLeadStage']);
+    Route::post('/StageHistory', [LeadController::class, 'StageHistory']);
     Route::post('/LeadOrgnizationUpdate', [LeadController::class, 'LeadOrgnizationUpdate']);
     Route::post('/LeadDriveLinkUpdate', [LeadController::class, 'LeadDriveLinkUpdate']);
-    Route::post('/notesCreateOrUpdate', [LeadController::class, 'notesCreateOrUpdate']);
+    Route::post('/CreateOrUpdateLeadNotes', [LeadController::class, 'CreateOrUpdateLeadNotes']);
+    Route::post('/GetLeadNotes', [LeadController::class, 'GetLeadNotes']);
+    Route::post('/DeleteLeadNotes', [LeadController::class, 'DeleteLeadNotes']);
 
 
 
@@ -227,6 +247,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateEmployeeOtherPayment', [OtherPaymentController::class, 'updateEmployeeOtherPayment']);
     Route::post('/deleteEmployeeOtherPayment', [OtherPaymentController::class, 'deleteEmployeeOtherPayment']);
 
+    // agency
+    Route::post('/getagency', [AgencyController::class, 'index']);
+    Route::post('/storeagency', [AgencyController::class, 'storeagency']);
+    Route::post('/updateagency', [AgencyController::class, 'updateagency']);
+    Route::post('/GetAgencyDetail', [AgencyController::class, 'GetAgencyDetail']);
+
     // Apraisals
     Route::post('/getGoalTrackings', [GoalTrackingController::class, 'getGoalTrackings']);
     Route::post('/addGoalTracking', [GoalTrackingController::class, 'addGoalTracking']);
@@ -252,6 +278,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/EmployeeNoteStore', [UserController::class, 'HrmInternalEmployeeNoteStore']);
     Route::post('/EmployeeNoteDelete', [UserController::class, 'HrmInternalEmployeeNoteDelete']);
 
+    //organization 
+    Route::post('getorganization', [OrganizationController::class, 'getorganization']);
+    Route::post('organizationstore', [OrganizationController::class, 'organizationstore']);
+    Route::post('organizationupdate', [OrganizationController::class, 'organizationupdate']);
+    
+    Route::post('organizationshow', [OrganizationController::class, 'organizationshow']);
 
     // Branches
     Route::post('/getRegions', [RegionController::class, 'getRegions']);
@@ -374,6 +406,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/deleteCourse', [CourseController::class, 'deleteCourse']);
     Route::post('/addCourses', [CourseController::class, 'addCourses']);
     Route::post('/getCourseDetail', [CourseController::class, 'getCourseDetail']);
+    Route::post('/pluckCourse', [CourseController::class, 'pluckCourse']);
 
     //  Job Applications
     Route::post('/candidate', [JobApplicationController::class, 'candidate']);
@@ -430,7 +463,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/instituteDetail', [InstituteController::class, 'instituteDetail']);
     Route::post('/getInstitutes', [InstituteController::class, 'getInstitutes']);
-    Route::post('/pluckInstitutes', [InstituteController::class, 'pluckInstitutes']);
+    Route::post('/pluckInstitute', [InstituteController::class, 'pluckInstitutes']);
     Route::post('/addInstitute', [InstituteController::class, 'addInstitute']);
     Route::post('/updateInstitute', [InstituteController::class, 'updateInstitute']);
     Route::post('/deleteInstitute', [InstituteController::class, 'deleteInstitute']);
@@ -447,6 +480,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateUniversityCourseStatus', [UniversityController::class, 'updateUniversityCourseStatus']);
     Route::post('/updateUniversityMOIStatus', [UniversityController::class, 'updateUniversityMOIStatus']);
     Route::post('/updateAboutUniversity', [UniversityController::class, 'updateAboutUniversity']);
+    Route::post('/getIntakeMonthByUniversity', [UniversityController::class, 'getIntakeMonthByUniversity']);
+    Route::post('/get_course_campus', [UniversityController::class, 'get_course_campus']);
 
      //   Institute Category
      Route::post('/addInstituteCategory', [InstituteCategoryController::class, 'addInstituteCategory']);
@@ -469,13 +504,39 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updateUniversityRulePosition', [UniversityRuleController::class, 'updateUniversityRulePosition']);
 
 
+     //     adminission
+     Route::post('/getAdmission', [DealController::class, 'getAdmission']);
+     Route::post('/getAdmissionDetails', [DealController::class, 'getAdmissionDetails']);
+     Route::post('/getMoveApplicationPluck', [DealController::class, 'getMoveApplicationPluck']);
+     Route::post('/moveApplicationsave', [DealController::class, 'moveApplicationsave']);
+
+     
+
+
+     //     application
+     Route::post('/getApplications', [ApplicationsController::class, 'getApplications']);
+     Route::post('/getDetailApplication', [ApplicationsController::class, 'getDetailApplication']);
+     Route::post('/updateApplication', [ApplicationsController::class, 'updateApplication']);
+     Route::post('/storeApplication', [ApplicationsController::class, 'storeApplication']);
+     Route::post('/deleteApplication', [ApplicationsController::class, 'deleteApplication']);
+     Route::post('/updateApplicationStage', [ApplicationsController::class, 'updateApplicationStage']);
+     
+     Route::post('/application_request_save_deposite', [ApplicationsController::class, 'application_request_save_deposite']);
+
+     Route::post('/applicationAppliedStage', [ApplicationsController::class, 'applicationAppliedStage']);
+     Route::post('/saveApplicationDepositRequest', [ApplicationsController::class, 'saveApplicationDepositRequest']);
+     Route::post('/applicationNotesStore', [ApplicationsController::class, 'applicationNotesStore']);
+     Route::post('/getApplicationNotes', [ApplicationsController::class, 'getApplicationNotes']);
+
      //     University Rules
      Route::post('/addMOIInstitutes', [MoiAcceptedController::class, 'addMOIInstitutes']);
      Route::post('/getMIOList', [MoiAcceptedController::class, 'getMIOList']);
      Route::post('/updateMOIInstitutes', [MoiAcceptedController::class, 'updateMOIInstitutes']);
     //  Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
 
-
+    // reports 
+    Route::post('/reports/visa-analysis', [ReportsController::class, 'visaAnalysis']);
+    Route::get('/reports/deposit-analysis', [ReportsController::class, 'depositAnalysis']);
 
 
 
@@ -485,6 +546,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getDefaultFiltersData', [GeneralController::class, 'getDefaultFiltersData']);
     Route::get('/getAllProjectDirectors', [GeneralController::class, 'getAllProjectDirectors']);
     Route::post('/getRegionBrands', [GeneralController::class, 'getRegionBrands']);
+    Route::post('/getMultiRegionBrands', [GeneralController::class, 'getMultiRegionBrands']);
     Route::post('/getFilterData', [GeneralController::class, 'getFilterData']);
     Route::post('/getFilterBranchUsers', [GeneralController::class, 'getFilterBranchUsers']);
     Route::post('/getSavedFilters', [GeneralController::class, 'getSavedFilters']);
@@ -495,7 +557,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
     Route::post('/Country', [GeneralController::class, 'Country']);
+    Route::post('/Country/by/code', [GeneralController::class, 'CountryByCode']);
+    Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);
     Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
+    Route::post('/DeleteSavedFilter', [GeneralController::class, 'DeleteSavedFilter']);
+    Route::post('/GetBranchByType', [GeneralController::class, 'GetBranchByType']);
+    Route::post('/leadsrequireddata', [GeneralController::class, 'leadsrequireddata']);
+    Route::post('/getCitiesOnCode', [GeneralController::class, 'getCitiesOnCode']);
 
-
+    Route::post('/DealTagPluck', [GeneralController::class, 'DealTagPluck']);
+    Route::post('/DealStagPluck', [GeneralController::class, 'DealStagPluck']);
+    Route::post('/ApplicationStagPluck', [GeneralController::class, 'ApplicationStagPluck']);
 });

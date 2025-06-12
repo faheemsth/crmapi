@@ -13,111 +13,333 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class AttendanceEmployeeController extends Controller
 {
+    // public function getAttendances(Request $request)
+    // {
+    //     try {
+    //         // Permission check
+    //         if (!Auth::user()->can('manage attendance')) {
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => __('Permission denied.')
+    //             ], 403);
+    //         }
+
+    //         // Validate request parameters
+    //         $validator = Validator::make($request->all(), [
+    //             'perPage'   => 'nullable|integer|min:1',
+    //             'page'      => 'nullable|integer|min:1',
+    //             'search'    => 'nullable|string',
+    //             'brand_id'  => 'nullable|integer|exists:brands,id',
+    //             'region_id' => 'nullable|integer|exists:regions,id',
+    //             'branch_id' => 'nullable|integer|exists:branches,id',
+    //             'type'      => 'nullable|in:monthly,daily',
+    //             'month'     => 'nullable|date_format:Y-m',
+    //             'date'      => 'nullable|date_format:Y-m-d',
+    //             'download_csv' => 'nullable|boolean', // Add this parameter
+    //         ]);
+
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'errors' => $validator->errors()
+    //             ], 422);
+    //         }
+
+    //         // Pagination settings
+    //         $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+    //         $page = $request->input('page', 1);
+
+    //         // Base query with necessary joins
+    //         $query = AttendanceEmployee::with(['employees.user']);
+
+    //         if ($request->filled('brand')) {
+    //             $query->whereHas('employees.user', function ($query) use ($request) {
+    //                 $query->where('brand_id', $request->brand);
+    //             });
+    //         }
+
+    //         if ($request->filled('region_id')) {
+    //             $query->whereHas('employees.user', function ($query) use ($request) {
+    //                 $query->where('region_id', $request->region_id);
+    //             });
+    //         }
+
+    //         if ($request->filled('branch_id')) {
+    //             $query->whereHas('employees.user', function ($query) use ($request) {
+    //                 $query->where('branch_id', $request->branch_id);
+    //             });
+    //         }
+
+    //         if ($request->filled('date')) {
+    //                 $query->where('date', $request->date);
+    //         }
+            
+    //         if ($request->filled('search')) {
+    //             $search = $request->input('search');
+    //             $query->whereHas('employees', function ($query) use ($search) {
+    //                 $query->where('name', 'like', "%$search%")
+    //                     ->orWhere('email', 'like', "%$search%")
+    //                     ->orWhere('phone', 'like', "%$search%");
+    //             });
+    //         }
+
+
+    //          if ($request->input('download_csv')) {
+    //             $employees = $query->get(); 
+    //             $csvFileName = 'Attendance_' . time() . '.csv';
+    //             $headers = [
+    //                 'Content-Type' => 'text/csv',
+    //                 'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+    //             ];
+    //             $callback = function () use ($employees) {
+    //                 $file = fopen('php://output', 'w');
+    //                 fputcsv($file, [
+    //                     'ID',
+    //                     'Employee',
+    //                     'Date',
+    //                     'Status',
+    //                     'Clock In',
+    //                     'Clock Out',
+    //                     'Late',
+    //                     'Early Leaving',
+    //                     'Overtime',
+    //                 ]);
+    //                 foreach ($employees as $employee) {
+    //                     fputcsv($file, [
+    //                         $employee->id,
+    //                         $employee?->employees?->name,
+    //                         $employee?->date,
+    //                         $employee?->status,
+    //                         $employee?->clock_in ?? '',
+    //                         $employee?->clock_out ?? '',
+    //                         $employee?->late,
+    //                         $employee?->early_leaving,
+    //                         $employee?->overtime,
+    //                     ]);
+    //                 }
+    //                 fclose($file);
+    //             };
+    //             return response()->stream($callback, 200, $headers);
+    //         }
+    //         $attendanceRecords = $query->orderBy('date', 'DESC')
+    //                                 ->paginate($perPage, ['*'], 'page', $page);
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'data' => $attendanceRecords->items(),
+    //             'current_page' => $attendanceRecords->currentPage(),
+    //             'last_page' => $attendanceRecords->lastPage(),
+    //             'total_records' => $attendanceRecords->total(),
+    //             'per_page' => $attendanceRecords->perPage(),
+    //         ], 200);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+
     public function getAttendances(Request $request)
     {
-        // Permission check
-        if (!Auth::user()->can('manage attendance')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
-
-        // Validate request parameters
-        $validator = Validator::make($request->all(), [
-            'perPage'   => 'nullable|integer|min:1',
-            'page'      => 'nullable|integer|min:1',
-            'search'    => 'nullable|string',
-            'brand_id'  => 'nullable|integer|exists:brands,id',
-            'region_id' => 'nullable|integer|exists:regions,id',
-            'branch_id' => 'nullable|integer|exists:branches,id',
-            'type'      => 'nullable|in:monthly,daily',
-            'month'     => 'nullable|date_format:Y-m',
-            'date'      => 'nullable|date_format:Y-m-d',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Pagination settings
-        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
-        $page = $request->input('page', 1);
-
-
-
-
-
-
-        // Base query with necessary joins
-        $query = AttendanceEmployee::with(['employee', 'employee.user']);
-        if(isset($request->emp_id)){
-            $employee=Employee::where('user_id',$request->emp_id)->first();
-            $query->where('employee_id',$employee->id ?? 1);
-         }
-        // Apply role-based filtering
-       // $query = RoleBaseTableGet($query, 'employees.brand_id', 'employees.region_id', 'employees.branch_id', 'employees.created_by');
-
-        $user = Auth::user();
-
-        if (!$user->can('level1')) {
-            // Fetch attendance for a single employee
-            // $empId = $user->employee->id ?? 0;
-            // $query->where('employee_id', $empId);
-        } else {
-            // Filter based on selected brand, region, and branch
-            $employeeQuery = Employee::select('employees.id')->join('users', 'users.id', '=', 'employees.user_id');
-
-            if ($request->filled('brand_id')) {
-                $employeeQuery->where('users.brand_id', $request->brand_id);
+        try {
+            // Permission check
+            if (!Auth::user()->can('manage attendance')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => __('Permission denied.')
+                ], 403);
             }
+
+            // Validate request parameters
+            $validator = Validator::make($request->all(), [
+                'perPage' => 'nullable|integer|min:1',
+                'page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string',
+                'brand_id' => 'nullable|integer|exists:brands,id',
+                'region_id' => 'nullable|integer|exists:regions,id',
+                'branch_id' => 'nullable|integer|exists:branches,id',
+                'type' => 'nullable|in:monthly,daily',
+                'month' => 'nullable|date_format:Y-m',
+                'date' => 'nullable|date_format:Y-m-d',
+                'download_csv' => 'nullable|boolean',
+                'status' => 'nullable|integer|in:1,2,3,4',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
+            $page = $request->input('page', 1);
+
+            // Retrieve employees
+            $employees = Employee::with(['user'])
+                ->when($request->filled('brand_id'), function ($query) use ($request) {
+                    $query->whereHas('user', fn($q) => $q->where('brand_id', $request->brand_id));
+                })
+                ->get();
+
+            $data = [];
+
+            foreach ($employees as $employee) {
+                if (!$employee->user) {
+                    continue; // Skip if the user relationship is missing
+                }
+
+                $attendanceRange = AttendanceEmployee::where('employee_id', $employee->user_id)
+                    ->selectRaw('MIN(date) as first_date, MAX(date) as last_date')
+                    ->first();
+
+                if (!$attendanceRange || !$attendanceRange->first_date) {
+                    continue;
+                }
+
+                // Determine the start date
+                if ($request->filled('start_date')) {
+                    $startDate = Carbon::parse($request->start_date);
+                } else {
+                    $startDate = Carbon::parse($attendanceRange->first_date);
+                }
+
+                // Determine the end date
+                if ($request->filled('end_date')) {
+                    $endDate = Carbon::parse($request->end_date);
+                } else {
+                    $endDate = now()->endOfMonth();
+                }
+
+                $existingAttendances = AttendanceEmployee::where('employee_id', $employee->user_id)
+                    ->whereBetween('date', [$startDate, $endDate])
+                    ->get()
+                    ->keyBy('date');
+
+                while ($startDate <= $endDate) {
+                    $dateStr = $startDate->format('Y-m-d');
+                    $attendance = $existingAttendances[$dateStr] ?? null;
+
+                    $shiftDurationInSeconds = $employee?->user?->branch?->shift_time * 60 * 60;
+
+                    $data[] = [
+                        'employee_id' => $employee->user_id,
+                        'employee_name' => $employee->user->name,
+                        'brand_id' => $employee->user->brand_id,
+                        'region_id' => $employee->user->region_id,
+                        'branch_id' => $employee->user->branch_id,
+                        'date' => $dateStr,
+                        'clock_in' => $attendance?->clock_in ?? "00:00:00",
+                        'clock_out' => $attendance?->clock_out ?? "00:00:00",
+                        'worked_hours' => $attendance && $attendance->clock_in && $attendance->clock_out
+                            ? gmdate("H:i:s", Carbon::parse($attendance->clock_out)->diffInSeconds(Carbon::parse($attendance->clock_in)))
+                            : "00:00:00",
+                        'status' => $attendance && $attendance->clock_in && $attendance->clock_out
+                            ? (Carbon::parse($attendance->clock_out)->diffInSeconds(Carbon::parse($attendance->clock_in)) < $shiftDurationInSeconds
+                                ? 'Early Leaving'
+                                : 'Present')
+                            : 'Absent',
+                        'late' => $attendance?->late ?? "00:00:00",
+                        'early_leaving' => $attendance?->early_leaving ?? "00:00:00",
+                        'overtime' => $attendance?->overtime ?? "00:00:00",
+                    ];
+
+                    $startDate->addDay();
+                }
+            }
+            // Sort data in descending order by date
+            usort($data, function ($a, $b) {
+                return strcmp($b['date'], $a['date']);
+            });
+            // usort($data, function ($a, $b) {
+            //     return strcmp($a['date'], $b['date']);
+            // });
+
+
+            // Apply filters
+            if ($request->filled('brand')) {
+                $data = array_filter($data, fn($record) => $record['brand_id'] == $request->brand);
+            }
+
             if ($request->filled('region_id')) {
-                $employeeQuery->where('users.region_id', $request->region_id);
+                $data = array_filter($data, fn($record) => $record['region_id'] == $request->region_id);
             }
+
             if ($request->filled('branch_id')) {
-                $employeeQuery->where('users.branch_id', $request->branch_id);
+                $data = array_filter($data, fn($record) => $record['branch_id'] == $request->branch_id);
             }
 
-            $employeeIds = $employeeQuery->pluck('id');
-            $query->whereIn('employee_id', $employeeIds);
+            if ($request->filled('date')) {
+                $data = array_filter($data, fn($record) => $record['date'] == $request->date);
+            }
+
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $data = array_filter($data, fn($record) => str_contains(strtolower($record['employee_name']), strtolower($search)));
+            }
+
+            if ($request->filled('status')) {
+                $statusMap = [1 => 'Present', 2 => 'Absent', 3 => 'Early Leaving'];
+                if($request->status != "4"){
+                   $statusFilter = $statusMap[$request->status] ?? 'Present';
+                   $data = array_filter($data, fn($record) => $record['status'] === $statusFilter);
+                }
+            }else{
+                $statusFilter = 'Present';
+                $data = array_filter($data, fn($record) => $record['status'] === $statusFilter);
+            }
+
+            if ($request->input('download_csv')) {
+                $csvFileName = 'Attendance_' . time() . '.csv';
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+                ];
+                $callback = function () use ($data) {
+                    $file = fopen('php://output', 'w');
+                    fputcsv($file, [
+                        'ID',
+                        'Employee',
+                        'Date',
+                        'Status',
+                        'Clock In',
+                        'Clock Out',
+                        'Late',
+                        'Early Leaving',
+                        'Overtime',
+                    ]);
+                    foreach ($data as $row) {
+                        fputcsv($file, array_values($row));
+                    }
+                    fclose($file);
+                };
+                return response()->stream($callback, 200, $headers);
+            }
+
+            // Paginate data
+            $offset = ($page - 1) * $perPage;
+            $paginatedData = array_slice($data, $offset, $perPage);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $paginatedData,
+                'current_page' => $page,
+                'last_page' => ceil(count($data) / $perPage),
+                'total_records' => count($data),
+                'per_page' => $perPage,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        // Apply attendance filters (daily/monthly)
-        if ($request->type === 'monthly' && $request->filled('month')) {
-            $start_date = Carbon::parse($request->month)->startOfMonth()->toDateString();
-            $end_date = Carbon::parse($request->month)->endOfMonth()->toDateString();
-            $query->whereBetween('date', [$start_date, $end_date]);
-        } elseif ($request->type === 'daily' && $request->filled('date')) {
-            $query->whereDate('date', $request->date);
-        } else {
-            $start_date = Carbon::now()->startOfMonth()->toDateString();
-            $end_date = Carbon::now()->endOfMonth()->toDateString();
-            $query->whereBetween('date', [$start_date, $end_date]);
-        }
-
-        // Apply sorting and pagination
-        $attendanceRecords = $query->orderBy('date', 'DESC')
-            ->paginate($perPage, ['*'], 'page', $page);
-
-        // Return the paginated data
-        return response()->json([
-            'status' => 'success',
-            'data' => $attendanceRecords->items(),
-            'current_page' => $attendanceRecords->currentPage(),
-            'last_page' => $attendanceRecords->lastPage(),
-            'total_records' => $attendanceRecords->total(),
-            'per_page' => $attendanceRecords->perPage(),
-        ], 200);
     }
-
-
-
 
     public function addAttendance(Request $request)
     {

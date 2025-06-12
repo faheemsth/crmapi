@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Models\Country;
 use Auth;
 use App\Models\Course;
 use App\Models\CourseDuration;
@@ -67,7 +68,12 @@ class UniversityController extends Controller
             if ($request->country === 'Europe') {
                 $query->whereIn('country', $europeanCountries);
             } else {
-                $query->where('country', 'like', '%' . $request->country . '%');
+                $country = Country::find($request->country);
+                if (!$country) {
+                    $query->where('country', 'like', '%' . $country->name . '%');
+                } else {
+                    $query->where('country', $request->country);
+                }
             }
         }
 
@@ -75,9 +81,14 @@ class UniversityController extends Controller
             $query->where('rank_id', 'like', '%' . $request->rank_id . '%');
         }
 
-        if ($request->filled('intake_months')) {
-            $query->whereIn('intake_months',$request->intake_months);
+if ($request->filled('intake_months')) {
+    $query->where(function($subQuery) use ($request) {
+        foreach ($request->intake_months as $month) {
+            $subQuery->orWhereRaw("FIND_IN_SET(?, intake_months)", [trim($month)]);
         }
+    });
+}
+
 
 
 
@@ -93,7 +104,10 @@ class UniversityController extends Controller
 
         $statuses = [];
         foreach ($universityStatsByCountries as $u) {
-            $statuses[$u->country] = $u->total_universities;
+            $statuses[$u->country] = array(
+                    'country_code'=>$u->country_code,
+                    'count'=>$u->total_universities
+            );
         }
 
         $customOrder = [
@@ -116,6 +130,7 @@ class UniversityController extends Controller
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
             'data' => [
+                'number_of_tiles' => 5,
                 'statuses' => $sortedStatuses,
                 'universities' => $universities->items(),
                 'current_page' => $universities->currentPage(),
@@ -258,6 +273,7 @@ class UniversityController extends Controller
         }
 
         $university = new University();
+        $university->status = '1';
         $university->name = $request->name;
         $university->company_id = 1;
         $university->country = implode(',', $request->country);
@@ -280,10 +296,10 @@ class UniversityController extends Controller
         $university->save();
 
         addLogActivity([
-            'type' => 'info',
+            'type' => 'success',
             'note' => json_encode([
-                'title' => 'University Created',
-                'message' => 'University Created successfully'
+                'title' => $university->name. '  created',
+                'message' => $university->name. '  created'
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
@@ -341,7 +357,7 @@ class UniversityController extends Controller
         $university->name = $request->name;
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
-        $university->campuses = $request->city;
+        // $university->campuses = $request->city;
         $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
@@ -356,28 +372,33 @@ class UniversityController extends Controller
 
         // Log changed fields only
         $changes = [];
+         $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
             if ($university->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
                     'new' => $university->$field
                 ];
+                $updatedFields[] = $field;
             }
         }
 
         if (!empty($changes)) {
-            addLogActivity([
-                'type' => 'info',
-                'note' => json_encode([
-                    'title' => 'University Updated',
-                    'message' => 'Fields updated successfully',
-                    'changes' => $changes
-                ]),
-                'module_id' => $university->id,
-                'module_type' => 'university',
-                'notification_type' => 'University Updated'
-            ]);
-        }
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $university->name . ' updated ',
+                'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                'changes' => $changes
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated'
+        ]);
+    }
 
         return response()->json([
             'status' => 'success',
@@ -423,23 +444,29 @@ class UniversityController extends Controller
 
         // Log changed fields only
         $changes = [];
+         $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at', 'rank', 'created_by'])) {
+                    continue;
+                }
             if ($university->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
                     'new' => $university->$field
                 ];
+
+                 $updatedFields[] = $field;
             }
         }
 
         if (!empty($changes)) {
             addLogActivity([
                 'type' => 'info',
-                'note' => json_encode([
-                    'title' => 'University Updated',
-                    'message' => 'Fields updated successfully',
-                    'changes' => $changes
-                ]),
+                 'note' => json_encode([
+                        'title' => $university->name . ' updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
                 'module_id' => $university->id,
                 'module_type' => 'university',
                 'notification_type' => 'University Updated'
@@ -478,19 +505,31 @@ class UniversityController extends Controller
         // Find the university
         $university = University::find($request->id);
 
-        // Log the deletion
-        $logData = [
-            'type' => 'info',
+        // // Log the deletion
+        // $logData = [
+        //     'type' => 'info',
+        //     'note' => json_encode([
+        //         'title' => 'University Deleted',
+        //         'message' => 'University deleted successfully.',
+        //         'changes' => $university
+        //     ]),
+        //     'module_id' => $university->id,
+        //     'module_type' => 'university',
+        //     'notification_type' => 'University Deleted'
+        // ];
+        // addLogActivity($logData);
+
+          addLogActivity([
+            'type' => 'warning',
             'note' => json_encode([
-                'title' => 'University Deleted',
-                'message' => 'University deleted successfully.',
+                'title' => $university->name. '  deleted',
+                'message' => $university->name. '  deleted',
                 'changes' => $university
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
-            'notification_type' => 'University Deleted'
-        ];
-        addLogActivity($logData);
+            'notification_type' => 'University deleted',
+        ]);
 
         // Delete the record
         $university->delete();
@@ -546,79 +585,120 @@ class UniversityController extends Controller
     }
 
 
-    public function getIntakeMonths()
-    {
-        $id = $_GET['id'];
-        $university = University::where('id', $id)->first();
-        $courses = Course::where('university_id', $id)->get();
-        $intake_html = '';
-        $course_html = '';
-        $intake_year_html= '';
+    // public function getIntakeMonthByUniversity()
+    // {
+    //     $id = $_POST['id'];
+    //     $university = University::where('id', $id)->first();
+    //     $courses = Course::where('university_id', $id)->get();
+    
+    //     $monthNames = [
+    //         'JAN' => 'JAN',
+    //         'FEB' => 'FEB',
+    //         'MAR' => 'MAR',
+    //         'APR' => 'APR',
+    //         'MAY' => 'MAY',
+    //         'JUN' => 'JUN',
+    //         'JUL' => 'JUL',
+    //         'AUG' => 'AUG',
+    //         'SEP' => 'SEP',
+    //         'OCT' => 'OCT',
+    //         'NOV' => 'NOV',
+    //         'DEC' => 'DEC'
+    //     ];
+        
+    //     // Process intake months
+    //     $intake_months = [];
+    //     if ($university && $university->intake_months) {
+    //         $intake_months = collect(explode(',', $university->intake_months))
+    //             ->map(function ($monthAbbr) use ($monthNames) {
+    //                 $trimmed = trim($monthAbbr);
+    //                 return $monthNames[$trimmed] ?? $trimmed;
+    //             })
+    //             ->filter()
+    //             ->unique()
+    //             ->values()
+    //             ->toArray();
+    //     }
+    
+    //     // Process courses
+    //     $course_options = [];
+    //     foreach ($courses as $course) {
+    //         $course_options[] = [
+    //             $course->id => $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')'
+    //         ];
+    //     }
+    
+    //     // Process intake years
+    //     $intake_years = [];
+    //     $years = intakeYear() ?? [];
+    //     foreach ($years as $year) {
+    //         $intake_years[] = [
+    //             $year => $year
+    //         ];
+    //     }
+    
+    //     return [
+    //         'status' => 'success',
+    //         'university_status' => $university->status ?? null,
+    //         'intake_months' => $intake_months,
+    //         'courses' => $course_options,
+    //         'intake_years' => $intake_years
+    //     ];
+    // }
+    public function getIntakeMonthByUniversity()
+     {
+            $id = $_POST['id'];
+            $university = University::where('id', $id)->first();
+            $courses = Course::where('university_id', $id)->get();
 
-        $monthNames = [
-            'JAN' => 'January',
-            'FEB' => 'February',
-            'MAR' => 'March',
-            'APR' => 'April',
-            'MAY' => 'May',
-            'JUN' => 'June',
-            'JUL' => 'July',
-            'AUG' => 'August',
-            'SEP' => 'September',
-            'OCT' => 'October',
-            'NOV' => 'November',
-            'DEC' => 'December'
-        ];
-
-        $intake_month = University::where('id', $id)
-            ->whereNotNull('intake_months')
-            ->pluck('intake_months')
-            ->flatMap(function ($campusString) use ($monthNames) {
-                return array_map(function ($monthAbbr) use ($monthNames) {
-                    return $monthNames[trim($monthAbbr)] ?? $monthAbbr;
-                }, explode(',', $campusString));
-            })
-            ->toArray();
-
-        $intake_html = '<select name="intake_month" class="form form-control select2 validationSideColor" id="intake_month" ' . ($university->status == '1' ? 'disabled' : '') . '>';
-        $intake_html .= '<option value="">Select Month</option>';
-        if (!empty($intake_month)) {
-            foreach ($intake_month as $intake) {
-                $intake_html .= '<option value="' . $intake . '"> ' . $intake . ' </option>';
+            $monthNames = [
+                'JAN' => 'JAN',
+                'FEB' => 'FEB',
+                'MAR' => 'MAR',
+                'APR' => 'APR',
+                'MAY' => 'MAY',
+                'JUN' => 'JUN',
+                'JUL' => 'JUL',
+                'AUG' => 'AUG',
+                'SEP' => 'SEP',
+                'OCT' => 'OCT',
+                'NOV' => 'NOV',
+                'DEC' => 'DEC'
+            ];
+            
+            // Process intake months - already in pluck-like format
+            $intake_months = [];
+            if ($university && $university->intake_months) {
+                $intake_months = collect(explode(',', $university->intake_months))
+                    ->mapWithKeys(function ($monthAbbr) use ($monthNames) {
+                        $trimmed = trim($monthAbbr);
+                        $value = $monthNames[$trimmed] ?? $trimmed;
+                        return [$value => $value];
+                    })
+                    ->filter()
+                    ->unique()
+                    ->toArray();
             }
+
+            // Process courses in pluck-like format
+            $course_options = $courses->mapWithKeys(function ($course) {
+                $label = $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')';
+                return [$course->id => $label];
+            })->toArray();
+
+            // Process intake years in pluck-like format
+            $intake_years = collect(intakeYear() ?? [])->mapWithKeys(function ($year) {
+                return [$year => $year];
+            })->toArray();
+
+            return [
+                'status' => 'success',
+                'university_status' => $university->status ?? null,
+                'intake_months' => $intake_months,
+                'courses' => $course_options,
+                'intake_years' => $intake_years
+            ];
         }
-        $intake_html .= '</select>';
-
-        $course_html = '<select name="course" class="form form-control select2 validationSideColor" id="course_id">';
-        $course_html .= '<option value="">Select Course</option>';
-        if (!empty($courses)) {
-            foreach ($courses as $key => $course) {
-                $course_html .= '<option value="' . $course->id.'"> ' . $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')</option>';
-            }
-        }
-        $course_html .= '</select>';
-
-
-
-        $intake_year_html = '<select name="intakeYear" class="form form-control select2 validationSideColor" id="intakeYear" ' . ($university->status == '1' ? 'disabled' : '') . '>';
-        $intake_year_html .= '<option value="">Select Year</option>';
-
-        // Check if $campusfetch is not null before accessing intakeYear
-        if (!empty(intakeYear())) {
-            foreach (intakeYear() as $intakeYear) {
-                $intake_year_html .= '<option value="' . $intakeYear . '"> ' . $intakeYear . ' </option>';
-            }
-        }
-        $intake_year_html .= '</select>';
-
-        return json_encode([
-            'status' => 'success',
-            'university_status' => $university->status,
-            'intake_html' => $intake_html,
-            'course_html' => $course_html,
-            'intake_year_html' => $intake_year_html
-        ]);
-    }
 
     public function SaveToggleCourse(Request $request)
     {
@@ -672,11 +752,13 @@ class UniversityController extends Controller
     $university->save();
 
     // Log activity
+   $statusText = $request->status == 1 ? 'Active' : 'Inactive';
+
     $logData = [
         'type' => 'info',
         'note' => json_encode([
-            'title' => 'University Status Updated',
-            'message' => 'University status changed to ' . $request->status,
+            'title' => $university->name . ' status updated to ' . $statusText,
+            'message' => $university->name . ' status updated to ' . $statusText,
         ]),
         'module_id' => $university->id,
         'module_type' => 'university',
@@ -783,13 +865,16 @@ class UniversityController extends Controller
     // Update status
     $university->moi_status = $request->status;
     $university->save();
+ 
 
-    // Log activity
+
+    $statusText = $request->status == 1 ? 'active' : 'inactive';
+
     $logData = [
         'type' => 'info',
         'note' => json_encode([
-            'title' => 'University course Status Updated',
-            'message' => 'University status changed to ' . $request->status,
+            'title' => $university->name . ' MOI status updated to ' . $statusText,
+            'message' => $university->name . ' MOI status updated to ' . $statusText,
         ]),
         'module_id' => $university->id,
         'module_type' => 'university',
@@ -804,4 +889,85 @@ class UniversityController extends Controller
     ], 200);
 }
 
+public function pluckInstitutes(Request $request)
+{
+    $University = University::pluck('name', 'id')->toArray();
+    return response()->json([
+        'status' => 'success',
+        'data' => $University
+        
+    ]);
+}
+
+
+public function get_course_campus()
+{
+    $id = $_POST['id'];
+    // Fetch campus details
+    $campus = Course::where('id', $id)
+        ->whereNotNull('campus')
+        ->pluck('campus')
+        ->flatMap(function ($campusString) {
+            return array_map('trim', explode(',', $campusString));
+        })
+        ->first();
+
+    if (empty($campus)) {
+        return response()->json([
+            'status' => 'success',
+            'campus' => [],
+            'intake_month' => [],
+            'intake_year' => null,
+        ]);
+    }
+
+    // Fetch intake month details
+
+    $intake_month = Course::where('id', $id)
+    ->whereNotNull('intake_month')
+    ->pluck('intake_month')
+    ->flatMap(function ($campusString) {
+        return array_map('trim', explode(',', $campusString));
+    })
+    ->map(function ($month) {
+        // Convert full month name to 3-letter abbreviation
+        return substr(strtoupper($month), 0, 3);
+    })
+    ->toArray();
+
+    // Then you can compare with your monthNames array
+    $monthNames = [
+        'JAN' => 'JAN',
+        'FEB' => 'FEB',
+        'MAR' => 'MAR',
+        'APR' => 'APR',
+        'MAY' => 'MAY',
+        'JUN' => 'JUN',
+        'JUL' => 'JUL',
+        'AUG' => 'AUG',
+        'SEP' => 'SEP',
+        'OCT' => 'OCT',
+        'NOV' => 'NOV',
+        'DEC' => 'DEC'
+    ];
+
+    // Filter only valid month abbreviations
+    $validMonths = array_filter($intake_month, function ($month) use ($monthNames) {
+        return isset($monthNames[$month]);
+    });
+
+    // If you need unique values
+    $validMonths = implode(',', array_unique($validMonths));
+
+    // Fetch intake year
+    $campusfetch = Course::find($id);
+    $intake_year = $campusfetch ? $campusfetch->intakeYear : null;
+
+    return response()->json([
+        'status' => 'success',
+        'campus' => $campus,
+        'intake_month' => $validMonths,
+        'intake_year' => $intake_year,
+    ]);
+}
 }

@@ -1773,4 +1773,47 @@ if (!function_exists('FetchTimeZone')) {
 
         return $timezone;
     }
+
+        function formatKey($key)
+    {
+        $keyMappings = [
+            'mode_of_payment' => 'Mode Of Payment',
+            'mode_of_verification' => 'Mode Of Verification',
+            'disability' => 'Disability',
+            'english_test' => 'English Test',
+            'username' => 'Username',
+            'password' => 'Password',
+            'drive_link' => 'Drive Link',
+            'CAS_Documents_Checklist' => 'CAS Documents Checklist',
+            'additional_notes' => 'Additional Notes (if any)',
+            'admission_officer' => 'Admission Officer',
+            'office_group_email' => 'Office Group Email',
+            'brand' => 'Brand',
+            'location' => 'Location',
+            'passport_number' => 'Passport Number',
+            'name' => 'Name',
+            'email_id' => 'Email ID',
+            'mobile_number' => 'Mobile Number',
+            'address' => 'Address',
+            'course' => 'Course',
+            'email' => 'Email',
+            'clientUserID' => 'Client User ID',
+        ];
+
+        // If key exists in mappings, return mapped value
+        if (isset($keyMappings[$key])) {
+            return $keyMappings[$key];
+        }
+
+        // Otherwise, convert underscores to spaces and capitalize each word
+        return ucwords(str_replace('_', ' ', $key));
+    }
+
+    function is_json($string) {
+        if (!is_string($string)) {
+            return false;
+        }
+        json_decode($string);
+        return (json_last_error() == JSON_ERROR_NONE);
+    }
 }

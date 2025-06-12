@@ -11,8 +11,9 @@ class DealApplication extends Model
     protected $labels;
     protected $products;
     protected $sources;
-    protected $fillable = ['labels','application_key','deal_id', 'university_id', 'course', 'stage_id', 'external_app_id', 'name', 'intake', 'created_by'];
-
+    protected $fillable = ['labels','application_key','deal_id', 'university_id', 'course','courses_id','country_id', 'stage_id', 'external_app_id', 'name', 'intake', 'created_by'];
+    protected $with = ['stage:id,name','source:id,name','assignedUser:id,name','brand:id,name','branch:id,name','university:id,name','lead']; // Always eager load this relationship
+   
     public function getUniversity($id)
     {
         return University::where('id', $id)->first();
@@ -63,6 +64,65 @@ class DealApplication extends Model
     }
     public function stage()
     {
-        return $this->hasOne('App\Models\Stage', 'id', 'stage_id');
+        return $this->hasOne('App\Models\ApplicationStage', 'id', 'stage_id');
     }
+
+    
+public function brand()
+{
+    return $this->belongsTo(User::class, 'brand_id');
+}
+
+public function branch()
+{
+    return $this->belongsTo(Branch::class, 'branch_id');
+}
+
+public function source()
+{
+    return $this->belongsTo(Source::class, 'source_id');
+}
+public function lead()
+{
+    return $this->belongsTo(Lead::class);
+}
+
+public function assignedUser()
+{
+    return $this->belongsTo(User::class, 'assigned_to');
+}
+public function city()
+{
+    return $this->belongsTo(City::class, 'student_origin_city');
+}
+
+public function preinstitute()
+{
+    return $this->belongsTo(Institute::class, 'student_previous_university');
+}
+
+public function country()
+{
+    return $this->belongsTo(Country::class, 'country_id', 'country_code', 'country_code');
+}
+public function deal()
+{
+    return $this->belongsTo(Deal::class, 'deal_id');
+}
+public function university()
+{
+    return $this->belongsTo(University::class, 'university_id');
+}
+public function course()
+{
+    return $this->belongsTo(Course::class, 'course_id');
+}
+
+
+public function countryName()
+{
+    return $this->belongsTo(Country::class, 'country_id');
+}
+
+
 }

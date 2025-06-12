@@ -71,6 +71,8 @@ class LeadController extends Controller
     {
 
 
+
+
         $validator = Validator::make($request->all(), [
 
             'perPage' => 'nullable|integer|min:1',
@@ -182,17 +184,19 @@ class LeadController extends Controller
         // Apply Pagination
         // Apply Pagination
         $leads = $leadsQuery
-            ->orderBy('leads.created_at', 'desc')
+            ->orderBy('leads.created_at', 'desc')->where('is_converted', 0)
             ->paginate($perPage, ['*'], 'page', $page);
-            
-            $leadsWithTags = $leads->getCollection()->map(function ($lead) {
+
+        $leadsWithTags = $leads->getCollection()->map(function ($lead) {
             $lead->tags = LeadTag::whereRaw("FIND_IN_SET(id, ?)", [$lead->tag_ids])->get();
             return $lead;
         });
 
+
+
         return response()->json([
             'status' => 'success',
-            'data' => $leads->setCollection($leadsWithTags),
+            'data' => $leadsWithTags,
             'current_page' => $leads->currentPage(),
             'last_page' => $leads->lastPage(),
             'total_records' => $leads->total(),
@@ -214,8 +218,7 @@ class LeadController extends Controller
 
         // Validate Input
         $validator = \Validator::make($request->all(), [
-            'lead_first_name' => 'required',
-            'lead_last_name' => 'required',
+            'name' => 'required',
             'lead_stage' => 'required',
             'brand_id' => 'required|exists:users,id',
             'region_id' => 'required|exists:regions,id',
@@ -271,7 +274,7 @@ class LeadController extends Controller
         // Create New Lead
         $lead = new Lead();
         $lead->title = $request->lead_prefix ?? '';
-        $lead->name = "{$request->lead_first_name} {$request->lead_last_name}";
+        $lead->name = $request->name;
         $lead->email = $request->lead_email;
         $lead->phone = $request->lead_phone;
         $lead->mobile_phone = $request->lead_phone;
@@ -345,7 +348,7 @@ class LeadController extends Controller
                     return response()->json([
                         'status' => 'success',
                         'lead_id' => $lead->id,
-                        'message' => __('Lead successfully created!') . '<br> <span class="text-danger">' . $resp['error'] . '</span>'
+                        'message' => __('Lead successfully created!')
                     ]);
                 }
             }
@@ -372,8 +375,7 @@ class LeadController extends Controller
 
         // Validate Input
         $validator = \Validator::make($request->all(), [
-            'lead_first_name' => 'required',
-            'lead_last_name' => 'required',
+            'name' => 'required',
             'lead_stage' => 'required',
             'lead_id' => 'required|exists:leads,id',
             'brand_id' => 'required|exists:users,id',
@@ -409,7 +411,7 @@ class LeadController extends Controller
 
         // Update Lead Data
         $lead->title = $request->lead_prefix ?? $lead->title;
-        $lead->name = "{$request->lead_first_name} {$request->lead_last_name}";
+        $lead->name = $request->name;
         $lead->email = $request->lead_email;
         $lead->phone = $request->lead_phone;
         $lead->mobile_phone = $request->lead_phone;
@@ -467,7 +469,7 @@ class LeadController extends Controller
             $assignedUser = User::find($request->lead_assigned_user);
             $settings = Utility::settings();
 
-            if ($settings['lead_updated'] == 1) {
+            if (isset($settings)) {
                 $emailData = [
                     'lead_name' => $lead->name,
                     'lead_email' => $lead->email,
@@ -482,7 +484,7 @@ class LeadController extends Controller
                     return response()->json([
                         'status' => 'success',
                         'lead_id' => $lead->id,
-                        'message' => __('Lead successfully updated!') . '<br> <span class="text-danger">' . $resp['error'] . '</span>'
+                        'message' => __('Lead successfully updated!')
                     ]);
                 }
             }
@@ -970,14 +972,16 @@ class LeadController extends Controller
 
         // Fetch Lead Details
         $lead = Lead::with('assignto')
-        ->with('brand')
-        ->with('stage')
-        ->with('branch')
-        ->with('region')
-        ->with('pipeline')
-        ->with('created_by')
-        ->select('leads.*')
-        ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')->findOrFail($request->lead_id);
+            ->with('brand')
+            ->with('stage')
+            ->with('branch')
+            ->with('region')
+            ->with('pipeline')
+            ->with('created_by')
+            ->with('Agency')
+            ->with('Source')
+            ->select('leads.*')
+            ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')->findOrFail($request->lead_id);
 
         if ($lead->is_active) {
             $calendarTasks = [];
@@ -1051,6 +1055,39 @@ class LeadController extends Controller
         ], 400);
     }
 
+    public function getLeadDetailOnly(Request $request)
+    {
+        // Validate Request
+        $validator = Validator::make($request->all(), [
+            'lead_id' => 'required|exists:leads,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Fetch Lead Details
+        $lead = Lead::select('leads.*')
+            ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')
+            ->where('leads.id', $request->lead_id)
+            ->first(); // Use `first` instead of `findOrFail` for a conditional check
+
+        if ($lead) {
+            return response()->json([
+                'status' => 'success',
+                'data' => $lead,
+            ], 200);
+        }
+
+        // Return error if lead is not active or not found
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Lead is not active.'
+        ], 400);
+    }
 
     public function deleteBulkLeads(Request $request)
     {
@@ -1113,7 +1150,7 @@ class LeadController extends Controller
             ], 404);
         }
     }
-
+    // ...... 
     public function updateBulkLead(Request $request)
     {
         $user = \Auth::user();
@@ -1348,30 +1385,41 @@ class LeadController extends Controller
         ], 400);
     }
 
-    public function convertToApplication(Request $request)
+    public function convertToAdmission(Request $request)
     {
+        $id = $request->id ?? '';
+        $lead = Lead::findOrFail($id);
+        $usr = \Auth::user();
         $user = \Auth::user();
 
-        // ✅ 1. Validation
-        $validator = \Validator::make($request->all(), [
-            'name' => 'required',
-            'client_passport' => 'required',
-            'intake_month' => 'required',
-            'intake_year' => 'required',
-            'drive_link' => 'required',
-            'id' => 'required|exists:leads,id',
-        ]);
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'name' => 'required',
+                'client_passport' => 'required',
+                'intake_month' => 'required',
+                'intake_year' => 'required',
+                'drive_link' => 'required',
+            ]
+        );
 
         if ($validator->fails()) {
+            $messages = $validator->errors();
+
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()
-            ], 422);
+                'message' => $messages->first()
+            ]);
         }
 
-        $id = $request->id;
-
-        // ✅ 2. Check if Passport is Blocked
+        // Check if lead is already converted
+        if ($lead->is_converted != 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Sorry This Lead already converted',
+            ]);
+        }
+        // Check if passport is blocked
         $blocked_status = User::where('passport_number', $request->client_passport)
             ->where('blocked_status', '1')
             ->first();
@@ -1379,16 +1427,13 @@ class LeadController extends Controller
         if (!empty($blocked_status)) {
             return response()->json([
                 'status' => 'error',
-                'blocked' => 'yes',
-                'message' => __('The passport number ‘' . $request->client_passport . '’ is currently blocked. Please contact support.')
-            ], 403);
+                'message' => __('The passport number \'' . $request->client_passport . '\' is currently blocked and cannot proceed with the application. Please contact support for further assistance.')
+            ]);
         }
 
-        // ✅ 3. Retrieve Lead
-        $lead = Lead::findOrFail($id);
+        // Find or create client
         $client = User::where('passport_number', $request->client_passport)->first();
 
-        // ✅ 4. Create Client if not exists
         if (!$client) {
             $validator = \Validator::make($request->all(), [
                 'client_name' => 'required',
@@ -1419,43 +1464,55 @@ class LeadController extends Controller
             $client->region_id = $lead->region_id;
             $client->save();
             $client->assignRole($role);
+        } else {
+            // Check if passport is already used in this branch
+            $passport_user = User::whereRaw('REPLACE(passport_number, " ", "") = ?', [str_replace(' ', '', $request->client_passport)])
+                ->where('branch_id', $lead->branch_id)
+                ->first();
+
+            if ($passport_user) {
+                $is_exist = Deal::join('client_deals', 'client_deals.deal_id', '=', 'deals.id')
+                    ->where('client_deals.client_id', $passport_user->id)
+                    ->where('deals.branch_id', $lead->branch_id)
+                    ->first();
+
+                if ($is_exist) {
+                    $branchName = Branch::find($lead->branch_id)->name ?? '';
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "This passport is already used for the " . $branchName . " branch.",
+                    ]);
+                }
+            }
         }
 
-        // ✅ 5. Check Pipeline Stage
+        // Get pipeline stage
         $stage = Stage::where('pipeline_id', $lead->pipeline_id)
             ->orderBy('id')
             ->first();
 
-        if (!$stage) {
+        if (empty($stage)) {
             return response()->json([
                 'status' => 'error',
-                'message' => __('Please create a stage for this pipeline.')
-            ], 400);
+                'message' => 'Please Create Stage for This Pipeline.',
+            ]);
         }
 
-        // ✅ 6. Check if Lead is Already Converted
-        if ($lead->is_converted != 0) {
-            return response()->json([
-                'status' => 'success',
-                'message' => __('Lead already converted.')
-            ], 200);
-        }
-
-        // ✅ 7. Create Deal
+        // Create Deal
         $deal = new Deal();
         $deal->name = $request->name;
+        $deal->price = 0;
         $deal->pipeline_id = $lead->pipeline_id;
         $deal->stage_id = $stage->id;
-        $deal->price = 0;
-        $deal->sources = in_array('sources', $request->is_transfer) ? $lead->sources : '';
-        $deal->products = in_array('products', $request->is_transfer) ? $lead->products : '';
-        $deal->notes = in_array('notes', $request->is_transfer) ? $lead->notes : '';
+        $deal->sources = in_array('sources', $request->is_transfer ?? []) ? $lead->sources : '';
+        $deal->products = in_array('products', $request->is_transfer ?? []) ? $lead->products : '';
+        $deal->notes = in_array('notes', $request->is_transfer ?? []) ? $lead->notes : '';
         $deal->labels = $lead->labels;
         $deal->status = 'Active';
         $deal->created_by = $lead->created_by;
         $deal->branch_id = $lead->branch_id;
         $deal->region_id = $lead->region_id;
-        $deal->drive_link = $request->drive_link;
+        $deal->drive_link = $request->drive_link ?? $lead->drive_link;
         $deal->university_id = $request->university_id;
         $deal->assigned_to = $lead->user_id;
         $deal->intake_month = $request->intake_month;
@@ -1466,78 +1523,121 @@ class LeadController extends Controller
         $deal->tag_ids = $lead->tag_ids;
         $deal->save();
 
-        // ✅ 8. Transfer Related Data
-        $this->transferRelatedData($lead, $deal, $request->is_transfer);
+        // Transfer tasks
+        $tasksQuery = DealTask::query();
+        $FiltersBrands = array_keys(FiltersBrands());
 
-        // ✅ 9. Update Lead Conversion Status
-        $lead->is_converted = $deal->id;
-        $lead->save();
-
-        // ✅ 10. Logging Activities
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Lead Converted',
-                'message' => 'Lead successfully converted.'
-            ]),
-            'module_id' => $lead->id,
-            'module_type' => 'lead',
-            'notification_type' => 'Lead Converted'
-        ]);
-
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Deal Created',
-                'message' => 'Deal created successfully.'
-            ]),
-            'module_id' => $deal->id,
-            'module_type' => 'deal',
-            'notification_type' => 'Deal Created'
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => __('Lead successfully converted to deal.'),
-            'deal_id' => $deal->id
-        ], 200);
-    }
-
-    /**
-     * Transfer Related Data from Lead to Deal
-     */
-    private function transferRelatedData($lead, $deal, $transfers)
-    {
-        if (in_array('tasks', $transfers)) {
-            DealTask::where('related_to', $lead->id)
-                ->where('related_type', 'lead')
-                ->update(['related_to' => $deal->id, 'related_type' => 'deal']);
+        if (\Auth::user()->type != 'HR') {
+            if (\Auth::user()->type == 'super admin' || \Auth::user()->can('level 1')) {
+                $FiltersBrands[] = '3751';
+                $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+            } elseif (\Auth::user()->type == 'company') {
+                $tasksQuery->where('deal_tasks.brand_id', \Auth::user()->id);
+            } elseif (\Auth::user()->type == 'Project Director' || \Auth::user()->type == 'Project Manager' || \Auth::user()->can('level 2')) {
+                $tasksQuery->whereIn('deal_tasks.brand_id', $FiltersBrands);
+            } elseif (\Auth::user()->type == 'Region Manager' || (\Auth::user()->can('level 3') && !empty(\Auth::user()->region_id))) {
+                $tasksQuery->where('deal_tasks.region_id', \Auth::user()->region_id);
+            } elseif (
+                \Auth::user()->type == 'Branch Manager' || \Auth::user()->type == 'Admissions Officer' ||
+                \Auth::user()->type == 'Careers Consultant' || \Auth::user()->type == 'Admissions Manager' ||
+                \Auth::user()->type == 'Marketing Officer' || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))
+            ) {
+                $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+            } elseif (\Auth::user()->type === 'Agent') {
+                $tasksQuery->where(function ($query) {
+                    $query->where('deal_tasks.assigned_to', \Auth::user()->id)
+                        ->orWhere('deal_tasks.created_by', \Auth::user()->id);
+                });
+            } else {
+                $tasksQuery->where('deal_tasks.branch_id', \Auth::user()->branch_id);
+            }
         }
 
-        if (in_array('notes', $transfers)) {
-            $notes = LeadNote::where('lead_id', $lead->id)->get();
-            foreach ($notes as $note) {
-                DealNote::create([
-                    'description' => $note->description,
-                    'created_by' => $note->created_by,
-                    'deal_id' => $deal->id
+        $tasks = $tasksQuery->where('related_to', $lead->id)
+            ->where('related_type', 'lead')
+            ->orderBy('status')
+            ->get();
+
+        foreach ($tasks as $task) {
+            $task->related_to = $deal->id;
+            $task->related_type = 'deal';
+            $task->save();
+        }
+
+        // Transfer notes
+        $LeadNotes = LeadNote::where('lead_id', $lead->id)->get();
+        foreach ($LeadNotes as $LeadNote) {
+            DealNote::create([
+                'description' => $LeadNote->description,
+                'created_by' => $LeadNote->created_by,
+                'deal_id' => $deal->id,
+            ]);
+        }
+
+        // Create client deal relationship
+        ClientDeal::create([
+            'deal_id' => $deal->id,
+            'client_id' => $client->id,
+        ]);
+
+        // Transfer user relationships
+        $leadUsers = UserLead::where('lead_id', $lead->id)->get();
+        foreach ($leadUsers as $leadUser) {
+            UserDeal::create([
+                'user_id' => $leadUser->user_id,
+                'deal_id' => $deal->id,
+            ]);
+        }
+
+        // Transfer discussions
+        if (in_array('discussion', $request->is_transfer ?? [])) {
+            $discussions = LeadDiscussion::where('lead_id', $lead->id)
+                ->where('created_by', $usr->creatorId())
+                ->get();
+            foreach ($discussions as $discussion) {
+                DealDiscussion::create([
+                    'deal_id' => $deal->id,
+                    'comment' => $discussion->comment,
+                    'created_by' => $discussion->created_by,
                 ]);
             }
         }
 
-        if (in_array('calls', $transfers)) {
+        // Transfer files
+        if (in_array('files', $request->is_transfer ?? [])) {
+            $files = LeadFile::where('lead_id', $lead->id)->get();
+            foreach ($files as $file) {
+                $location = base_path() . '/storage/lead_files/' . $file->file_path;
+                $new_location = base_path() . '/storage/deal_files/' . $file->file_path;
+
+                if (file_exists($location) && copy($location, $new_location)) {
+                    DealFile::create([
+                        'deal_id' => $deal->id,
+                        'file_name' => $file->file_name,
+                        'file_path' => $file->file_path,
+                    ]);
+                }
+            }
+        }
+
+        // Transfer calls
+        if (in_array('calls', $request->is_transfer ?? [])) {
             $calls = LeadCall::where('lead_id', $lead->id)->get();
             foreach ($calls as $call) {
                 DealCall::create([
                     'deal_id' => $deal->id,
                     'subject' => $call->subject,
                     'call_type' => $call->call_type,
+                    'duration' => $call->duration,
+                    'user_id' => $call->user_id,
                     'description' => $call->description,
+                    'call_result' => $call->call_result,
                 ]);
             }
         }
 
-        if (in_array('emails', $transfers)) {
+        // Transfer emails
+        if (in_array('emails', $request->is_transfer ?? [])) {
             $emails = LeadEmail::where('lead_id', $lead->id)->get();
             foreach ($emails as $email) {
                 DealEmail::create([
@@ -1548,6 +1648,59 @@ class LeadController extends Controller
                 ]);
             }
         }
+
+        // Update lead status
+        $lead->is_converted = $deal->id;
+        $lead->save();
+
+        // Add logs
+        $data = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'Lead Converted',
+                'message' => 'Lead converted successfully.'
+            ]),
+            'module_id' => $lead->id,
+            'module_type' => 'lead',
+            'notification_type' => 'Lead Converted'
+        ];
+        addLogActivity($data);
+
+        $data = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'Deal Created',
+                'message' => 'Deal created successfully.'
+            ]),
+            'module_id' => $deal->id,
+            'module_type' => 'deal',
+            'notification_type' => 'Deal Created'
+        ];
+        addLogActivity($data);
+
+        // Add stage history
+        $data_for_stage_history = [
+            'stage_id' => $stage->id,
+            'type_id' => $deal->id,
+            'type' => 'deal'
+        ];
+        addLeadHistory($data_for_stage_history);
+
+        // Send email notification
+        $pipeline = Pipeline::find($lead->pipeline_id);
+        $dArr = [
+            'deal_name' => $deal->name ?? '',
+            'deal_pipeline' => $pipeline->name ?? '',
+            'deal_stage' => $stage->name ?? '',
+            'deal_status' => $deal->status ?? '',
+            'deal_price' => $usr->$deal->price ?? '',
+        ];
+        Utility::sendEmailTemplate('Assign Deal', [$client->id => $client->email], $dArr);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Lead successfully converted',
+        ]);
     }
 
     public function leadsLabels(Request $request)
@@ -1862,7 +2015,7 @@ class LeadController extends Controller
     }
 
 
-    public function notesCreateOrUpdate(Request $request)
+    public function CreateOrUpdateLeadNotes(Request $request)
     {
         // Validate the input
         $validator = Validator::make(
@@ -1939,5 +2092,85 @@ class LeadController extends Controller
                 'message' => __('Notes added successfully')
             ]);
         }
+    }
+
+    public function GetLeadNotes(Request $request)
+    {
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'lead_id' => 'required|exists:leads,id',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 400);
+        }
+        $lead_id = $request->lead_id;
+        $notesQuery = \App\Models\LeadNote::where('lead_id', $lead_id);
+        $userType = \Auth::user()->type;
+        if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
+            // No additional filtering needed
+        } elseif ($userType === 'company') {
+            $notesQuery->whereIn('created_by', getAllEmployees()->keys()->toArray());
+        } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
+            $notesQuery->whereIn('created_by', getAllEmployees()->keys()->toArray());
+        } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
+            $notesQuery->whereIn('created_by', getAllEmployees()->keys()->toArray());
+        } elseif ($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer', 'Careers Consultant']) || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
+            $notesQuery->whereIn('created_by', getAllEmployees()->keys()->toArray());
+        } else {
+            $notesQuery->where('created_by', \Auth::user()->id); // Updated 'user_id' to 'created_by'
+        }
+
+        $notes = $notesQuery->orderBy('created_at', 'DESC')
+        ->get()->map(function ($discussion) {
+                return [
+                    'id' => $discussion->id,
+                    'text' => htmlspecialchars_decode($discussion->description),
+                    'author' => $discussion->name,
+                    'time' => $discussion->created_at->diffForHumans(),
+                    'pinned' => false, // Default value as per the requirement
+                    'timestamp' => $discussion->created_at->toISOString()
+                ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $notes
+        ], 201);
+    }
+
+    public function DeleteLeadNotes(Request $request)
+    {
+        $rules = [
+            'id' => 'required|integer|min:1',
+        ];
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+        $discussions = \App\Models\LeadNote::find($request->id);
+        if (!empty($discussions)) {
+            $discussions->delete();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Lead Note deleted!')
+        ], 201);
+    }
+    public function StageHistory(Request $request)
+    {
+        $notes = StageHistory::where('type', $request->type)->where('type_id', $request->id)->pluck('stage_id')->toArray();
+         return response()->json([
+            'status' => 'success',
+            'data' => $notes
+        ], 201);
     }
 }

@@ -70,6 +70,11 @@ class Lead extends Model
     {
         return $this->hasOne('App\Models\User', 'id', 'user_id');
     }
+
+    public function Agency()
+    {
+        return $this->hasOne('App\Models\Agency', 'id', 'organization_link');
+    }
     
     public function created_by()
     {
@@ -104,6 +109,10 @@ class Lead extends Model
         }
 
         return [];
+    }
+    public function Source()
+    {
+        return $this->hasOne('App\Models\Source', 'id', 'sources');
     }
 
     public function users()
