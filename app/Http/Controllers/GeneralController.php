@@ -670,6 +670,43 @@ class GeneralController extends Controller
 }
 
 
+public function DeleteSavedFilter(Request $request)
+{
+    // Validate the Request Data
+    $validator = Validator::make(
+        $request->all(),
+        [
+            'id' => 'required|exists:saved_filters,id',
+        ]
+    );
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
+    }
+
+    // Attempt to Find the Log Entry
+    $SavedFilter = SavedFilter::find($request->id);
+
+    if ($SavedFilter) {
+        $SavedFilter->delete();
+        // Return Success Response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Filter successfully deleted!'),
+        ], 200);
+    } else {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Filter Not Found'),
+        ], 404); // Using 404 for "not found" is more appropriate
+    }
+
+
+}
+
 public function UniversityByCountryCode(Request $request)
 {
         $request->validate([
