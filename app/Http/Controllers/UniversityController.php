@@ -444,23 +444,29 @@ if ($request->filled('intake_months')) {
 
         // Log changed fields only
         $changes = [];
+         $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at', 'rank', 'created_by'])) {
+                    continue;
+                }
             if ($university->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
                     'new' => $university->$field
                 ];
+
+                 $updatedFields[] = $field;
             }
         }
 
         if (!empty($changes)) {
             addLogActivity([
                 'type' => 'info',
-                'note' => json_encode([
-                    'title' => 'University Updated',
-                    'message' => 'Fields updated successfully',
-                    'changes' => $changes
-                ]),
+                 'note' => json_encode([
+                        'title' => $university->name . ' updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
                 'module_id' => $university->id,
                 'module_type' => 'university',
                 'notification_type' => 'University Updated'
