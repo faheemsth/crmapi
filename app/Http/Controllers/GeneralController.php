@@ -670,6 +670,42 @@ class GeneralController extends Controller
 }
 
 
+public function DeleteLogActivity(Request $request)
+{
+    // Validate the Request Data
+    $validator = Validator::make(
+        $request->all(),
+        [
+            'id' => 'required|exists:log_activities,id',
+        ]
+    );
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'errors' => $validator->errors(),
+        ], 400);
+    }
+
+    // Attempt to Find the Log Entry
+    $logs = LogActivity::find($request->id);
+
+    if ($logs) {
+        $logs->delete();
+    } else {
+        return response()->json([
+            'status' => 'error',
+            'message' => __('Filter Not Found'),
+        ], 404); // Using 404 for "not found" is more appropriate
+    }
+
+    // Return Success Response
+    return response()->json([
+        'status' => 'success',
+        'message' => __('Filter successfully deleted!'),
+    ], 200);
+}
+
 public function UniversityByCountryCode(Request $request)
 {
         $request->validate([
