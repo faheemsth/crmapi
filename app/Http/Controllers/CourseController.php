@@ -161,8 +161,8 @@ class CourseController extends Controller
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => 'Course Created',
-                'message' => "A new course '{$course->name}' has been created successfully.",
+                'title' => 'Course: ' . $course->name. ' created in ' . $course->university->name,
+                'message' => 'Course: ' . $course->name. ' created in ' . $course->university->name,
             ]),
             'module_id' => $course->university_id,
             'module_type' => 'university',
@@ -518,18 +518,16 @@ class CourseController extends Controller
         $course = Course::find($request->id);
 
         // Log the deletion
-        $logData = [
-            'type' => 'info',
+         addLogActivity([
+            'type' => 'warning',
             'note' => json_encode([
-                'title' => 'Course Deleted',
-                'changes' => $course,
-                'message' => 'Course deleted successfully.'
+                'title' => 'Course: ' . $course->name. ' deleted in ' . $course->university->name,
+                'message' => 'Course: ' . $course->name. ' deleted in ' . $course->university->name,
             ]),
             'module_id' => $course->university_id,
             'module_type' => 'university',
-            'notification_type' => 'Course Deleted'
-        ];
-        addLogActivity($logData);
+            'notification_type' => 'Course deleted',
+        ]);
 
         // Delete the course
         $course->delete();

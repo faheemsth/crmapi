@@ -273,7 +273,7 @@ if ($request->filled('intake_months')) {
         }
 
         $university = new University();
-        $university->status = 1;
+        $university->status = '1';
         $university->name = $request->name;
         $university->company_id = 1;
         $university->country = implode(',', $request->country);
@@ -494,19 +494,31 @@ if ($request->filled('intake_months')) {
         // Find the university
         $university = University::find($request->id);
 
-        // Log the deletion
-        $logData = [
+        // // Log the deletion
+        // $logData = [
+        //     'type' => 'info',
+        //     'note' => json_encode([
+        //         'title' => 'University Deleted',
+        //         'message' => 'University deleted successfully.',
+        //         'changes' => $university
+        //     ]),
+        //     'module_id' => $university->id,
+        //     'module_type' => 'university',
+        //     'notification_type' => 'University Deleted'
+        // ];
+        // addLogActivity($logData);
+
+          addLogActivity([
             'type' => 'info',
             'note' => json_encode([
-                'title' => 'University Deleted',
-                'message' => 'University deleted successfully.',
+                'title' => $university->name. '  deleted',
+                'message' => $university->name. '  deleted',
                 'changes' => $university
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
-            'notification_type' => 'University Deleted'
-        ];
-        addLogActivity($logData);
+            'notification_type' => 'University deleted',
+        ]);
 
         // Delete the record
         $university->delete();
