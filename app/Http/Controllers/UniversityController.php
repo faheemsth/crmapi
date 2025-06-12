@@ -70,9 +70,9 @@ class UniversityController extends Controller
             } else {
                 $country = Country::find($request->country);
                 if (!$country) {
-                    $query->where('country', 'like', '%' . $request->country . '%');
+                    $query->where('country', 'like', '%' . $country->name . '%');
                 } else {
-                    $query->where('country', $country->name);
+                    $query->where('country', $request->country);
                 }
             }
         }
@@ -296,7 +296,7 @@ if ($request->filled('intake_months')) {
         $university->save();
 
         addLogActivity([
-            'type' => 'info',
+            'type' => 'success',
             'note' => json_encode([
                 'title' => $university->name. '  created',
                 'message' => $university->name. '  created'
@@ -444,23 +444,29 @@ if ($request->filled('intake_months')) {
 
         // Log changed fields only
         $changes = [];
+         $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at', 'rank', 'created_by'])) {
+                    continue;
+                }
             if ($university->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
                     'new' => $university->$field
                 ];
+
+                 $updatedFields[] = $field;
             }
         }
 
         if (!empty($changes)) {
             addLogActivity([
                 'type' => 'info',
-                'note' => json_encode([
-                    'title' => 'University Updated',
-                    'message' => 'Fields updated successfully',
-                    'changes' => $changes
-                ]),
+                 'note' => json_encode([
+                        'title' => $university->name . ' updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
                 'module_id' => $university->id,
                 'module_type' => 'university',
                 'notification_type' => 'University Updated'
@@ -514,7 +520,7 @@ if ($request->filled('intake_months')) {
         // addLogActivity($logData);
 
           addLogActivity([
-            'type' => 'info',
+            'type' => 'warning',
             'note' => json_encode([
                 'title' => $university->name. '  deleted',
                 'message' => $university->name. '  deleted',
@@ -749,7 +755,7 @@ if ($request->filled('intake_months')) {
    $statusText = $request->status == 1 ? 'Active' : 'Inactive';
 
     $logData = [
-        'type' => 'warning',
+        'type' => 'info',
         'note' => json_encode([
             'title' => $university->name . ' status updated to ' . $statusText,
             'message' => $university->name . ' status updated to ' . $statusText,
@@ -865,7 +871,7 @@ if ($request->filled('intake_months')) {
     $statusText = $request->status == 1 ? 'active' : 'inactive';
 
     $logData = [
-        'type' => 'warning',
+        'type' => 'info',
         'note' => json_encode([
             'title' => $university->name . ' MOI status updated to ' . $statusText,
             'message' => $university->name . ' MOI status updated to ' . $statusText,
