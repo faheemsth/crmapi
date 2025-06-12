@@ -670,7 +670,7 @@ class GeneralController extends Controller
 }
 
 
-public function DeleteLogActivity(Request $request)
+public function DeleteSavedFilter(Request $request)
 {
     // Validate the Request Data
     $validator = Validator::make(

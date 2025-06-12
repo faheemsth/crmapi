@@ -560,7 +560,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/Country/by/code', [GeneralController::class, 'CountryByCode']);
     Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);
     Route::post('/getLogActivity', [GeneralController::class, 'getLogActivity']);
-    Route::post('/DeleteLogActivity', [GeneralController::class, 'DeleteLogActivity']);
+    Route::post('/DeleteSavedFilter', [GeneralController::class, 'DeleteSavedFilter']);
     Route::post('/GetBranchByType', [GeneralController::class, 'GetBranchByType']);
     Route::post('/leadsrequireddata', [GeneralController::class, 'leadsrequireddata']);
     Route::post('/getCitiesOnCode', [GeneralController::class, 'getCitiesOnCode']);
