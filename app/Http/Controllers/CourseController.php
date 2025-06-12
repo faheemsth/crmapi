@@ -363,7 +363,7 @@ class CourseController extends Controller
      * @param  \App\Models\Course  $course
      * @return \Illuminate\Http\Response
      */
-    public function updateCourses(Request $request)
+    public function __updateCourses(Request $request)
     {
         if (!in_array(Auth::user()->type, ['Product Coordinator', 'super admin'])) {
             return response()->json([
@@ -485,6 +485,134 @@ class CourseController extends Controller
             ]
         ]);
     }
+
+    public function updateCourses(Request $request)
+{
+    if (!in_array(Auth::user()->type, ['Product Coordinator', 'super admin'])) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Permission Denied.'
+        ], 403);
+    }
+
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|max:150',
+        'university_id' => 'required|exists:universities,id',
+        'id' => 'required|exists:courses,id',
+        'campus' => 'required',
+        'intake_month' => 'required',
+        'intakeYear' => 'required|integer|min:2000',
+        'duration' => 'required',
+        'gross_fees' => 'required|numeric|min:0',
+        'net_fees' => 'required|numeric|min:0',
+        'scholarship' => 'nullable|numeric|min:0',
+        'first_instalment' => 'nullable|numeric|min:0',
+        'second_instalment' => 'nullable|numeric|min:0',
+        'third_instalment' => 'nullable|numeric|min:0',
+        'final_instalment' => 'nullable|numeric|min:0',
+        'installments' => 'required|array',
+        'installments.*.id' => 'sometimes|integer',
+        'installments.*.fee' => 'required|numeric',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $validator->errors()
+        ], 422);
+    }
+
+    $id = $request->id;
+    $course = Course::findOrFail($id);
+    $updatedFields = [];
+
+    $fieldsToUpdate = [
+        'name' => $request->name,
+        'university_id' => $request->university_id,
+        'campus' => is_array($request->campus) ? implode(',', $request->campus) : $request->campus,
+        'intake_month' => is_array($request->intake_month) ? implode(',', $request->intake_month) : $request->intake_month,
+        'intakeYear' => $request->intakeYear,
+        'duration' => $request->duration,
+        'gross_fees' => $request->gross_fees,
+        'net_fees' => $request->net_fees,
+        'scholarship' => $request->scholarship,
+        'first_instalment' => $request->first_instalment,
+        'second_instalment' => $request->second_instalment,
+        'third_instalment' => $request->third_instalment,
+        'final_instalment' => $request->final_instalment,
+    ];
+
+    foreach ($fieldsToUpdate as $field => $newValue) {
+        if ($course->$field != $newValue) {
+            $updatedFields[$field] = [
+                'old' => $course->$field,
+                'new' => $newValue
+            ];
+            $course->$field = $newValue;
+        }
+    }
+
+    $course->save();
+
+    // Handle Installments
+    if (!empty($request->installments)) {
+        $existingIds = [];
+
+        foreach ($request->installments as $installmentData) {
+            if (isset($installmentData['id'])) {
+                $installment = Instalment::updateOrCreate(
+                    ['id' => $installmentData['id'], 'course_id' => $course->id],
+                    ['fee' => $installmentData['fee']]
+                );
+                $existingIds[] = $installment->id;
+            } else {
+                $installment = new Instalment();
+                $installment->course_id = $course->id;
+                $installment->fee = $installmentData['fee'];
+                $installment->save();
+                $existingIds[] = $installment->id;
+            }
+        }
+
+        Instalment::where('course_id', $course->id)
+                  ->whereNotIn('id', $existingIds)
+                  ->delete();
+
+        $updatedFields['installments'] = 'Installments were updated';
+    }
+
+    // Log Activity in the desired format
+    if (!empty($updatedFields)) {
+        $user = \Auth::user();
+        $universityName = University::where('id', $course->university_id)->value('name');
+        $fieldList = implode(', ', array_map('ucwords', array_keys($updatedFields)));
+
+        $logDetails = [
+            'title' => "Course: {$course->name}  Updated in {$universityName}",
+            'message' => "Fields updated: {$fieldList}",
+            'changes' => $updatedFields
+        ];
+
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode($logDetails),
+            'module_id' => $course->university_id,
+            'module_type' => 'university',
+            'notification_type' => 'Course Updated',
+            'created_by' => $user->id
+        ]);
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Course successfully updated.',
+        'data' => [
+            'course' => $course,
+            'university' => $course->university,
+        ]
+    ]);
+}
+
 
     /**
      * Remove the specified resource from storage.

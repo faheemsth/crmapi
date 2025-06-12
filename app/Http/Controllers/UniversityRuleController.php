@@ -21,7 +21,7 @@ class UniversityRuleController extends Controller
             $request->all(),
             [
                 'university_id' => 'required|integer|exists:universities,id',
-                'rule_type' => 'required|string|in:restriction,requirement'
+                'rule_type' => 'required|string|in:restriction,requirement,pipeline'
             ]
         );
 
@@ -60,7 +60,7 @@ class UniversityRuleController extends Controller
                 'university_id' => 'required|integer|exists:universities,id',
                 'name' => 'required|string',
                 'position' => 'required|integer',
-                'rule_type' => 'required|string|in:restriction,requirement'
+                'rule_type' => 'required|string|in:restriction,requirement,pipeline'
             ]
         );
 
@@ -116,7 +116,7 @@ class UniversityRuleController extends Controller
                 'id' => 'required|exists:university_rules,id',
                 'name' => 'required|string',
                 'position' => 'required|integer',
-                'rule_type' => 'required|string|in:restriction,requirement'
+                'rule_type' => 'required|string|in:restriction,requirement,pipeline'
             ]
         );
 
