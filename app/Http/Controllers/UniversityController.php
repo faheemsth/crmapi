@@ -69,10 +69,10 @@ class UniversityController extends Controller
                 $query->whereIn('country', $europeanCountries);
             } else {
                 $country = Country::find($request->country);
-                if (!$country) {
+                if (!empty($country)) {
                     $query->where('country', 'like', '%' . $country->name . '%');
                 } else {
-                    $query->where('country', $request->country);
+                    $query->where('country', 'like', '%' . $request->country . '%');
                 }
             }
         }
