@@ -69,10 +69,10 @@ class UniversityController extends Controller
                 $query->whereIn('country', $europeanCountries);
             } else {
                 $country = Country::find($request->country);
-                if (!$country) {
+                if (!empty($country)) {
                     $query->where('country', 'like', '%' . $country->name . '%');
                 } else {
-                    $query->where('country', $request->country);
+                    $query->where('country', 'like', '%' . $request->country . '%');
                 }
             }
         }
@@ -94,7 +94,7 @@ if ($request->filled('intake_months')) {
 
         // Retrieve paginated data
 
-        $universities = $query->orderBy('created_at', 'DESC')
+        $universities = $query->orderBy('rank_id', 'DESC')->orderBy('name', 'ASC')
         ->paginate($perPage, ['*'], 'page', $page);
 
         // University statistics grouped by country
