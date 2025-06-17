@@ -94,7 +94,7 @@ if ($request->filled('intake_months')) {
 
         // Retrieve paginated data
 
-        $universities = $query->orderBy('rank_id', 'ASC')->orderBy('name', 'ASC')
+        $universities = $query->orderBy('rank_id', 'DESC')->orderBy('name', 'ASC')
         ->paginate($perPage, ['*'], 'page', $page);
 
         // University statistics grouped by country
