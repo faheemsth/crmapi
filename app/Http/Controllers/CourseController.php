@@ -23,7 +23,7 @@ class CourseController extends Controller
     public function getCourses(Request $request)
     {
         // Permission check
-        if (!Auth::user()->can('manage courses') && Auth::user()->type !== 'super admin') {
+        if (!Auth::user()->can('manage university')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied.')
@@ -59,7 +59,7 @@ class CourseController extends Controller
     public function getCourseDetail(Request $request)
     {
         // Permission check
-        if (!Auth::user()->can('manage courses') && Auth::user()->type !== 'super admin') {
+        if (!Auth::user()->can('manage university')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied.')
@@ -99,7 +99,7 @@ class CourseController extends Controller
      */
     public function addCourses(Request $request)
     {
-        if (!in_array(Auth::user()->type, ['Product Coordinator', 'super admin'])) {
+        if (!Auth::user()->can('manage university')) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Permission Denied.'
