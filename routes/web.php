@@ -16,6 +16,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/assignRole', function () {
+    // $user = \App\Models\User::find(0); // Replace 1 with the actual user ID
+    //  $user->assignRole('');
+ });
 Route::get('/application', function () {
     // Prefetch data
     $universities = Illuminate\Support\Facades\DB::table('universities')->get()->keyBy('id');
