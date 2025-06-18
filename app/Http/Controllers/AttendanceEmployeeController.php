@@ -185,6 +185,11 @@ class AttendanceEmployeeController extends Controller
                 ->when($request->filled('brand_id'), function ($query) use ($request) {
                     $query->whereHas('user', fn($q) => $q->where('brand_id', $request->brand_id));
                 })
+                ->when($request->filled('emp_id'), function ($query) use ($request) {
+                    $query->whereHas('user', function ($q) use ($request) {
+                        $q->where('id', $request->emp_id);
+                    });
+                })
                 ->get();
 
             $data = [];
