@@ -167,15 +167,26 @@ class LeaveController extends Controller
         $leave->save();
 
         // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Leave Created',
-                'message' => 'Leave record created successfully'
+        // addLogActivity([
+        //     'type' => 'info',
+        //     'note' => json_encode([
+        //         'title' => 'Leave Created',
+        //         'message' => 'Leave record created successfully'
+        //     ]),
+        //     'module_id' => $leave->id,
+        //     'module_type' => 'leave',
+        //     'notification_type' => 'Leave Created'
+        // ]);
+
+          addLogActivity([
+            'type' => 'success',
+              'note' => json_encode([
+                'title' => $leave->user->name. ' leave  created',
+                'message' => $leave->user->name. 'leave  created'
             ]),
             'module_id' => $leave->id,
             'module_type' => 'leave',
-            'notification_type' => 'Leave Created'
+            'notification_type' => 'leave created',
         ]);
 
         return response()->json([
