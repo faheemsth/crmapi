@@ -748,7 +748,7 @@ if ($request->filled('intake_months')) {
     }
 
     // Update status
-    $university->status = $request->status;
+    $university->uni_status = $request->status;
     $university->save();
 
     // Log activity
