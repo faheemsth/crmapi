@@ -632,7 +632,7 @@ class LeaveController extends Controller
                 ->get();
 
             $usedLeaves = $leaveBalanceCheck->where('status', 'Approved')->sum('total_leave_days');
-            $plannedLeaves = $leaveBalanceCheck->where('status', 'Pending')->sum('total_leave_days');
+            $plannedLeaves = $leaveBalanceCheck->where('status', 'Approved')->sum('total_leave_days');
             $balance = $allowance - $usedLeaves;
             $available = $balance - $plannedLeaves;
 
