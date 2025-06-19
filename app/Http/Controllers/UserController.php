@@ -622,7 +622,7 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
-        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)
+        $InternalEmployeeNotes = InternalEmployeeNotes::with('created_by')->where('lead_assigned_user', $request->id)
         ->orderBy('id', 'desc')
         ->get();
 
