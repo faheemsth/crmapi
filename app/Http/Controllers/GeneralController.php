@@ -697,10 +697,17 @@ class GeneralController extends Controller
     }
 
     // Fetch log activity records
-    $logs = LogActivity::with('createdBy')->where('module_id', $request->id)
+    if( $request->type=='user'){
+            $logs = LogActivity::with('createdBy')->where('created_by', $request->id) 
+                ->orderBy('created_at', 'desc')
+                ->get();
+    }else{
+        $logs = LogActivity::with('createdBy')->where('module_id', $request->id)
                 ->where('module_type', $request->type)
                 ->orderBy('created_at', 'desc')
                 ->get();
+    }
+    
 
     return response()->json([
         'status' => true,

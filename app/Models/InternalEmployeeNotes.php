@@ -9,4 +9,16 @@ class InternalEmployeeNotes extends Model
 {
     use HasFactory;
     protected $guarded = [];
+
+      public function created_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'created_by');
+    }
+
+     
+    public function employee()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'lead_assigned_user');
+    }   
+
 }

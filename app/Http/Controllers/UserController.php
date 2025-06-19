@@ -153,7 +153,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $excludedTypes = [ 'company', 'team', 'client'];
 
         $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
             ->whereNotIn('type', $excludedTypes);
@@ -523,7 +523,16 @@ class UserController extends Controller
             'notes' => $request->employee_notes,
             'created_by' => \Auth::id(),
         ]);
-
+        addLogActivity([
+            'type' => 'success',
+              'note' => json_encode([
+                'title' => $internalEmployeeNotes->employee->name. ' employee notes  created',
+                'message' => $internalEmployeeNotes->employee->name. 'employee notes  created'
+            ]),
+            'module_id' => $internalEmployeeNotes->id,
+            'module_type' => 'employee_notes',
+            'notification_type' => 'employee notes created',
+        ]);
         return response()->json([
             'status' => 'success',
             'message' => 'Internal Employee Note successfully created.',
@@ -541,7 +550,16 @@ class UserController extends Controller
                 'message' => 'Record not found.',
             ], 404);
         }
-
+         addLogActivity([
+            'type' => 'warning',
+              'note' => json_encode([
+                'title' => $internalEmployeeNotes->employee->name. ' employee notes  deleted',
+                'message' => $internalEmployeeNotes->employee->name. 'employee notes  deleted'
+            ]),
+            'module_id' => $internalEmployeeNotes->id,
+            'module_type' => 'employee_notes',
+            'notification_type' => 'employee notes deleted',
+        ]);
         $internalEmployeeNotes->delete();
 
         return response()->json([
@@ -583,6 +601,17 @@ class UserController extends Controller
             'lead_assigned_user' => $request->lead_assigned_user,
             'notes' => $request->employee_notes,
             'created_by' => \Auth::id(),
+        ]);
+
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $internalEmployeeNotes->employee->name. ' employee notes  updated',
+                'message' => $internalEmployeeNotes->employee->name. 'employee notes  updated'
+            ]),
+            'module_id' => $internalEmployeeNotes->id,
+            'module_type' => 'employee_notes',
+            'notification_type' => 'employee notes updated',
         ]);
 
         return response()->json([
