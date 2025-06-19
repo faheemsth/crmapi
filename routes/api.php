@@ -556,6 +556,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getTags', [GeneralController::class, 'getTags']);
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
+    Route::post('/UpdateFilterSave', [GeneralController::class, 'UpdateFilterSave']);
     Route::post('/Country', [GeneralController::class, 'Country']);
     Route::post('/Country/by/code', [GeneralController::class, 'CountryByCode']);
     Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);
