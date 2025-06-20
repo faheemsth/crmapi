@@ -596,7 +596,7 @@ class LeaveController extends Controller
             ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id')
             ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'leaves.created_by')
-            ->where('leaves.employee_id', $employee->id);
+            ->where('leaves.employee_id', $userId);
 
         $leaves = $leaveQuery->get();
 
@@ -628,13 +628,28 @@ class LeaveController extends Controller
 
             $leaveBalanceCheck = Leave::where('leave_type_id', $type->id)
                 ->where('start_date', '>=', Carbon::now()->subMonths(12))
-                ->where('leaves.employee_id', $employee->id)
+                ->where('leaves.employee_id', $userId)
                 ->get();
 
-            $usedLeaves = $leaveBalanceCheck->where('status', 'Approved')->sum('total_leave_days');
-            $plannedLeaves = $leaveBalanceCheck->where('status', 'Pending')->sum('total_leave_days');
-            $balance = $allowance - $usedLeaves;
-            $available = $balance - $plannedLeaves;
+            // $usedLeaves = $leaveBalanceCheck->where('status', 'Approved')->sum('total_leave_days');
+            $usedLeaves = $leaveBalanceCheck
+                ->filter(fn($leave) => $leave->status === 'Approved' && Carbon::parse($leave->start_date)->lte(Carbon::today()))
+                ->sum('total_leave_days');
+
+
+            $plannedLeaves = $leaveBalanceCheck->where('status', 'Approved')
+            ->filter(function ($leave) {
+                return Carbon::parse($leave->start_date)->gt(Carbon::today());
+            })
+            ->sum('total_leave_days');
+
+
+
+
+
+            $balance = $usedLeaves;
+
+            $available = ($allowance - $usedLeaves) - $plannedLeaves;
 
             $leaveDetails[] = [
                 'leave_type' => $type->title,

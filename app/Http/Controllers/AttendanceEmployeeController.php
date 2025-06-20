@@ -240,6 +240,7 @@ class AttendanceEmployeeController extends Controller
                         'branch_id' => $employee->user->branch_id,
                         'date' => $dateStr,
                         'clock_in' => $attendance?->clock_in ?? "00:00:00",
+                        'earlyCheckOutReason' => $attendance?->earlyCheckOutReason ?? null,
                         'clock_out' => $attendance?->clock_out ?? "00:00:00",
                         'worked_hours' => $attendance && $attendance->clock_in && $attendance->clock_out
                             ? gmdate("H:i:s", Carbon::parse($attendance->clock_out)->diffInSeconds(Carbon::parse($attendance->clock_in)))

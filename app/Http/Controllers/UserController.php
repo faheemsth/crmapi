@@ -679,9 +679,10 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
-        $InternalEmployeeNotes = InternalEmployeeNotes::where('lead_assigned_user', $request->id)
-            ->orderBy('id', 'desc')
-            ->get();
+         
+        $InternalEmployeeNotes = InternalEmployeeNotes::with('created_by')->with('lead_assigned_user')->where('lead_assigned_user', $request->id)
+        ->orderBy('id', 'desc')
+        ->get();
 
         return response()->json([
             'status' => 'success',
