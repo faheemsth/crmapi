@@ -92,6 +92,7 @@ Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 // Protected routes of product and logout
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
+    Route::post('/getProfileData', [UserController::class, 'getProfileData']);
     Route::post('/updateUserStatus', [UserController::class, 'updateUserStatus']);
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
     Route::get('/agentRequestGet', [AgentController::class, 'agentRequestGet']);
@@ -208,6 +209,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/changeLeaveStatus', [LeaveController::class, 'changeLeaveStatus']);
     // Leaves
     Route::post('/getAttendances', [AttendanceEmployeeController::class, 'getAttendances']);
+    Route::post('/viewAttendance', [AttendanceEmployeeController::class, 'viewAttendance']);
     Route::post('/addAttendance', [AttendanceEmployeeController::class, 'addAttendance']);
     Route::post('/updateAttendance', [AttendanceEmployeeController::class, 'updateAttendance']);
     Route::post('/deleteAttendance', [AttendanceEmployeeController::class, 'deleteAttendance']);

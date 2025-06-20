@@ -48,7 +48,7 @@ class UserController extends Controller
         if (\Auth::user()->can('manage employee')) {
             $excludedTypes = ['super admin', 'company', 'team', 'client'];
             $usersQuery = User::select(['users.id', 'users.name'])->whereNotIn('type', $excludedTypes);
-    
+
             if ($user->type == 'super admin') {
                 // No need to redeclare the query, we just need to exclude types here
                 $usersQuery->whereNotIn('type', $excludedTypes);
@@ -57,14 +57,13 @@ class UserController extends Controller
             } else {
                 $usersQuery->where('brand_id', $user->brand_id);
             }
-    
-            $users = $usersQuery->pluck('name', 'id'); 
-    
+
+            $users = $usersQuery->pluck('name', 'id');
+
             return response()->json([
                 'status' => 'success',
                 'data' => $users
             ], 200);
-    
         } else {
             return response()->json([
                 'status' => 'error',
@@ -120,6 +119,64 @@ class UserController extends Controller
         ], 403);
     }
 
+
+
+    public function getProfileData(Request $request)
+    {
+        // Validate emp_id
+        $validator = Validator::make($request->all(), [
+            'emp_id' => 'nullable|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $userId = $request->input('emp_id', \Auth::id());
+        $authUser = User::findOrFail($userId);
+
+        if (!\Auth::user()->can('edit employee') && \Auth::id() !== (int) $userId) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission Denied.',
+            ], 403);
+        }
+
+        $user = $authUser;
+        $employee = Employee::where('user_id', $user->id)->first();
+
+        $filters = BrandsRegionsBranchesForEdit($user->brand_id, $user->region_id, $user->branch_id);
+        $companies = $filters['brands'];
+        $regions = $filters['regions'];
+        $branches = $filters['branches'];
+        $employees = $filters['employees'];
+
+        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $roles = Role::whereNotIn('name', $excludedTypes)->get()->unique('name')->pluck('name', 'id');
+
+        $customFields = CustomField::where('created_by', $authUser->creatorId())
+            ->where('module', 'user')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'user' => $user,
+                'employee' => $employee,
+                'roles' => $roles,
+                'customFields' => $customFields,
+                'companies' => $companies,
+                'regions' => $regions,
+                'branches' => $branches,
+                'employees' => $employees,
+            ]
+        ], 200);
+    }
+
+
     public function getEmployees(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -153,7 +210,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        $excludedTypes = [ 'company', 'team', 'client'];
+        $excludedTypes = ['company', 'team', 'client'];
 
         $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
             ->whereNotIn('type', $excludedTypes);
@@ -205,7 +262,7 @@ class UserController extends Controller
         } else {
             $employeesQuery->where('id', $user->id);
         }
-      //  dd($request->input('download_csv'));
+        //  dd($request->input('download_csv'));
         // Check if CSV download is requested
         if ($request->input('download_csv')) {
             $employees = $employeesQuery->get(); // Fetch all records without pagination
@@ -525,9 +582,9 @@ class UserController extends Controller
         ]);
         addLogActivity([
             'type' => 'success',
-              'note' => json_encode([
-                'title' => $internalEmployeeNotes->employee->name. ' employee notes  created',
-                'message' => $internalEmployeeNotes->employee->name. 'employee notes  created'
+            'note' => json_encode([
+                'title' => $internalEmployeeNotes->employee->name . ' employee notes  created',
+                'message' => $internalEmployeeNotes->employee->name . 'employee notes  created'
             ]),
             'module_id' => $internalEmployeeNotes->id,
             'module_type' => 'employee_notes',
@@ -550,11 +607,11 @@ class UserController extends Controller
                 'message' => 'Record not found.',
             ], 404);
         }
-         addLogActivity([
+        addLogActivity([
             'type' => 'warning',
-              'note' => json_encode([
-                'title' => $internalEmployeeNotes->employee->name. ' employee notes  deleted',
-                'message' => $internalEmployeeNotes->employee->name. 'employee notes  deleted'
+            'note' => json_encode([
+                'title' => $internalEmployeeNotes->employee->name . ' employee notes  deleted',
+                'message' => $internalEmployeeNotes->employee->name . 'employee notes  deleted'
             ]),
             'module_id' => $internalEmployeeNotes->id,
             'module_type' => 'employee_notes',
@@ -606,8 +663,8 @@ class UserController extends Controller
         addLogActivity([
             'type' => 'info',
             'note' => json_encode([
-                'title' => $internalEmployeeNotes->employee->name. ' employee notes  updated',
-                'message' => $internalEmployeeNotes->employee->name. 'employee notes  updated'
+                'title' => $internalEmployeeNotes->employee->name . ' employee notes  updated',
+                'message' => $internalEmployeeNotes->employee->name . 'employee notes  updated'
             ]),
             'module_id' => $internalEmployeeNotes->id,
             'module_type' => 'employee_notes',
@@ -622,7 +679,8 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
-        $InternalEmployeeNotes = InternalEmployeeNotes::with('created_by')->where('lead_assigned_user', $request->id)
+         
+        $InternalEmployeeNotes = InternalEmployeeNotes::with('created_by')->with('lead_assigned_user')->where('lead_assigned_user', $request->id)
         ->orderBy('id', 'desc')
         ->get();
 
