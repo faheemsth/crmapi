@@ -1464,7 +1464,7 @@ class UserController extends Controller
 
             // Assign Role using Role ID
 
-            $user->assignRole($role);
+            $user->assignRole($request->role);
 
             // Assign Project/Region/Branch Manager based on Role ID
             switch ($role->name) {
