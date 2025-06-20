@@ -1467,7 +1467,7 @@ class UserController extends Controller
             $user->assignRole($request->role);
 
             // Assign Project/Region/Branch Manager based on Role ID
-            switch ($role->name) {
+            switch ($request->role) {
                 case 'Project Director':
                     User::where('id', $request->brand_id)->update(['project_director_id' => $user->id]);
                     break;
