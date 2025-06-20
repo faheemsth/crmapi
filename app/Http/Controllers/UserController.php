@@ -1483,7 +1483,7 @@ class UserController extends Controller
             }
 
             // Create Employee
-            $employee = Employee::find($user->id) ?? new Employee();
+            $employee = Employee::where('user_id',$user->id)->first() ?? new Employee();
             $employee->user_id = $user->id;
             $employee->name = $request->name;
             $employee->dob = $request->dob;
