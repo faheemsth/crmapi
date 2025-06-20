@@ -1410,7 +1410,7 @@ class UserController extends Controller
         $validator = \Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'dob' => 'required|date',
-            'emp_id' => 'required|date',
+            'emp_id' => 'required',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
             'email' => 'required|email|unique:users,email',
