@@ -1259,6 +1259,10 @@ class UserController extends Controller
             $user->created_by = \Auth::user()->id;
             $user->date_of_birth = $request->dob;
             $user->phone = $request->phone;
+            $user->Postal = $request->Postal;
+            $user->NationalID = $request->NationalID;
+            $user->Province = $request->Province;
+            $user->City = $request->City;
             $user->save();
 
             // Assign Role using Role ID
@@ -1301,6 +1305,7 @@ class UserController extends Controller
             $employee->bank_identifier_code = $request->bank_identifier_code;
             $employee->branch_location = $request->branch_location;
             $employee->tax_payer_id = $request->tax_payer_id;
+            $employee->salary=$request->Salary;
             $employee->created_by = \Auth::user()->id;
             $employee->save();
 
@@ -1320,6 +1325,145 @@ class UserController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Employee successfully created.',
+                'data' => [
+                    'user' => $user,
+                    'employee' => $employee,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+    public function UpdateEmployee(Request $request)
+    {
+        if (!\Auth::user()->can('create employee')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'dob' => 'required|date',
+            'emp_id' => 'required|date',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'role' => 'required|exists:roles,id',  // Updated validation to check role ID
+            'branch_id' => 'required|exists:branches,id',
+            'region_id' => 'required|exists:regions,id',
+            'brand_id' => 'required|exists:users,id',
+            'company_doj' => 'required|date',
+            'gender' => 'nullable|string',
+            'account_holder_name' => 'nullable|string',
+            'account_number' => 'nullable|string',
+            'bank_name' => 'nullable|string',
+            'bank_identifier_code' => 'nullable|string',
+            'branch_location' => 'nullable|string',
+            'tax_payer_id' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        \DB::beginTransaction();
+        try {
+            $password = Hash::make($request->password);
+            $role = Role::find($request->role);
+            // Create User
+            $user = User::find($request->emp_id) ?? new User();
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->password = $password;
+            $user->passport_number = $request->Passport;
+            $user->type = $role->name ?? 'Client'; // Storing role ID
+            $user->branch_id = $request->branch_id;
+            $user->region_id = $request->region_id;
+            $user->brand_id = $request->brand_id;
+            $user->default_pipeline = 1;
+            $user->plan = Plan::first()->id;
+            $user->lang = 'en';
+            $user->created_by = \Auth::user()->id;
+            $user->date_of_birth = $request->dob;
+            $user->phone = $request->phone;
+            $user->Postal = $request->Postal;
+            $user->NationalID = $request->NationalID;
+            $user->Province = $request->Province;
+            $user->City = $request->City;
+            $user->save();
+
+            // Assign Role using Role ID
+
+            $user->assignRole($role);
+
+            // Assign Project/Region/Branch Manager based on Role ID
+            switch ($role->name) {
+                case 'Project Director':
+                    User::where('id', $request->brand_id)->update(['project_director_id' => $user->id]);
+                    break;
+                case 'Project Manager':
+                    User::where('id', $request->brand_id)->update(['project_manager_id' => $user->id]);
+                    break;
+                case 'Region Manager':
+                    Region::where('id', $request->region_id)->update(['region_manager_id' => $user->id]);
+                    break;
+                case 'Branch Manager':
+                    Branch::where('id', $request->branch_id)->update(['branch_manager_id' => $user->id]);
+                    break;
+            }
+
+            // Create Employee
+            $employee = Employee::find($user->id) ?? new Employee();
+            $employee->user_id = $user->id;
+            $employee->name = $request->name;
+            $employee->dob = $request->dob;
+            $employee->gender = $request->gender;
+            $employee->phone = $request->phone;
+            $employee->address = $request->address;
+            $employee->email = $request->email;
+            $employee->password = $password;
+            $employee->employee_id = $this->employeeNumber();
+            $employee->branch_id = $request->branch_id;
+            $employee->company_doj = $request->company_doj;
+            $employee->documents = $request->document ? implode(',', array_keys($request->document)) : null;
+            $employee->account_holder_name = $request->account_holder_name;
+            $employee->account_number = $request->account_number;
+            $employee->bank_name = $request->bank_name;
+            $employee->bank_identifier_code = $request->bank_identifier_code;
+            $employee->branch_location = $request->branch_location;
+            $employee->tax_payer_id = $request->tax_payer_id;
+            $employee->salary=$request->Salary;
+            $employee->created_by = \Auth::user()->id;
+            $employee->save();
+
+            // Log Activity
+            addLogActivity([
+                'type' => 'success',
+                'note' => json_encode([
+                    'title' => 'Employee Updated',
+                    'message' => 'A User employee record has been Updated successfully',
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employee',
+                'notification_type' => 'Employee Updated',
+            ]);
+
+            \DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Employee successfully Updated.',
                 'data' => [
                     'user' => $user,
                     'employee' => $employee,
