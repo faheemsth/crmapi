@@ -1413,7 +1413,7 @@ class UserController extends Controller
             'emp_id' => 'required',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'required|email|unique:users,email,' . $request->emp_id,
             'password' => 'required|string|min:8',
             'role' => 'required|exists:roles,id',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
