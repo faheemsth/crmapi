@@ -94,6 +94,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
 
     Route::post('AttendanceSetting', [UserController::class, 'AttendanceSetting']);
+    Route::post('TargetSetting', [UserController::class, 'TargetSetting']);
 
     Route::post('/getProfileData', [UserController::class, 'getProfileData']);
     Route::post('/updateUserStatus', [UserController::class, 'updateUserStatus']);
