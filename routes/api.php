@@ -168,6 +168,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // UserEmployeeFileUpdate
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
     Route::post('/employeeFileAttachments', [UserController::class, 'employeeFileAttachments']);
+    Route::post('/EmployeeMetaUpdate', [UserController::class, 'storeOrUpdateMetas']);
+    Route::post('/getEmployeeMeta', [UserController::class, 'getEmployeeMeta']);
 
 
     // trainers
