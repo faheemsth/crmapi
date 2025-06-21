@@ -1547,4 +1547,61 @@ class UserController extends Controller
 
         return $latest->employee_id + 1;
     }
+
+    public function AttendanceSetting(Request $request)
+    {
+        // Check if the user has permission to edit employees
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ], 403);
+        }
+
+        // Validate the incoming request data
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'id' => 'required|exists:users,id', // Ensure user ID exists
+                'isloginrestrickted' => 'required|boolean',
+                'isloginanywhere' => 'required|boolean',
+                'longitude' => 'nullable|numeric',
+                'latitude' => 'nullable|numeric',
+            ]
+        );
+
+        // Handle validation errors
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        try {
+            // Find the user by ID
+            $user = User::findOrFail($request->id);
+
+            // Update user settings
+            $user->isloginrestrickted = $request->isloginrestrickted;
+            $user->isloginanywhere = $request->isloginanywhere;
+            $user->longitude = $request->longitude;
+            $user->latitude = $request->latitude;
+
+            // Save the changes
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'msg' => 'Attendance Setting updated successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle unexpected errors
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
 }
