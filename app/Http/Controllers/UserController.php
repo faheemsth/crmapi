@@ -1835,7 +1835,7 @@ class UserController extends Controller
 
         try {
             $user = User::findOrFail($request->id);
-            $user->is_status = $request->is_status;
+            $user->is_active = $request->is_active;
             $user->save();
 
             return response()->json([
