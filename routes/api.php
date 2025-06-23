@@ -280,6 +280,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
     Route::post('/UpdateEmployee', [UserController::class, 'UpdateEmployee']);
+    Route::post('/TerminateEmployee', [UserController::class, 'TerminateEmployee']);
 
     // Hrm Internal Employee Note Create
     Route::post('/EmployeeNoteGet', [UserController::class, 'HrmInternalEmployeeNoteGet']);

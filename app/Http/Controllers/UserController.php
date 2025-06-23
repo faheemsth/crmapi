@@ -1806,4 +1806,48 @@ class UserController extends Controller
             'data' => $metas // Returns as object
         ]);
     }
+    public function TerminateEmployee(Request $request)
+    {
+        // Check if the user has permission to edit employees
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ], 403);
+        }
+
+        // Validate the incoming request data
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'id' => 'required|exists:users,id', // Ensure the user ID exists
+                'is_status' => 'required|in:1,0',  // Validate that is_status is either 1 or 0
+            ]
+        );
+
+        // Handle validation errors
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        try {
+            $user = User::findOrFail($request->id);
+            $user->is_status = $request->is_status;
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'msg' => 'Terminate Employee successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle unexpected errors
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
