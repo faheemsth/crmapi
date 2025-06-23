@@ -36,6 +36,7 @@ use App\Models\Lead;
 use App\Models\DealApplication;
 use App\Models\EmergencyContact;
 use App\Models\EmployeeDocument;
+use App\Models\EmployeeMeta;
 use App\Models\InternalEmployeeNotes;
 use Illuminate\Support\Facades\Validator;
 
@@ -1284,6 +1285,7 @@ class UserController extends Controller
             'gender' => 'nullable|string',
             'account_holder_name' => 'nullable|string',
             'account_number' => 'nullable|string',
+            'Salary' => 'required|numeric|min:0|max:1000000',
             'bank_name' => 'nullable|string',
             'bank_identifier_code' => 'nullable|string',
             'branch_location' => 'nullable|string',
@@ -1317,6 +1319,11 @@ class UserController extends Controller
             $user->created_by = \Auth::user()->id;
             $user->date_of_birth = $request->dob;
             $user->phone = $request->phone;
+            $user->Postal = $request->Postal;
+            $user->NationalID = $request->NationalID;
+            $user->Province = $request->Province;
+            $user->City = $request->City;
+            $user->country = $request->country;
             $user->save();
 
             // Assign Role using Role ID
@@ -1359,6 +1366,7 @@ class UserController extends Controller
             $employee->bank_identifier_code = $request->bank_identifier_code;
             $employee->branch_location = $request->branch_location;
             $employee->tax_payer_id = $request->tax_payer_id;
+            $employee->salary=$request->Salary;
             $employee->created_by = \Auth::user()->id;
             $employee->save();
 
@@ -1392,6 +1400,147 @@ class UserController extends Controller
         }
     }
 
+
+    public function UpdateEmployee(Request $request)
+    {
+        if (!\Auth::user()->can('create employee')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'dob' => 'required|date',
+            'emp_id' => 'required',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string',
+            'email' => 'required|email|unique:users,email,' . $request->emp_id,
+            'password' => 'required|string|min:8',
+            'role' => 'required|',  // Updated validation to check role ID
+            'branch_id' => 'required|exists:branches,id',
+            'region_id' => 'required|exists:regions,id',
+            'brand_id' => 'required|exists:users,id',
+            'company_doj' => 'required|date',
+            'gender' => 'nullable|string',
+            'account_holder_name' => 'nullable|string',
+            'account_number' => 'nullable|string',
+            'Salary' => 'required|numeric|min:0|max:1000000',
+            'bank_name' => 'nullable|string',
+            'bank_identifier_code' => 'nullable|string',
+            'branch_location' => 'nullable|string',
+            'tax_payer_id' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        \DB::beginTransaction();
+        try {
+            $password = Hash::make($request->password);
+            $role = Role::find($request->role);
+            // Create User
+            $user = User::find($request->emp_id) ?? new User();
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->password = $password;
+            $user->passport_number = $request->Passport;
+            $user->type = $request->role; // Storing role ID
+            $user->branch_id = $request->branch_id;
+            $user->region_id = $request->region_id;
+            $user->brand_id = $request->brand_id;
+            $user->default_pipeline = 1;
+            $user->plan = Plan::first()->id;
+            $user->lang = 'en';
+            $user->created_by = \Auth::user()->id;
+            $user->date_of_birth = $request->dob;
+            $user->phone = $request->phone;
+            $user->Postal = $request->Postal;
+            $user->NationalID = $request->NationalID;
+            $user->Province = $request->Province;
+            $user->City = $request->City;
+            $user->country = $request->country;
+            $user->save();
+
+            // Assign Role using Role ID
+
+            $user->assignRole($request->role);
+
+            // Assign Project/Region/Branch Manager based on Role ID
+            switch ($request->role) {
+                case 'Project Director':
+                    User::where('id', $request->brand_id)->update(['project_director_id' => $user->id]);
+                    break;
+                case 'Project Manager':
+                    User::where('id', $request->brand_id)->update(['project_manager_id' => $user->id]);
+                    break;
+                case 'Region Manager':
+                    Region::where('id', $request->region_id)->update(['region_manager_id' => $user->id]);
+                    break;
+                case 'Branch Manager':
+                    Branch::where('id', $request->branch_id)->update(['branch_manager_id' => $user->id]);
+                    break;
+            }
+
+            // Create Employee
+            $employee = Employee::where('user_id',$user->id)->first() ?? new Employee();
+            $employee->user_id = $user->id;
+            $employee->name = $request->name;
+            $employee->dob = $request->dob;
+            $employee->gender = $request->gender;
+            $employee->phone = $request->phone;
+            $employee->address = $request->address;
+            $employee->email = $request->email;
+            $employee->password = $password;
+            $employee->employee_id = $this->employeeNumber();
+            $employee->branch_id = $request->branch_id;
+            $employee->company_doj = $request->company_doj;
+            $employee->documents = $request->document ? implode(',', array_keys($request->document)) : null;
+            $employee->account_holder_name = $request->account_holder_name;
+            $employee->account_number = $request->account_number;
+            $employee->bank_name = $request->bank_name;
+            $employee->bank_identifier_code = $request->bank_identifier_code;
+            $employee->branch_location = $request->branch_location;
+            $employee->tax_payer_id = $request->tax_payer_id;
+            $employee->salary=$request->Salary;
+            $employee->created_by = \Auth::user()->id;
+            $employee->save();
+
+            // Log Activity
+            addLogActivity([
+                'type' => 'success',
+                'note' => json_encode([
+                    'title' => 'Employee Updated',
+                    'message' => 'A User employee record has been Updated successfully',
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employee',
+                'notification_type' => 'Employee Updated',
+            ]);
+
+            \DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Employee successfully Updated.',
+                'data' => [
+                    'user' => $user,
+                    'employee' => $employee,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json([
+                'status' => false,
+                'message' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     function employeeNumber()
     {
         $latest = Employee::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
@@ -1400,5 +1549,305 @@ class UserController extends Controller
         }
 
         return $latest->employee_id + 1;
+    }
+
+    public function AttendanceSetting(Request $request)
+    {
+        // Check if the user has permission to edit employees
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ], 403);
+        }
+
+        // Validate the incoming request data
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'id' => 'required|exists:users,id', // Ensure user ID exists
+                'isloginrestrickted' => 'required|boolean',
+                'isloginanywhere' => 'required|boolean',
+                'longitude' => 'nullable|numeric',
+                'latitude' => 'nullable|numeric',
+            ]
+        );
+
+        // Handle validation errors
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        try {
+            // Find the user by ID
+            $user = User::findOrFail($request->id);
+
+            // Update user settings
+            $user->isloginrestrickted = $request->isloginrestrickted;
+            $user->isloginanywhere = $request->isloginanywhere;
+            $user->longitude = $request->longitude;
+            $user->latitude = $request->latitude;
+
+            // Save the changes
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'msg' => 'Attendance Setting updated successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle unexpected errors
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function TargetSetting(Request $request)
+    {
+        // Check if the user has permission to edit employees
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ], 403);
+        }
+
+        // Validate the incoming request data
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'id' => 'required|exists:users,id', // Ensure the user ID exists
+                'admission' => 'required|string|max:255',
+                'application' => 'required|string|max:255',
+                'deposit' => 'required|string|max:255',
+                'visa' => 'required|string|max:255',
+            ]
+        );
+
+        // Handle validation errors
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        try {
+            // Find the user by ID
+            $user = User::findOrFail($request->id);
+
+            // Update user information
+            $user->admission = $request->admission;
+            $user->application = $request->application;
+            $user->deposit = $request->deposit;
+            $user->visa = $request->visa;
+
+            // Save the changes
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'msg' => 'Target Setting updated successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle unexpected errors
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+    
+
+  public function storeOrUpdateMetas(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $universityId = $request->user_id;
+        $user = Auth::user();
+        $metaData = $request->except('user_id');
+        $changes = [];
+
+        foreach ($metaData as $key => $newValue) {
+            $existingMeta = EmployeeMeta::where([
+                'user_id' => $universityId,
+                'meta_key' => $key
+            ])->first();
+
+            if ($existingMeta) {
+                // Check for changes
+                if ($existingMeta->meta_value != $newValue) {
+                    $changes[$key] = [
+                        'old' => $existingMeta->meta_value,
+                        'new' => $newValue
+                    ];
+                }
+            } else {
+                $changes[$key] = [
+                    'old' => null,
+                    'new' => $newValue
+                ];
+            }
+
+            // Store/update the meta
+            EmployeeMeta::updateOrCreate(
+                [
+                    'user_id' => $universityId,
+                    'meta_key' => $key,
+                ],
+                [
+                    'meta_value' => $newValue,
+                    'created_by' => $user->id,
+                ]
+            );
+        }
+
+        // Log only if there are changes
+        if (!empty($changes)) {
+            $universityName = User::where('id', $universityId)->value('name');
+            $fieldList = implode(', ', array_map('ucwords', array_keys($changes)));
+
+            $logDetails = [
+                'title' => "{$universityName} updated",
+                'message' => "Fields updated: {$fieldList}",
+                'changes' => $changes
+            ];
+
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode($logDetails),
+                'module_id' => $universityId,
+                'module_type' => 'Employee',
+                'created_by' => $user->id,
+                'notification_type' => 'Employee Metadata Updated'
+            ]);
+        }
+
+        $metadata = EmployeeMeta::where('user_id', $universityId)->get();
+
+        $metas = new \stdClass();
+        foreach ($metadata as $data) {
+            $key = $data->meta_key;
+            $value = $data->meta_value;
+
+            $decodedValue = json_decode($value);
+            $metas->$key = json_last_error() === JSON_ERROR_NONE ? $decodedValue : $value;
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Employee processed successfully',
+            'data' => $metas
+        ]);
+    }
+
+
+    protected function logMetaChanges($universityId, $changes, $userId)
+    {
+        $logDetails = [
+            'title' => 'Employee Metadata Updated',
+            'message' => 'Metadata fields were modified',
+            'changes' => $changes
+        ];
+
+        addLogActivity([
+            'type' => 'info',
+            'note' => json_encode($logDetails),
+            'module_id' => $universityId,
+            'module_type' => 'Employee',
+            'created_by' => $userId,
+            'notification_type' => 'Employee Metadata Updated'
+        ]);
+    }
+
+    public function getEmployeeMeta(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+        $metadata = EmployeeMeta::where('user_id', $request->user_id)
+            ->get();
+
+        $metas = new \stdClass(); // Create empty object
+
+        foreach ($metadata as $data) {
+            $key = $data->meta_key;
+            $value = $data->meta_value;
+
+            // Handle JSON values if stored as JSON strings
+            $decodedValue = json_decode($value);
+            $metas->$key = json_last_error() === JSON_ERROR_NONE ? $decodedValue : $value;
+        }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Employee meta list retrieved successfully.',
+            'data' => $metas // Returns as object
+        ]);
+    }
+    public function TerminateEmployee(Request $request)
+    {
+        // Check if the user has permission to edit employees
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ], 403);
+        }
+
+        // Validate the incoming request data
+        $validator = \Validator::make(
+            $request->all(),
+            [
+                'id' => 'required|exists:users,id', // Ensure the user ID exists
+                'is_active' => 'required|in:1,2',  // Validate that is_status is either 1 or 0
+            ]
+        );
+
+        // Handle validation errors
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        try {
+            $user = User::findOrFail($request->id);
+            $user->is_active = $request->is_active;
+            $user->save();
+
+            return response()->json([
+                'status' => 'success',
+                'msg' => 'Terminate Employee successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle unexpected errors
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Something went wrong: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

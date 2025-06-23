@@ -92,6 +92,10 @@ Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 // Protected routes of product and logout
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
+
+    Route::post('AttendanceSetting', [UserController::class, 'AttendanceSetting']);
+    Route::post('TargetSetting', [UserController::class, 'TargetSetting']);
+
     Route::post('/getProfileData', [UserController::class, 'getProfileData']);
     Route::post('/updateUserStatus', [UserController::class, 'updateUserStatus']);
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
@@ -164,6 +168,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // UserEmployeeFileUpdate
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
     Route::post('/employeeFileAttachments', [UserController::class, 'employeeFileAttachments']);
+    Route::post('/EmployeeMetaUpdate', [UserController::class, 'storeOrUpdateMetas']);
+    Route::post('/getEmployeeMeta', [UserController::class, 'getEmployeeMeta']);
 
 
     // trainers
@@ -273,6 +279,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
+    Route::post('/UpdateEmployee', [UserController::class, 'UpdateEmployee']);
+    Route::post('/TerminateEmployee', [UserController::class, 'TerminateEmployee']);
 
     // Hrm Internal Employee Note Create
     Route::post('/EmployeeNoteGet', [UserController::class, 'HrmInternalEmployeeNoteGet']);
