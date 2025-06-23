@@ -1821,7 +1821,7 @@ class UserController extends Controller
             $request->all(),
             [
                 'id' => 'required|exists:users,id', // Ensure the user ID exists
-                'is_active' => 'required|in:1,0',  // Validate that is_status is either 1 or 0
+                'is_active' => 'required|in:1,2',  // Validate that is_status is either 1 or 0
             ]
         );
 
