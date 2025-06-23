@@ -21,4 +21,11 @@ class InternalEmployeeNotes extends Model
         return $this->hasOne('App\Models\User', 'id', 'lead_assigned_user');
     }   
 
+    public function lead_assigned_user()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'lead_assigned_user');
+    }   
+
+    
+
 }
