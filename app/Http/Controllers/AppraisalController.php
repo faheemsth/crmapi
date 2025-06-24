@@ -173,12 +173,12 @@ class AppraisalController extends Controller
         if ($existingAppraisal) {
             $employee = User::find($existingAppraisal->employee);
             return response()->json([
-                'status' => 'duplicate',
+                'status' => 'error',
                 'message' => __('Related to :user on :date, an appraisal already exists.', [
                     'user' => $employee->name ?? 'User',
                     'date' => $request->appraisal_date,
                 ]),
-            ], 409);
+            ], 422);
         }
 
         // Create a new Appraisal instance
