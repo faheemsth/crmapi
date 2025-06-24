@@ -47,6 +47,6 @@ class Appraisal extends Model
     }
     public function appraisalRemarks()
     {
-        return $this->hasMany('App\Models\AppraisalRemark', 'appraisal_id', 'id');
+        return $this->hasMany('App\Models\appraisalremark', 'appraisal_id', 'id');
     }
 }
