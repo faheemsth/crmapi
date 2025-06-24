@@ -439,7 +439,7 @@ class AppraisalController extends Controller
     public function fetchperformanceedit(Request $request)
     {
         // Fetch appraisal data
-        $appraisal = Appraisal::find($request->appraisal);
+        $appraisal = Appraisal::with('appraisalRemarks')->find($request->appraisal);
 
         // Fetch user data
         $userget = User::find($request->employee);
