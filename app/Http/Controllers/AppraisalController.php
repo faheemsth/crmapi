@@ -204,13 +204,21 @@ class AppraisalController extends Controller
         // Insert competency remarks if provided
         if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
             foreach ($request->competencyRemarks as $competencyId => $remark) {
-                AppraisalRemark::create([
-                    'appraisal_id' => $appraisal->id,
-                    'competencies_id' => $competencyId,
-                    'remarks' => $remark,
-                ]);
+                if (!empty($competencyId) && !empty($remark)) {
+                    AppraisalRemark::create([
+                        'appraisal_id' => $appraisal->id,
+                        'competencies_id' => $competencyId,
+                        'remarks' => $remark,
+                    ]);
+                } else {
+                    logger()->warning("Missing competency ID or remark", [
+                        'competencyId' => $competencyId,
+                        'remark' => $remark,
+                    ]);
+                }
             }
         }
+
 
         return response()->json([
             'status' => 'success',
