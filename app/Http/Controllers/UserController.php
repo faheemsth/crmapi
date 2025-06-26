@@ -1757,7 +1757,6 @@ class UserController extends Controller
             'address' => 'required|string',
             'passport_number' => 'required|passport_number|unique:users,passport_number,' . $request->Passport,
             'email' => 'required|email|unique:users,email,' . $request->emp_id,
-            'password' => 'required|string|min:8',
             'role' => 'required',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
