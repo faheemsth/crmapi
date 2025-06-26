@@ -188,6 +188,16 @@ class LeaveController extends Controller
             'module_type' => 'leave',
             'notification_type' => 'leave created',
         ]);
+    addLogActivity([
+            'type' => 'success',
+              'note' => json_encode([
+                'title' => $leave->user->name. ' leave  created',
+                'message' => $leave->user->name. 'leave  created'
+            ]),
+              'module_id' => $leave->employee_id,
+            'module_type' => 'employeeprofile',
+            'notification_type' => 'leave created',
+        ]);
 
         return response()->json([
             'status' => 'success',
@@ -242,6 +252,8 @@ class LeaveController extends Controller
             ], 404);
         }
 
+         $originalData = $leave->toArray();
+
         // Update Leave Record
         $leave->employee_id = $request->lead_assigned_user ?? $leave->employee_id;
         $leave->brand_id = $request->brand_id ?? $leave->brand_id;
@@ -256,15 +268,41 @@ class LeaveController extends Controller
         $leave->save();
 
         // Log Activity
-        addLogActivity([
+
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($leave->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $leave->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        }
+      
+          addLogActivity([
             'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Leave Updated',
-                'message' => 'Leave record updated successfully'
+              'note' => json_encode([
+                'title' => $leave->user->name. ' leave  updated',
+                 'message' => 'Fields updated: ' . implode(', ', $updatedFields)
             ]),
             'module_id' => $leave->id,
             'module_type' => 'leave',
-            'notification_type' => 'Leave Updated'
+            'notification_type' => 'leave updated',
+        ]);
+          addLogActivity([
+            'type' => 'info',
+              'note' => json_encode([
+                'title' => $leave->user->name. ' leave  updated',
+                 'message' => 'Fields updated: ' . implode(', ', $updatedFields)
+            ]),
+            'module_id' => $leave->employee_id,
+            'module_type' => 'employeeprofile',
+            'notification_type' => 'leave updated',
         ]);
 
         return response()->json([
@@ -304,13 +342,25 @@ class LeaveController extends Controller
 
         // Log the deletion activity
         $logData = [
-            'type' => 'info',
+            'type' => 'warning',
             'note' => json_encode([
-                'title' => 'Leave Deleted',
-                'message' => 'A leave record was deleted successfully.'
+               'title' => $leave->user->name. ' leave  deleted',
+                'message' => $leave->user->name. ' leave  deleted'
             ]),
             'module_id' => $leave->id,
             'module_type' => 'leave',
+            'notification_type' => 'Leave deleted'
+        ];
+        addLogActivity($logData);
+  // Log the deletion activity
+        $logData = [
+            'type' => 'warning',
+            'note' => json_encode([
+               'title' => $leave->user->name. ' leave  deleted',
+                'message' => $leave->user->name. ' leave  deleted'
+            ]),
+              'module_id' => $leave->employee_id,
+            'module_type' => 'employeeprofile',
             'notification_type' => 'Leave Deleted'
         ];
         addLogActivity($logData);

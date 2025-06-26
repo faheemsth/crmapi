@@ -150,6 +150,31 @@ class TrainingController extends Controller
             $training->created_by = \Auth::id();
             $training->save();
 
+             //  ========== add ============
+                $user = User::find($training->user_id);
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' emergency contact created',
+                        'message' => $user->name. ' emergency contact created'
+                    ]),
+                    'module_id' => $training->id,
+                    'module_type' => 'employee',
+                    'notification_type' => 'Emergency Contact Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' emergency contact created',
+                        'message' => $user->name. ' emergency contact created'
+                    ]),
+                    'module_id' => $training->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => 'Emergency Contact Created',
+                ]);
+
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Training created successfully.',
