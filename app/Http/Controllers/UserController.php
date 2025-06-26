@@ -1602,7 +1602,7 @@ class UserController extends Controller
             'dob' => 'required|date',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-                        'passport_number' => [
+            'passport_number' => [
                 'required',
                 'string',
                 'regex:/^[A-Za-z0-9]{8,12}$/', // Customize regex for passport numbers
@@ -1641,7 +1641,7 @@ class UserController extends Controller
             $user->name = $request->name;
             $user->email = $request->email;
             $user->password = $password;
-            $user->passport_number = $request->Passport;
+            $user->passport_number = $request->passport_number;
             $user->type = $role->name ?? 'Client'; // Storing role ID
             $user->branch_id = $request->branch_id;
             $user->region_id = $request->region_id;
@@ -1800,7 +1800,7 @@ class UserController extends Controller
             $user->name = $request->name;
             $user->email = $request->email;
           //  $user->password = $password;
-            $user->passport_number = $request->Passport;
+            $user->passport_number = $request->passport_number;
             $user->type = $request->role; // Storing role ID
             $user->branch_id = $request->branch_id;
             $user->region_id = $request->region_id;
