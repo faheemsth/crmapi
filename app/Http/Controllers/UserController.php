@@ -1275,6 +1275,7 @@ class UserController extends Controller
             'dob' => 'required|date',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
+            'passport_number' => 'required|passport_number|unique:users,passport_number',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'role' => 'required|exists:roles,id',  // Updated validation to check role ID
@@ -1416,6 +1417,7 @@ class UserController extends Controller
             'emp_id' => 'required',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
+            'passport_number' => 'required|passport_number|unique:users,passport_number,' . $request->Passport,
             'email' => 'required|email|unique:users,email,' . $request->emp_id,
             'password' => 'required|string|min:8',
             'role' => 'required|',  // Updated validation to check role ID
