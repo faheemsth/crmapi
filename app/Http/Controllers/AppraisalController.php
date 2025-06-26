@@ -219,6 +219,33 @@ class AppraisalController extends Controller
             }
         }
 
+<<<<<<< HEAD
+            //  ========== add ============
+        $user = User::find($appraisal->employee);
+        addLogActivity([
+            'type' => 'success',
+            'note' => json_encode([
+                'title' => $user->name. ' appraisalt created',
+                'message' => $user->name. ' appraisal created'
+            ]),
+            'module_id' => $appraisal->id,
+            'module_type' => 'appraisal',
+            'notification_type' => 'appraisal Created',
+        ]);
+
+          addLogActivity([
+            'type' => 'success',
+            'note' => json_encode([
+                'title' => $user->name. ' appraisal created',
+                'message' => $user->name. ' appraisal created'
+            ]),
+            'module_id' => $appraisal->employee,
+            'module_type' => 'employeeprofile',
+            'notification_type' => 'Appraisal Created',
+        ]);
+
+=======
+>>>>>>> 83f472b0919254e9b35f7be5fe53fd846b4ec402
 
         return response()->json([
             'status' => 'success',
@@ -266,6 +293,8 @@ class AppraisalController extends Controller
         // Retrieve the Appraisal
         $appraisal = Appraisal::findOrFail($request->id);
 
+        $originalData = $appraisal->toArray();
+
         // Update appraisal details
         $appraisal->brand_id = $request->brand_id;
         $appraisal->region_id = $request->region_id;
@@ -295,21 +324,55 @@ class AppraisalController extends Controller
         }
 
         // Log activity if appraisal is submitted
-        if ($request->save_type === 'Submit') {
-            LogActivity::create([
-                'type' => 'info',
-                'start_date' => now()->toDateString(),
-                'time' => now()->toTimeString(),
-                'note' => json_encode([
-                    'title' => 'Submitted Appraisal',
-                    'message' => 'Submitted Appraisal successfully',
-                ]),
-                'module_type' => 'hrm',
-                'module_id' => $appraisal->employee,
-                'notification_type' => 'Submitted Appraisal',
-                'created_by' => $appraisal->created_by,
-            ]);
+         // ============ edit ============
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($appraisal->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $appraisal->$field
+                ];
+                $updatedFields[] = $field;
+            }
         }
+        $user = User::find($appraisal->employee);
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $appraisal->id,
+                    'module_type' => 'appraisal',
+                    'notification_type' => 'appraisal Updated'
+                ]);
+            }
+
+             
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $appraisal->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => 'appraisal Updated'
+                ]);
+            }
+
+
 
         return response()->json([
             'status' => 'success',
@@ -345,6 +408,34 @@ class AppraisalController extends Controller
 
         // Delete the Appraisal
         $appraisal->delete();
+
+            //    =================== delete ===========
+
+            $user = User::find($appraisal->employee); 
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal deleted ',
+                        'message' => $user->name . ' appraisal deleted '
+                    ]),
+                    'module_id' => $appraisal->id,
+                    'module_type' => 'appraisal',
+                    'notification_type' => 'appraisal deleted'
+                ]);
+            
+
+                
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal deleted ',
+                        'message' => $user->name . ' appraisal deleted '
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => 'appraisal deleted'
+                ]);
+            
 
         return response()->json(['status' => 'success', 'message' => 'Appraisal and related remarks successfully deleted.']);
     }

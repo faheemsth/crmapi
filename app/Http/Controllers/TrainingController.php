@@ -150,6 +150,32 @@ class TrainingController extends Controller
             $training->created_by = \Auth::id();
             $training->save();
 
+             //  ========== add ============
+                $user = User::find($training->employee);
+                $typeoflog = 'training';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $training->id,
+                    'module_type' => 'employee',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $training->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Training created successfully.',
@@ -226,7 +252,7 @@ class TrainingController extends Controller
         }
 
         $training = Training::findOrFail($request->id);
-
+         $originalData = $training->toArray();
 
 
         $training->update([
@@ -242,6 +268,62 @@ class TrainingController extends Controller
             'trainer' => $request->trainer,
             'description' => $request->description,
         ]);
+
+
+        // ============ edit ============
+
+
+        
+
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($training->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $training->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        }
+        $user = User::find($training->employee);
+         $typeoflog = 'training';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $training->id,
+                    'module_type' => 'employee',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+             
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.' updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $training->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+
 
         return response()->json([
             'status' => 'success',
@@ -276,6 +358,34 @@ class TrainingController extends Controller
         $training = Training::findOrFail($request->id);
 
         $training->delete();
+        
+            //    =================== delete ===========
+
+            $user = User::find($training->employee); 
+            $typeoflog = 'training';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $training->id,
+                    'module_type' => 'training',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
+
+                
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $training->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
 
         return response()->json([
             'status' => 'success',
