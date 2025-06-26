@@ -601,9 +601,9 @@ class LeaveController extends Controller
         $user = \Auth::user();
 
         // Authorization check
-        if (!in_array($user->type, ['HR', 'super admin', 'Project Manager'])) {
-            return response()->json(['error' => 'Access Denied'], 403);
-        }
+        // if (!in_array($user->type, ['HR', 'super admin', 'Project Manager'])) {
+        //     return response()->json(['error' => 'Access Denied'], 403);
+        // }
 
         // Fetch the employee ID or use authenticated user ID
         if(isset($request->emp_id)){

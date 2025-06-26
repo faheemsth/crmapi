@@ -246,7 +246,7 @@ class TrainingController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'errors' => $validator->errors()
+                'error' => $validator->errors()->first(),
             ], 422);
         }
 

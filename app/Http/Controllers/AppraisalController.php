@@ -66,7 +66,7 @@ class AppraisalController extends Controller
             'assigned_to.name as created_user',
             'branches.name as branch_id',
         )
-            ->with('employees')
+            ->with('employees','appraisalRemarks')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -173,12 +173,12 @@ class AppraisalController extends Controller
         if ($existingAppraisal) {
             $employee = User::find($existingAppraisal->employee);
             return response()->json([
-                'status' => 'duplicate',
+                'status' => 'error',
                 'message' => __('Related to :user on :date, an appraisal already exists.', [
                     'user' => $employee->name ?? 'User',
                     'date' => $request->appraisal_date,
                 ]),
-            ], 409);
+            ], 422);
         }
 
         // Create a new Appraisal instance
@@ -204,14 +204,22 @@ class AppraisalController extends Controller
         // Insert competency remarks if provided
         if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
             foreach ($request->competencyRemarks as $competencyId => $remark) {
-                AppraisalRemark::create([
-                    'appraisal_id' => $appraisal->id,
-                    'competencies_id' => $competencyId,
-                    'remarks' => $remark,
-                ]);
+                if (!empty($competencyId) && !empty($remark)) {
+                    AppraisalRemark::create([
+                        'appraisal_id' => $appraisal->id,
+                        'competencies_id' => $competencyId,
+                        'remarks' => $remark,
+                    ]);
+                } else {
+                    logger()->warning("Missing competency ID or remark", [
+                        'competencyId' => $competencyId,
+                        'remark' => $remark,
+                    ]);
+                }
             }
         }
 
+<<<<<<< HEAD
             //  ========== add ============
         $user = User::find($appraisal->employee);
         addLogActivity([
@@ -236,6 +244,8 @@ class AppraisalController extends Controller
             'notification_type' => 'Appraisal Created',
         ]);
 
+=======
+>>>>>>> 83f472b0919254e9b35f7be5fe53fd846b4ec402
 
         return response()->json([
             'status' => 'success',
@@ -520,7 +530,7 @@ class AppraisalController extends Controller
     public function fetchperformanceedit(Request $request)
     {
         // Fetch appraisal data
-        $appraisal = Appraisal::find($request->appraisal);
+        $appraisal = Appraisal::with('appraisalRemarks')->find($request->appraisal);
 
         // Fetch user data
         $userget = User::find($request->employee);
