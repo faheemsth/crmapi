@@ -1602,7 +1602,12 @@ class UserController extends Controller
             'dob' => 'required|date',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-            'passport_number' => 'required|passport_number|unique:users,passport_number',
+                        'passport_number' => [
+                'required',
+                'string',
+                'regex:/^[A-Za-z0-9]{8,12}$/', // Customize regex for passport numbers
+                \Illuminate\Validation\Rule::unique('users', 'passport_number'),
+            ],
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'role' => 'required|exists:roles,id',  // Updated validation to check role ID
@@ -1755,7 +1760,12 @@ class UserController extends Controller
             'emp_id' => 'required|exists:users,id',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-            'passport_number' => 'required|passport_number|unique:users,passport_number,' . $request->Passport,
+            'passport_number' => [
+                'required',
+                'string',
+                'regex:/^[A-Za-z0-9]{8,12}$/', // Customize regex for passport numbers
+                \Illuminate\Validation\Rule::unique('users', 'passport_number')->ignore($request->emp_id),
+            ],
             'email' => 'required|email|unique:users,email,' . $request->emp_id,
             'role' => 'required',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
