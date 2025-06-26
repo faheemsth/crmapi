@@ -1323,7 +1323,7 @@ class UserController extends Controller
             $user->NationalID = $request->NationalID;
             $user->Province = $request->Province;
             $user->City = $request->City;
-            $user->country = $request->country;
+            $user->country_id = $request->country;
             $user->save();
 
             // Assign Role using Role ID
@@ -1464,7 +1464,7 @@ class UserController extends Controller
             $user->NationalID = $request->NationalID;
             $user->Province = $request->Province;
             $user->City = $request->City;
-            $user->country = $request->country;
+            $user->country_id = $request->country;
             $user->save();
 
             // Assign Role using Role ID
