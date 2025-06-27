@@ -1064,7 +1064,7 @@ class UserController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-        $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)->first();
+        $hrmFileAttachment = EmployeeDocument::with('user')->where('employee_id', $request->employee_id)->first();
 
         if (!$hrmFileAttachment) {
             return response()->json([
@@ -1099,6 +1099,7 @@ class UserController extends Controller
             'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'avatar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'id' => 'required|exists:users,id', // Ensure employee exists
         ]);
 
@@ -1112,7 +1113,7 @@ class UserController extends Controller
         }
 
         // Define allowed file types
-        $files = ['profile_picture', 'cv', 'academic_docs', 'id_card'];
+        $files = ['cv', 'academic_docs', 'id_card', 'avatar'];
         $uploadedFiles = [];
 
         foreach ($files as $fileType) {
@@ -1131,6 +1132,7 @@ class UserController extends Controller
 
         // Retrieve or create the EmployeeDocument record
         $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
+         $user=User::find($request->id);
 
          $originalData = $employeeDocument->toArray();
 
@@ -1148,10 +1150,15 @@ class UserController extends Controller
             $employeeDocument->id_card = $uploadedFiles['id_card'];
         }
 
+        if (!empty($uploadedFiles['avatar'])) {
+            $user->avatar = $uploadedFiles['avatar'];
+        }
+ 
         if (!empty($uploadedFiles['cv'])) {
             $employeeDocument->resume = $uploadedFiles['cv'];
         }
         $employeeDocument->created_by = \Auth::id();
+        $user->save();
         $employeeDocument->save();
 
          // ============ edit ============
@@ -1602,17 +1609,22 @@ class UserController extends Controller
             'dob' => 'required|date',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
+            'passport_number' => [
+                'required',
+                'string',
+                'regex:/^[A-Za-z0-9]{8,12}$/', // Customize regex for passport numbers
+                \Illuminate\Validation\Rule::unique('users', 'passport_number'),
+            ],
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'role' => 'required|exists:roles,id',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
             'brand_id' => 'required|exists:users,id',
-            'company_doj' => 'required|date',
             'gender' => 'nullable|string',
             'account_holder_name' => 'nullable|string',
             'account_number' => 'nullable|string',
-            'Salary' => 'required|numeric|min:0|max:1000000',
+            'Salary' => 'required|numeric|min:0',
             'bank_name' => 'nullable|string',
             'bank_identifier_code' => 'nullable|string',
             'branch_location' => 'nullable|string',
@@ -1635,7 +1647,7 @@ class UserController extends Controller
             $user->name = $request->name;
             $user->email = $request->email;
             $user->password = $password;
-            $user->passport_number = $request->Passport;
+            $user->passport_number = $request->passport_number;
             $user->type = $role->name ?? 'Client'; // Storing role ID
             $user->branch_id = $request->branch_id;
             $user->region_id = $request->region_id;
@@ -1685,7 +1697,7 @@ class UserController extends Controller
             $employee->password = $password;
             $employee->employee_id = $this->employeeNumber();
             $employee->branch_id = $request->branch_id;
-            $employee->company_doj = $request->company_doj;
+            $employee->company_doj = now();
             $employee->documents = $request->document ? implode(',', array_keys($request->document)) : null;
             $employee->account_holder_name = $request->account_holder_name;
             $employee->account_number = $request->account_number;
@@ -1754,16 +1766,21 @@ class UserController extends Controller
             'emp_id' => 'required|exists:users,id',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-            'email' => 'required|email|unique:users,email,' . $request->emp_id, 
+            'passport_number' => [
+                'required',
+                'string',
+                'regex:/^[A-Za-z0-9]{8,12}$/', // Customize regex for passport numbers
+                \Illuminate\Validation\Rule::unique('users', 'passport_number')->ignore($request->emp_id),
+            ],
+            'email' => 'required|email|unique:users,email,' . $request->emp_id,
             'role' => 'required',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
             'brand_id' => 'required|exists:users,id',
-            'company_doj' => 'required|date',
             'gender' => 'nullable|string',
             'account_holder_name' => 'nullable|string',
             'account_number' => 'nullable|string',
-            'Salary' => 'required|numeric|min:0|max:1000000',
+            'Salary' => 'required|numeric|min:0',
             'bank_name' => 'nullable|string',
             'bank_identifier_code' => 'nullable|string',
             'branch_location' => 'nullable|string',
@@ -1788,7 +1805,7 @@ class UserController extends Controller
             $user->name = $request->name;
             $user->email = $request->email;
           //  $user->password = $password;
-            $user->passport_number = $request->Passport;
+            $user->passport_number = $request->passport_number;
             $user->type = $request->role; // Storing role ID
             $user->branch_id = $request->branch_id;
             $user->region_id = $request->region_id;
@@ -1839,7 +1856,6 @@ class UserController extends Controller
             $employee->password = $password;
             $employee->employee_id = $this->employeeNumber();
             $employee->branch_id = $request->branch_id;
-            $employee->company_doj = $request->company_doj;
             $employee->documents = $request->document ? implode(',', array_keys($request->document)) : null;
             $employee->account_holder_name = $request->account_holder_name;
             $employee->account_number = $request->account_number;
