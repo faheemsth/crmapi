@@ -504,7 +504,7 @@ Route::middleware('auth:sanctum')->group(function () {
      //   Institute Category
      Route::post('/addTag', [TagController::class, 'addTag']);
      Route::post('/getTagPluck', [TagController::class, 'getTagPluck']);
-     Route::get('/getInstituteCategories', [TagController::class, 'getTags']);
+     Route::get('/getTagsbytype', [TagController::class, 'getTags']);
      Route::post('/updateTag', [TagController::class, 'updateTag']);
      Route::post('/deleteTag', [TagController::class, 'deleteTag']);
 
