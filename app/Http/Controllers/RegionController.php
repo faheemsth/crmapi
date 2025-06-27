@@ -161,7 +161,7 @@ class RegionController extends Controller
             'location' => $request->location,
             'phone' => $request->phone,
             'email' => $request->email,
-            'region_manager_id' => $request->region_manager_id
+          //  'region_manager_id' => $request->region_manager_id
         ]);
 
 
@@ -240,7 +240,7 @@ class RegionController extends Controller
         
         //    =================== delete ===========
  
-            $typeoflog = 'training';
+            $typeoflog = 'region';
                 addLogActivity([
                     'type' => 'warning',
                     'note' => json_encode([
