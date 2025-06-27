@@ -1064,7 +1064,7 @@ class UserController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-        $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)->first();
+        $hrmFileAttachment = EmployeeDocument::with('user')->where('employee_id', $request->employee_id)->first();
 
         if (!$hrmFileAttachment) {
             return response()->json([
