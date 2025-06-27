@@ -1707,6 +1707,7 @@ class UserController extends Controller
             $employee->tax_payer_id = $request->tax_payer_id;
             $employee->salary=$request->Salary;
             $employee->created_by = \Auth::user()->id;
+            $user->tag_ids = $request->tag_ids;
             $employee->save();
 
             // Log Activity
@@ -1821,6 +1822,7 @@ class UserController extends Controller
             $user->Province = $request->Province;
             $user->City = $request->City;
             $user->country_id = $request->country;
+            $user->tag_ids = $request->tag_ids;
             $user->save();
 
             // Assign Role using Role ID
