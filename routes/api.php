@@ -49,6 +49,7 @@ use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SetSalaryController;
+use App\Http\Controllers\TagController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
@@ -499,6 +500,13 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getInstituteCategories', [InstituteCategoryController::class, 'getInstituteCategories']);
      Route::post('/updateInstituteCategory', [InstituteCategoryController::class, 'updateInstituteCategory']);
      Route::post('/deleteInstituteCategory', [InstituteCategoryController::class, 'deleteInstituteCategory']);
+
+     //   Institute Category
+     Route::post('/addTag', [TagController::class, 'addTag']);
+     Route::post('/getTagPluck', [TagController::class, 'getTagPluck']);
+     Route::get('/getInstituteCategories', [TagController::class, 'getTags']);
+     Route::post('/updateTag', [TagController::class, 'updateTag']);
+     Route::post('/deleteTag', [TagController::class, 'deleteTag']);
 
 
      //     University Rules
