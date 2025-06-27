@@ -1099,6 +1099,7 @@ class UserController extends Controller
             'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'avatar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'id' => 'required|exists:users,id', // Ensure employee exists
         ]);
 
@@ -1112,7 +1113,7 @@ class UserController extends Controller
         }
 
         // Define allowed file types
-        $files = ['profile_picture', 'cv', 'academic_docs', 'id_card', 'avatar'];
+        $files = ['cv', 'academic_docs', 'id_card', 'avatar'];
         $uploadedFiles = [];
 
         foreach ($files as $fileType) {
@@ -1131,6 +1132,7 @@ class UserController extends Controller
 
         // Retrieve or create the EmployeeDocument record
         $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
+         $user=User::find($request->id);
 
          $originalData = $employeeDocument->toArray();
 
@@ -1149,15 +1151,14 @@ class UserController extends Controller
         }
 
         if (!empty($uploadedFiles['avatar'])) {
-            $user=User::find($request->id);
             $user->avatar = $uploadedFiles['avatar'];
-            $user->save();
         }
-
+ 
         if (!empty($uploadedFiles['cv'])) {
             $employeeDocument->resume = $uploadedFiles['cv'];
         }
         $employeeDocument->created_by = \Auth::id();
+        $user->save();
         $employeeDocument->save();
 
          // ============ edit ============
