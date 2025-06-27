@@ -1621,7 +1621,6 @@ class UserController extends Controller
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
             'brand_id' => 'required|exists:users,id',
-            'company_doj' => 'required|date',
             'gender' => 'nullable|string',
             'account_holder_name' => 'nullable|string',
             'account_number' => 'nullable|string',
@@ -1698,7 +1697,7 @@ class UserController extends Controller
             $employee->password = $password;
             $employee->employee_id = $this->employeeNumber();
             $employee->branch_id = $request->branch_id;
-            $employee->company_doj = $request->company_doj;
+            $employee->company_doj = now();
             $employee->documents = $request->document ? implode(',', array_keys($request->document)) : null;
             $employee->account_holder_name = $request->account_holder_name;
             $employee->account_number = $request->account_number;
@@ -1778,7 +1777,6 @@ class UserController extends Controller
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
             'brand_id' => 'required|exists:users,id',
-            'company_doj' => 'required|date',
             'gender' => 'nullable|string',
             'account_holder_name' => 'nullable|string',
             'account_number' => 'nullable|string',
@@ -1858,7 +1856,6 @@ class UserController extends Controller
             $employee->password = $password;
             $employee->employee_id = $this->employeeNumber();
             $employee->branch_id = $request->branch_id;
-            $employee->company_doj = $request->company_doj;
             $employee->documents = $request->document ? implode(',', array_keys($request->document)) : null;
             $employee->account_holder_name = $request->account_holder_name;
             $employee->account_number = $request->account_number;
