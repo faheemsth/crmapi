@@ -1112,7 +1112,7 @@ class UserController extends Controller
         }
 
         // Define allowed file types
-        $files = ['profile_picture', 'cv', 'academic_docs', 'id_card'];
+        $files = ['profile_picture', 'cv', 'academic_docs', 'id_card', 'avatar'];
         $uploadedFiles = [];
 
         foreach ($files as $fileType) {
@@ -1146,6 +1146,12 @@ class UserController extends Controller
 
         if (!empty($uploadedFiles['id_card'])) {
             $employeeDocument->id_card = $uploadedFiles['id_card'];
+        }
+
+        if (!empty($uploadedFiles['avatar'])) {
+            $user=User::find($request->id);
+            $user->avatar = $uploadedFiles['avatar'];
+            $user->save();
         }
 
         if (!empty($uploadedFiles['cv'])) {
