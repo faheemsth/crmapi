@@ -11,7 +11,7 @@ class CustomQuestionController extends Controller
     {
         if (\Auth::user()->can('manage custom question')) {
 
-            $validator = Validator::make($request->all(), [
+            $validator = \Validator::make($request->all(), [
                 'perPage' => 'nullable|integer|min:1',
                 'page' => 'nullable|integer|min:1',
                 'search' => 'nullable|string',
