@@ -165,6 +165,35 @@ class PaySlipController extends Controller
             ], 404);
         }
 
+         //    =================== delete ===========
+
+            $employee = Employee::find($payslip->employee_id);  
+            $typeoflog = 'payslip';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $employee->user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $payslip->id,
+                    'module_type' => 'payslip',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
+
+                
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $employee->user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $employee->user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
+
         $payslip->delete();
         return response()->json([
             'status' => 'success',
@@ -302,7 +331,7 @@ class PaySlipController extends Controller
     private function generatePayslips($employees, $formattedMonthYear)
     {
         foreach ($employees as $employee) {
-            PaySlip::firstOrCreate([
+          $payslip =  PaySlip::firstOrCreate([
                 'employee_id' => $employee->id,
                 'salary_month' => $formattedMonthYear,
                 'created_by' => Auth::id(),
@@ -317,6 +346,32 @@ class PaySlipController extends Controller
                 'other_payment' => Employee::other_payment($employee->id),
                 'overtime' => Employee::overtime($employee->id),
             ]);
+
+                 //  ========== add ============
+                $user = User::find($employee->user_id);
+                $typeoflog = 'payslip';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $payslip->id,
+                    'module_type' => 'employee',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
         }
     }
 
