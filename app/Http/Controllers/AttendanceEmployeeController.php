@@ -170,7 +170,7 @@ class AttendanceEmployeeController extends Controller
             $page = $request->input('page', 1);
 
             // Retrieve employees
-            $employees = Employee::with(['user'])
+           $employees = Employee::with(['user'])
                 ->when($request->filled('brand_id'), function ($query) use ($request) {
                     $query->whereHas('user', fn($q) => $q->where('brand_id', $request->brand_id));
                 })
@@ -178,8 +178,18 @@ class AttendanceEmployeeController extends Controller
                     $query->whereHas('user', function ($q) use ($request) {
                         $q->where('id', $request->emp_id);
                     });
+                }) // ✅ Properly closed here
+                ->when($request->filled('tag_id'), function ($query) use ($request) {
+                   
+                    $query->whereHas('user', function ($q) use ($request) {
+                        $q->where('tag_ids', $request->tag_id);
+                    });
+
+                    
                 })
                 ->get();
+
+                
 
             $data = [];
 
