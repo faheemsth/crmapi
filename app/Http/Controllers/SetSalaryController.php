@@ -79,8 +79,8 @@ class SetSalaryController extends Controller
         if ($request->filled('branch_id')) {
             $query->where('users.branch_id', $request->branch_id);
         }
-        if ($request->filled('employee_id') && $request->filled('employee_id') != "undefined"){
-            $query->where('users.id', $request->employee_id);
+        if ($request->filled('employee_id')){
+            $query->where('employees.user_id', $request->employee_id);
         }
         if ($request->filled('search')) {
             $search = $request->input('search');
