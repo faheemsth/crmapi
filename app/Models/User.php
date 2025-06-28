@@ -270,7 +270,10 @@ class User extends Authenticatable
         return $this->belongsToMany('App\Models\Lead', 'user_leads', 'user_id', 'lead_id');
     }
 
-
+    public function Tag_ids()
+    {
+        return $this->hasOne('App\Models\Tag', 'id', 'tag_ids');
+    }
     public function employee()
     {
         return $this->hasOne('App\Models\Employee', 'user_id', 'id');
