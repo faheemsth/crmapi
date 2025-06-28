@@ -219,7 +219,6 @@ class AppraisalController extends Controller
             }
         }
 
-<<<<<<< HEAD
             //  ========== add ============
         $user = User::find($appraisal->employee);
         addLogActivity([
@@ -244,8 +243,6 @@ class AppraisalController extends Controller
             'notification_type' => 'Appraisal Created',
         ]);
 
-=======
->>>>>>> 83f472b0919254e9b35f7be5fe53fd846b4ec402
 
         return response()->json([
             'status' => 'success',
