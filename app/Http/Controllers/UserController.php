@@ -906,6 +906,23 @@ class UserController extends Controller
 
             DB::commit();
 
+                   //  ========== add ============
+               // $user = User::find($training->employee);
+                $typeoflog = 'brand';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'training',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+               
+
+
             return response()->json([
                 'status' => 'success',
                 'id' => $user,
@@ -950,6 +967,7 @@ class UserController extends Controller
         try {
             // Find user
             $user = User::findOrFail($request->id);
+             $originalData = $user->toArray();
 
             // Update user details
             $user->update([
@@ -958,6 +976,46 @@ class UserController extends Controller
                 'website_link' => $request->website_link,
                 'drive_link' => $request->drive_link,
             ]);
+
+            // ============ edit ============
+
+
+        
+
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($user->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $user->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        }
+       // $user = User::find($EmergencyContact->user_id);
+         $typeoflog = 'brand';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'training',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+       
 
             return response()->json([
                 'status' => 'success',
@@ -1005,6 +1063,23 @@ class UserController extends Controller
                     'message' => __('User not found.')
                 ], 404);
             }
+
+              //    =================== delete ===========
+
+             
+            $typeoflog = 'brand';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'training',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
+
 
             // Delete user
             $user->delete();
