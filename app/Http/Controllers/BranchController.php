@@ -197,13 +197,13 @@ class BranchController extends Controller
             'region_id' => 'required|integer|exists:regions,id',
             'branch_manager_id' => 'nullable|integer|exists:users,id',
             'email' => 'required|email|unique:branches,email,' . $request->id . ',id,brands,' . $request->brands . ',region_id,' . $request->region_id,
-            'full_number' => 'nullable|string|max:20',
-            'longitude' => 'nullable|numeric',
-            'latitude' => 'nullable|numeric',
-            'timezone' => 'nullable|string',
-            'google_link' => 'nullable|url',
-            'social_media_link' => 'nullable|url',
-            'shift_time' => 'nullable|string',
+            'full_number' => 'required|string|max:20',
+            'longitude' => 'required|numeric',
+            'latitude' => 'required|numeric',
+            'timezone' => 'required|string',
+            'google_link' => 'required|url',
+            'social_media_link' => 'required|url',
+            'shift_time' => 'required|string',
         ]);
 
         if ($validator->fails()) {

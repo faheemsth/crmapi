@@ -31,7 +31,7 @@ class TrainingController extends Controller
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
-            'brand_id' => 'nullable|integer|exists:brands,id',
+            'brand_id' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
             'employee_id' => 'nullable|integer|exists:users,id',
@@ -52,14 +52,21 @@ class TrainingController extends Controller
          $Training_query = Training::with(['created_by', 'brand', 'branch', 'region', 'trainer','training_type','assign_to']);
 
         // Apply search filter if provided
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $Training_query->where(function ($query) use ($search) {
-                $query->where('trainings.training_type', 'like', "%$search%")
-                    ->orWhere('trainings.trainer', 'like', "%$search%")
-                    ->orWhere('trainings.training_cost', 'like', "%$search%");
-            });
-        }
+                    
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+
+                $Training_query->where(function ($query) use ($search) {
+                    $query->orWhere('training_cost', 'like', "%$search%")
+                         ->orWhereHas('training_type', function ($q) use ($search) {
+                            $q->where('name', 'like', "%$search%") ;
+                        })
+                        ->orWhereHas('trainer', function ($q) use ($search) {
+                            $q->where('firstname', 'like', "%$search%")
+                            ->orWhere('lastname', 'like', "%$search%");
+                        });
+                });
+            }
 
         // Apply user-specific filters
         $user = Auth::user();
@@ -235,7 +242,7 @@ class TrainingController extends Controller
             'region_id' => 'required|numeric|min:1|exists:regions,id',
             'lead_branch' => 'required|numeric|min:1|exists:branches,id',
             'training_type' => 'required|string|max:255',
-            'training_cost' => 'required|numeric|min:0',
+            'training_cost' => 'required|numeric|min:0|max:999999',
             'lead_assigned_user' => 'required|integer|exists:users,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -247,7 +254,7 @@ class TrainingController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'error' => $validator->errors()->first(),
+                'error' => $validator->errors(),
             ], 422);
         }
 
