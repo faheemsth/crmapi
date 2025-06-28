@@ -916,7 +916,7 @@ class UserController extends Controller
                         'message' => $user->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $user->id,
-                    'module_type' => 'training',
+                    'module_type' => 'brand',
                     'notification_type' => ' '.$typeoflog.'  Created',
                 ]);
 
@@ -926,13 +926,13 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'success',
                 'id' => $user,
-                'message' => __('User created successfully.')
+                'message' => __('Brand created successfully.')
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'status' => 'error',
-                'message' => __('An error occurred while creating the user.'),
+                'message' => __('An error occurred while creating the Brand.'),
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -1010,7 +1010,7 @@ class UserController extends Controller
                         'changes' => $changes
                     ]),
                     'module_id' => $user->id,
-                    'module_type' => 'training',
+                    'module_type' => 'brand',
                     'notification_type' =>  ' '.$typeoflog.' Updated'
                 ]);
             }
@@ -1020,12 +1020,12 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'success',
                 'id' => $user,
-                'message' => __('User updated successfully.')
+                'message' => __('Brand updated successfully.')
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => __('An error occurred while updating the user.'),
+                'message' => __('An error occurred while updating the Brand.'),
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -1060,7 +1060,7 @@ class UserController extends Controller
             if (!$user) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => __('User not found.')
+                    'message' => __('Brand not found.')
                 ], 404);
             }
 
@@ -1075,7 +1075,7 @@ class UserController extends Controller
                         'message' => $user->name .  ' '.$typeoflog.'  deleted ' 
                     ]),
                     'module_id' => $user->id,
-                    'module_type' => 'training',
+                    'module_type' => 'brand',
                     'notification_type' =>  ' '.$typeoflog.'  deleted'
                 ]);
             
@@ -1086,12 +1086,12 @@ class UserController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => __('User successfully deleted.')
+                'message' => __('Brand successfully deleted.')
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => __('An error occurred while deleting the user.'),
+                'message' => __('An error occurred while deleting the Brand.'),
                 'error' => $e->getMessage()
             ], 500);
         }
