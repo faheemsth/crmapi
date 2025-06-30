@@ -65,9 +65,7 @@ class AppraisalController extends Controller
             'users.name as brand',
             'assigned_to.name as created_user',
             'branches.name as branch_id',
-            \DB::raw('GROUP_CONCAT(DISTINCT employees.id) as employee_ids'),
-            \DB::raw('GROUP_CONCAT(DISTINCT appraisals.id) as appraisal_ids')
-            )
+        )
             ->with('employees','appraisalRemarks')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
@@ -101,15 +99,15 @@ class AppraisalController extends Controller
         if ($request->filled('search')) {
             $search = $request->input('search');
             $appraisalQuery->where(function ($query) use ($search) {
-            $query->where('users.name', 'like', "%$search%")
-                ->orWhere('branches.name', 'like', "%$search%")
-                ->orWhere('assigned_to.name', 'like', "%$search%") // Ensure alias consistency
-                ->orWhere('regions.name', 'like', "%$search%");
+                $query->where('users.name', 'like', "%$search%")
+                    ->orWhere('branches.name', 'like', "%$search%")
+                    ->orWhere('created_user', 'like', "%$search%")
+                    ->orWhere('regions.name', 'like', "%$search%");
             });
         }
 
         // Fetch paginated appraisals
-        $appraisals = $appraisalQuery->groupBy('employees.id')
+        $appraisals = $appraisalQuery
             ->orderBy('appraisals.created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
