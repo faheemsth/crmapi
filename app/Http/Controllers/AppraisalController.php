@@ -99,8 +99,7 @@ class AppraisalController extends Controller
         if ($request->filled('search')) {
             $search = $request->input('search');
             $appraisalQuery->where(function ($query) use ($search) {
-                $query->where('appraisals.title', 'like', "%$search%")
-                    ->orWhere('users.name', 'like', "%$search%")
+                $query->where('users.name', 'like', "%$search%")
                     ->orWhere('branches.name', 'like', "%$search%")
                     ->orWhere('regions.name', 'like', "%$search%");
             });
