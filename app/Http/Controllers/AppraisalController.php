@@ -65,8 +65,8 @@ class AppraisalController extends Controller
             'users.name as brand',
             'assigned_to.name as created_user',
             'branches.name as branch_id',
-            \DB::raw('DISTINCT employees.id'), // Ensures uniqueness of employees
-            \DB::raw('GROUP_CONCAT(appraisals.id) as appraisal_ids') // Combine appraisal IDs if needed
+            \DB::raw('GROUP_CONCAT(DISTINCT employees.id) as employee_ids'),
+            \DB::raw('GROUP_CONCAT(DISTINCT appraisals.id) as appraisal_ids')
             )
             ->with('employees','appraisalRemarks')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
