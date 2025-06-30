@@ -1688,7 +1688,7 @@ class UserController extends Controller
             'passport_number' => [
                 'required',
                 'string',
-                'regex:/^[A-Za-z0-9]{8,12}$/', // Customize regex for passport numbers
+                'regex:/^[A-Za-z0-9]{8,20}$/', // Customize regex for passport numbers
                 \Illuminate\Validation\Rule::unique('users', 'passport_number'),
             ],
             'email' => 'required|email|unique:users,email',
