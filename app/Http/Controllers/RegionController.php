@@ -144,7 +144,7 @@ class RegionController extends Controller
             'name' => 'required|string|max:255',
             'brand_id' => 'required|integer|exists:users,id',
             'region_manager_id' => 'nullable|integer|exists:users,id',
-            'email' => 'required|email|unique:branches,email,' . $request->id . ',id,users,' . $request->brand_id,
+            'email' => 'required|email|unique:branches,email,' . $request->id,
         ]);
 
         if ($validator->fails()) {
