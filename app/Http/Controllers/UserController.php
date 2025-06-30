@@ -213,7 +213,7 @@ class UserController extends Controller
 
         $excludedTypes = ['company', 'team', 'client'];
 
-        $employeesQuery = User::with(['branch', 'brand','EmployeeDocument'])->select('users.*')
+        $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
             ->whereNotIn('type', $excludedTypes);
 
         // Apply filters
@@ -321,6 +321,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'baseurl' =>  asset('/EmployeeDocument'),
             'data' => $employees->items(),
             'current_page' => $employees->currentPage(),
             'last_page' => $employees->lastPage(),
@@ -523,7 +524,7 @@ class UserController extends Controller
     {
 
 
-        $EmployeeDetails = User::with('employee','Tag_ids','EmployeeDocument')->select(
+        $EmployeeDetails = User::with('employee','Tag_ids')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',
