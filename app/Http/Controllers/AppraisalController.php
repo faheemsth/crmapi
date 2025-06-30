@@ -65,8 +65,10 @@ class AppraisalController extends Controller
             'users.name as brand',
             'assigned_to.name as created_user',
             'branches.name as branch_id',
-        )
-            ->with('employees','appraisalRemarks')
+        )->distinct()
+            ->with(['employees', 'appraisalRemarks' => function ($query) {
+                $query->distinct();
+            }])
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
