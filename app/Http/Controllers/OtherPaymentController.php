@@ -75,7 +75,7 @@ class OtherPaymentController extends Controller
                         'title' => $user->name. ' '.$typeoflog.' created',
                         'message' => $user->name. ' '.$typeoflog.'  created'
                     ]),
-                    'module_id' => $OtherPayment->id,
+                    'module_id' => $OtherPayment->employee_id,
                     'module_type' => 'setsalary',
                     'notification_type' => ' '.$typeoflog.'  Created',
                 ]);

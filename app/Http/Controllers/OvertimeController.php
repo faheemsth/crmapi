@@ -72,7 +72,7 @@ class OvertimeController extends Controller
                         'title' => $user->name. ' '.$typeoflog.' created',
                         'message' => $user->name. ' '.$typeoflog.'  created'
                     ]),
-                    'module_id' => $overtime->id,
+                    'module_id' => $overtime->employee_id,
                     'module_type' => 'setsalary',
                     'notification_type' => ' '.$typeoflog.'  Created',
                 ]);

@@ -71,7 +71,7 @@ class LoanController extends Controller
                         'title' => $user->name. ' '.$typeoflog.' created',
                         'message' => $user->name. ' '.$typeoflog.'  created'
                     ]),
-                    'module_id' => $loan->id,
+                    'module_id' => $loan->employee_id,
                     'module_type' => 'setsalary',
                     'notification_type' => ' '.$typeoflog.'  Created',
                 ]);

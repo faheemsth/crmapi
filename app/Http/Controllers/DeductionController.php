@@ -85,7 +85,7 @@ class DeductionController extends Controller
                         'title' => $user->name. ' '.$typeoflog.' created',
                         'message' => $user->name. ' '.$typeoflog.'  created'
                     ]),
-                    'module_id' => $deduction->id,
+                    'module_id' => $deduction->employee_id,
                     'module_type' => 'setsalary',
                     'notification_type' => ' '.$typeoflog.'  Created',
                 ]);

@@ -85,7 +85,7 @@ class AllowanceController extends Controller
                 'title' => 'Allowance Created',
                 'message' => 'Employee allowance record created successfully'
             ]),
-            'module_id' => $allowance->id,
+            'module_id' => $allowance->employee_id,
             'module_type' => 'allowance',
             'notification_type' => 'Allowance Created'
         ]);
