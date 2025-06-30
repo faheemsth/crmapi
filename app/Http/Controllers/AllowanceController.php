@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Allowance;
+use App\Models\User;
 use App\Models\AllowanceOption;
 use App\Models\Employee;
 use Illuminate\Http\Request;
@@ -84,10 +85,36 @@ class AllowanceController extends Controller
                 'title' => 'Allowance Created',
                 'message' => 'Employee allowance record created successfully'
             ]),
-            'module_id' => $allowance->id,
+            'module_id' => $allowance->employee_id,
             'module_type' => 'allowance',
             'notification_type' => 'Allowance Created'
         ]);
+
+               //  ========== add ============
+                $user = User::find($allowance->employee_id);
+                $typeoflog = 'allowance';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $allowance->id,
+                    'module_type' => 'setsalary',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $allowance->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
 
         return response()->json([
             'status' => 'success',

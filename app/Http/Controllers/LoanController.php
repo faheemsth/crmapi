@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Loan;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -61,17 +62,30 @@ class LoanController extends Controller
         $loan->created_by = Auth::user()->creatorId();
         $loan->save();
 
-             // Log Activity
-             addLogActivity([
-                'type' => 'info',
-                'note' => json_encode([
-                    'title' => 'loan Created',
-                    'message' => 'Employee loan record created successfully'
-                ]),
-                'module_id' => $loan->id,
-                'module_type' => 'loan',
-                'notification_type' => 'loan Created'
-            ]);
+             //  ========== add ============
+                $user = User::find($loan->employee_id);
+                $typeoflog = 'loan';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $loan->employee_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $loan->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
 
         return response()->json(['success' => __('Loan successfully created.'), 'loan' => $loan], 201);
     }

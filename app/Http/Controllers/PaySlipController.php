@@ -414,6 +414,7 @@ class PaySlipController extends Controller
 
         // Find the employee or return a 404 error if not found
         $employee = Employee::where('user_id',$id)->first();
+              $originalData = $employee->toArray();
         if (!$employee) {
             return response()->json([
                 'status' => 'error',
@@ -425,6 +426,61 @@ class PaySlipController extends Controller
         $employee->salary_type = $request->salary_type;
         $employee->salary = $request->salary;
         $employee->save();
+
+
+        
+     // ============ edit ============
+
+
+   
+
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($employee->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $employee->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        }
+        $user = User::find($employee->user_id);
+         $typeoflog = 'set salary';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $employee->user_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+             
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.' updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $employee->user_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
 
         // Return a success response
         return response()->json([

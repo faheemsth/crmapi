@@ -63,17 +63,30 @@ class OvertimeController extends Controller
         $overtime->created_by = Auth::user()->creatorId();
         $overtime->save();
 
-        // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Overtime Created',
-                'message' => 'Employee overtime record created successfully'
-            ]),
-            'module_id' => $overtime->id,
-            'module_type' => 'overtime',
-            'notification_type' => 'Overtime Created'
-        ]);
+       //  ========== add ============
+                $user = User::find($overtime->employee_id);
+                $typeoflog = 'over time';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $overtime->employee_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $overtime->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
 
         return response()->json([
             'status' => 'success',
