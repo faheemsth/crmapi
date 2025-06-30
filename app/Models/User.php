@@ -373,6 +373,9 @@ class User extends Authenticatable
         ->whereColumn('client_deals.client_id', 'clients.id');
     }
 
-
+    public function EmployeeDocument()
+    {
+        return $this->hasOne('App\Models\EmployeeDocument', 'employee_id', 'id');
+    }
 
 }
