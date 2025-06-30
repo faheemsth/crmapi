@@ -65,10 +65,10 @@ class AppraisalController extends Controller
             'users.name as brand',
             'assigned_to.name as created_user',
             'branches.name as branch_id',
-        )->distinct()
-            ->with(['employees', 'appraisalRemarks' => function ($query) {
-                $query->distinct();
-            }])
+            \DB::raw('DISTINCT employees.id'), // Ensures uniqueness of employees
+            \DB::raw('GROUP_CONCAT(appraisals.id) as appraisal_ids') // Combine appraisal IDs if needed
+            )
+            ->with('employees','appraisalRemarks')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -109,7 +109,7 @@ class AppraisalController extends Controller
         }
 
         // Fetch paginated appraisals
-        $appraisals = $appraisalQuery
+        $appraisals = $appraisalQuery->groupBy('employees.id')
             ->orderBy('appraisals.created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
