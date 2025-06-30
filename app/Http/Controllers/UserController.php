@@ -1685,26 +1685,21 @@ class UserController extends Controller
             'dob' => 'required|date',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-            'passport_number' => [
-                'required',
-                'string',
-                'regex:/^[A-Za-z0-9]{8,20}$/', // Customize regex for passport numbers
-                \Illuminate\Validation\Rule::unique('users', 'passport_number'),
-            ],
+            'passport_number' => 'required|string|unique:users,passport_number',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'role' => 'required|exists:roles,id',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
             'brand_id' => 'required|exists:users,id',
-            'gender' => 'nullable|string',
-            'account_holder_name' => 'nullable|string',
-            'account_number' => 'nullable|string',
+            'gender' => 'required|string',
+            'account_holder_name' => 'required|string',
+            'account_number' => 'required|string',
             'Salary' => 'required|numeric|min:0',
-            'bank_name' => 'nullable|string',
-            'bank_identifier_code' => 'nullable|string',
-            'branch_location' => 'nullable|string',
-            'tax_payer_id' => 'nullable|string',
+            'bank_name' => 'required|string',
+            'bank_identifier_code' => 'required|string',
+            'branch_location' => 'required|string',
+            'tax_payer_id' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -1843,25 +1838,20 @@ class UserController extends Controller
             'emp_id' => 'required|exists:users,id',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-            'passport_number' => [
-                'required',
-                'string',
-                'regex:/^[A-Za-z0-9]{8,12}$/', // Customize regex for passport numbers
-                \Illuminate\Validation\Rule::unique('users', 'passport_number')->ignore($request->emp_id),
-            ],
+            'passport_number' => 'required|string|unique:users,passport_number',
             'email' => 'required|email|unique:users,email,' . $request->emp_id,
             'role' => 'required',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
             'brand_id' => 'required|exists:users,id',
-            'gender' => 'nullable|string',
-            'account_holder_name' => 'nullable|string',
-            'account_number' => 'nullable|string',
+            'gender' => 'required|string',
+            'account_holder_name' => 'required|string',
+            'account_number' => 'required|string',
             'Salary' => 'required|numeric|min:0',
-            'bank_name' => 'nullable|string',
-            'bank_identifier_code' => 'nullable|string',
+            'bank_name' => 'required|string',
+            'bank_identifier_code' => 'required|string',
             'branch_location' => 'nullable|string',
-            'tax_payer_id' => 'nullable|string',
+            'tax_payer_id' => 'required|string',
         ]);
 
         if ($validator->fails()) {
