@@ -1838,7 +1838,7 @@ class UserController extends Controller
             'emp_id' => 'required|exists:users,id',
             'phone' => 'required|string|max:20',
             'address' => 'required|string',
-            'passport_number' => 'required|string|unique:users,passport_number',
+            'passport_number' => 'required|string|unique:users,passport_number,' . $request->emp_id,
             'email' => 'required|email|unique:users,email,' . $request->emp_id,
             'role' => 'required',  // Updated validation to check role ID
             'branch_id' => 'required|exists:branches,id',
