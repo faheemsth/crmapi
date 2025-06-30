@@ -1696,10 +1696,10 @@ class UserController extends Controller
             'account_holder_name' => 'required|string',
             'account_number' => 'required|string',
             'Salary' => 'required|numeric|min:0',
-            'bank_name' => 'required|string',
+            'bank_name' => 'nullable|string',
             'bank_identifier_code' => 'required|string',
-            'branch_location' => 'required|string',
-            'tax_payer_id' => 'required|string',
+            'branch_location' => 'nullable|string',
+            'tax_payer_id' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -1848,10 +1848,10 @@ class UserController extends Controller
             'account_holder_name' => 'required|string',
             'account_number' => 'required|string',
             'Salary' => 'required|numeric|min:0',
-            'bank_name' => 'required|string',
+            'bank_name' => 'nullable|string',
             'bank_identifier_code' => 'required|string',
             'branch_location' => 'nullable|string',
-            'tax_payer_id' => 'required|string',
+            'tax_payer_id' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
