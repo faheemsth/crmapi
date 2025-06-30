@@ -213,7 +213,7 @@ class UserController extends Controller
 
         $excludedTypes = ['company', 'team', 'client'];
 
-        $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
+        $employeesQuery = User::with(['branch', 'brand','EmployeeDocument'])->select('users.*')
             ->whereNotIn('type', $excludedTypes);
 
         // Apply filters
