@@ -10,13 +10,46 @@ class CustomQuestionController extends Controller
     public function getQuestions(Request $request)
     {
         if (\Auth::user()->can('manage custom question')) {
-            $questions = CustomQuestion::where('created_by', \Auth::user()->creatorId())->get();
+
+            $validator = \Validator::make($request->all(), [
+                'perPage' => 'nullable|integer|min:1',
+                'page' => 'nullable|integer|min:1',
+                'search' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+            $page = $request->input('page', 1);
+
+            $indicator_query = CustomQuestion::where('created_by', \Auth::user()->creatorId());
+
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+                $indicator_query->where(function($query) use ($search) {
+                    $query->where('is_required', 'like', '%' . $search . '%')
+                        ->orWhere('question', 'like', '%' . $search . '%');
+                });
+            }
+
+            $indicators = $indicator_query->orderBy('created_at', 'desc')
+                ->paginate($perPage, ['*'], 'page', $page);
+
+            $totalRecords = $indicators->total();
 
             return response()->json([
                 'status' => 'success',
-                'data' => $questions,
-                'message' => __('Questions retrieved successfully.'),
-            ]);
+                'data' => $indicators->items(),
+                'current_page' => $indicators->currentPage(),
+                'last_page' => $indicators->lastPage(),
+                'total_records' => $totalRecords,
+                'per_page' => $indicators->perPage(),
+            ], 200);
         } else {
             return response()->json([
                 'status' => 'error',

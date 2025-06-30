@@ -413,7 +413,7 @@ class PaySlipController extends Controller
         }
 
         // Find the employee or return a 404 error if not found
-        $employee = Employee::where('id',$id)->first();
+        $employee = Employee::where('user_id',$id)->first();
         if (!$employee) {
             return response()->json([
                 'status' => 'error',
