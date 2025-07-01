@@ -101,7 +101,7 @@ class AppraisalController extends Controller
             $appraisalQuery->where(function ($query) use ($search) {
                 $query->where('users.name', 'like', "%$search%")
                     ->orWhere('branches.name', 'like', "%$search%")
-                    ->orWhere('created_user', 'like', "%$search%")
+                    ->orWhere('assigned_to.name', 'like', "%$search%")
                     ->orWhere('regions.name', 'like', "%$search%");
             });
         }
@@ -505,7 +505,7 @@ class AppraisalController extends Controller
     public function fetchperformance(Request $request)
     {
         $userget = User::find($request->employee);
-        $user_type = Role::where('name', $userget->type)->first();
+        $user_type = Role::where('name', $request->type)->first();
         $indicator = Indicator::where('designation', $user_type->id)->first();
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
