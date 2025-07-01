@@ -99,7 +99,7 @@ class CompetenciesController extends Controller
 
         $competency = Competencies::create([
             'name' => $request->name,
-            'type' => json_encode($request->type),
+            'type' => json_encode(array_map('intval', $request->type)),
             'created_by' => \Auth::id()
         ]);
 
@@ -146,7 +146,7 @@ class CompetenciesController extends Controller
 
         $competency->update([
             'name' => $request->name,
-            'type' => implode(',', $request->type),
+            'type' => json_encode(array_map('intval', $request->type)),
             'created_by' => \Auth::id()
         ]);
 
