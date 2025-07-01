@@ -32,7 +32,7 @@ class PaySlipController extends Controller
         )
         ->with([
             'employees',
-            'created_by',
+            'created_by:id,name',
             'employee.salaryType' // Assuming `employee` is a relationship; corrected casing
         ])
         ->leftJoin('employees', 'employees.id', '=', 'pay_slips.employee_id')
