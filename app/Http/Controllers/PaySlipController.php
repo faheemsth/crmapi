@@ -33,7 +33,8 @@ class PaySlipController extends Controller
         ->with([
             'employees',
             'created_by:id,name',
-            'employee.salaryType' // Assuming `employee` is a relationship; corrected casing
+            'employee.salaryType',
+            'employee.user' // Assuming `employee` is a relationship; corrected casing
         ])
         ->leftJoin('employees', 'employees.id', '=', 'pay_slips.employee_id')
         ->leftJoin('users', 'users.id', '=', 'employees.user_id') // Corrected column relation
