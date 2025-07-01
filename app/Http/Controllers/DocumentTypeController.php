@@ -2,53 +2,38 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tag;
+use App\Models\DocumentType;
 use Illuminate\Http\Request;
 
-class TagController extends Controller
+class DocumentTypeController extends Controller
 {
-    public function getTagPluck(Request $request)
+    public function getDocumentTypePluck(Request $request)
     {
-
-            $validator = \Validator::make(
-            $request->all(),
-            [ 
-                'type' => 'required|string',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $validator->errors()->first()
-            ], 422);
-        }
-
-        $tags = Tag::where('type', $request->type)->pluck('name', 'id')->toArray();
+        $documentTypes = DocumentType::pluck('name', 'id')->toArray();
 
         return response()->json([
             'status' => 'success',
-            'data' => $tags
+            'data' => $documentTypes
         ], 200);
     }
 
-    public function getTags()
+    public function getDocumentTypes()
     {
-        $tags = Tag::with(['created_by:id,name'])->get();
+        $documentTypes = DocumentType::with(['created_by:id,name'])->get();
 
         return response()->json([
             'status' => 'success',
-            'data' => $tags
+            'data' => $documentTypes
         ], 200);
     }
 
-    public function addTag(Request $request)
+    public function addDocumentType(Request $request)
     {
         $validator = \Validator::make(
             $request->all(),
             [
                 'name' => 'required|string',
-                'type' => 'required|string',
+                'is_required' => 'required|boolean',
             ]
         );
 
@@ -59,40 +44,40 @@ class TagController extends Controller
             ], 422);
         }
 
-        $tag = Tag::create([
+        $documentType = DocumentType::create([
             'name' => $request->name,
-            'type' => $request->type,
+            'is_required' => $request->is_required,
             'created_by' => \Auth::id()
         ]);
 
-        $typeoflog = 'tag';
+        $typeoflog = 'document type';
 
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $tag->name . " $typeoflog created",
-                'message' => $tag->name . " $typeoflog created",
+                'title' => $documentType->name . " $typeoflog created",
+                'message' => $documentType->name . " $typeoflog created",
             ]),
-            'module_id' => $tag->id,
+            'module_id' => $documentType->id,
             'module_type' => $typeoflog,
             'notification_type' => ucfirst($typeoflog) . ' Created',
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => __('Tag successfully created.'),
-            'data' => $tag
+            'message' => __('Document type successfully created.'),
+            'data' => $documentType
         ], 201);
     }
 
-    public function updateTag(Request $request)
+    public function updateDocumentType(Request $request)
     {
         $validator = \Validator::make(
             $request->all(),
             [
-                'id' => 'required|exists:tags,id',
+                'id' => 'required|exists:document_types,id',
                 'name' => 'required|string',
-                'type' => 'required|string',
+                'is_required' => 'required|boolean',
             ]
         );
 
@@ -103,20 +88,20 @@ class TagController extends Controller
             ], 422);
         }
 
-        $tag = Tag::where('id', $request->id)->first();
+        $documentType = DocumentType::where('id', $request->id)->first();
 
-        if (!$tag) {
+        if (!$documentType) {
             return response()->json([
                 'status' => 'error',
-                'message' => __('Tag not found.')
+                'message' => __('Document type not found.')
             ], 404);
         }
 
-        $originalData = $tag->toArray();
+        $originalData = $documentType->toArray();
 
-        $tag->update([
+        $documentType->update([
             'name' => $request->name,
-            'type' => $request->type,
+            'is_required' => $request->is_required,
             'created_by' => \Auth::id()
         ]);
 
@@ -127,26 +112,26 @@ class TagController extends Controller
             if (in_array($field, ['created_at', 'updated_at'])) {
                 continue;
             }
-            if ($tag->$field != $oldValue) {
+            if ($documentType->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
-                    'new' => $tag->$field
+                    'new' => $documentType->$field
                 ];
                 $updatedFields[] = $field;
             }
         }
 
-        $typeoflog = 'tag';
+        $typeoflog = 'document type';
 
         if (!empty($changes)) {
             addLogActivity([
                 'type' => 'info',
                 'note' => json_encode([
-                    'title' => $tag->name . " $typeoflog updated",
+                    'title' => $documentType->name . " $typeoflog updated",
                     'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                     'changes' => $changes
                 ]),
-                'module_id' => $tag->id,
+                'module_id' => $documentType->id,
                 'module_type' => $typeoflog,
                 'notification_type' => ucfirst($typeoflog) . ' Updated',
             ]);
@@ -154,16 +139,16 @@ class TagController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => __('Tag successfully updated.'),
-            'data' => $tag
+            'message' => __('Document type successfully updated.'),
+            'data' => $documentType
         ], 200);
     }
 
-    public function deleteTag(Request $request)
+    public function deleteDocumentType(Request $request)
     {
         $validator = \Validator::make(
             $request->all(),
-            ['id' => 'required|exists:tags,id']
+            ['id' => 'required|exists:document_types,id']
         );
 
         if ($validator->fails()) {
@@ -173,35 +158,35 @@ class TagController extends Controller
             ], 422);
         }
 
-        $tag = Tag::where('id', $request->id)->first();
+        $documentType = DocumentType::where('id', $request->id)->first();
 
-        if (!$tag) {
+        if (!$documentType) {
             return response()->json([
                 'status' => 'error',
-                'message' => __('Tag not found.')
+                'message' => __('Document type not found.')
             ], 404);
         }
 
-        $typeoflog = 'tag';
-        $tagName = $tag->name;
-        $tagId = $tag->id;
+        $typeoflog = 'document type';
+        $docName = $documentType->name;
+        $docId = $documentType->id;
 
-        $tag->delete();
+        $documentType->delete();
 
         addLogActivity([
             'type' => 'warning',
             'note' => json_encode([
-                'title' => $tagName . " $typeoflog deleted",
-                'message' => $tagName . " $typeoflog deleted"
+                'title' => $docName . " $typeoflog deleted",
+                'message' => $docName . " $typeoflog deleted"
             ]),
-            'module_id' => $tagId,
+            'module_id' => $docId,
             'module_type' => $typeoflog,
             'notification_type' => ucfirst($typeoflog) . ' Deleted',
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => __('Tag successfully deleted.')
+            'message' => __('Document type successfully deleted.')
         ], 200);
     }
 }

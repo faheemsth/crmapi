@@ -31,6 +31,7 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PayslipTypeController;
 use App\Http\Controllers\TrainingTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
 use App\Http\Controllers\IndicatorController;
@@ -507,6 +508,12 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getTagsbytype', [TagController::class, 'getTags']);
      Route::post('/updateTag', [TagController::class, 'updateTag']);
      Route::post('/deleteTag', [TagController::class, 'deleteTag']);
+     //   Institute DocumentType
+     Route::post('/addDocumentType', [DocumentTypeController::class, 'addDocumentType']);
+     Route::post('/getDocumentTypePluck', [DocumentTypeController::class, 'getDocumentTypePluck']);
+     Route::get('/getDocumentTypes', [DocumentTypeController::class, 'getDocumentTypes']);
+     Route::post('/updateDocumentType', [DocumentTypeController::class, 'updateDocumentType']);
+     Route::post('/deleteDocumentType', [DocumentTypeController::class, 'deleteDocumentType']);
 
 
      //     University Rules

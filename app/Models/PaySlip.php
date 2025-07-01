@@ -30,6 +30,11 @@ class PaySlip extends Model
     {
         return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
     }
+     
+    public function created_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'employee_id');
+    }
     public function employees()
     {
         return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
