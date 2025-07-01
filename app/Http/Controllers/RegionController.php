@@ -43,6 +43,12 @@ class RegionController extends Controller
         // No need for query() here, just use the model's builder directly
         $query = Region::with('manager','brand');
 
+        if (\Auth::user()->type === 'company') {
+            $query->where('brands', \Auth::user()->id); 
+        } elseif (!in_array(\Auth::user()->type, ['super admin', 'Admin Team', 'HR'])) {
+            $query->whereIn('brands', array_keys(FiltersBrands()));
+        }
+
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where('regions.name', 'like', "%$search%");
