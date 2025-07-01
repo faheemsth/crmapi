@@ -504,6 +504,14 @@ class AppraisalController extends Controller
 
     public function fetchperformance(Request $request)
     {
+         $validator = Validator::make($request->all(), [
+            'employee' => 'required|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
+
         $userget = User::find($request->employee);
         $user_type = Role::where('name', $request->type)->first();
         $indicator = Indicator::where('designation', $user_type->id)->first();
