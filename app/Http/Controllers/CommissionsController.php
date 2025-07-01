@@ -75,14 +75,16 @@ class CommissionsController extends Controller
         $Commissions->created_by = Auth::user()->creatorId();
         $Commissions->save();
 
+         
+
        //  ========== add ============
                 $user = User::find($Commissions->employee_id);
                 $typeoflog = 'commissions';
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.' created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $Commissions->employee->name. ' '.$typeoflog.' created',
+                        'message' => $Commissions->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $Commissions->employee_id,
                     'module_type' => 'setsalary',
@@ -92,8 +94,8 @@ class CommissionsController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.'  created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $Commissions->employee->name. ' '.$typeoflog.'  created',
+                        'message' => $Commissions->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $Commissions->employee_id,
                     'module_type' => 'employeeprofile',

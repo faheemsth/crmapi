@@ -74,6 +74,7 @@ class DeductionController extends Controller
         $deduction->amount = $request->amount;
         $deduction->created_by = Auth::user()->creatorId();
         $deduction->save();
+        
 
         // Log Activity
        //  ========== add ============
@@ -82,8 +83,8 @@ class DeductionController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.' created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' =>  $deduction->employee->name. ' '.$typeoflog.' created',
+                        'message' =>  $deduction->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $deduction->employee_id,
                     'module_type' => 'setsalary',
@@ -93,8 +94,8 @@ class DeductionController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.'  created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' =>  $deduction->employee->name. ' '.$typeoflog.'  created',
+                        'message' =>  $deduction->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $deduction->employee_id,
                     'module_type' => 'employeeprofile',

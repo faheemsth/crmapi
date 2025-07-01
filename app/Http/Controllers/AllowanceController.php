@@ -78,17 +78,7 @@ class AllowanceController extends Controller
         $allowance->created_by = Auth::user()->creatorId();
         $allowance->save();
 
-        // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Allowance Created',
-                'message' => 'Employee allowance record created successfully'
-            ]),
-            'module_id' => $allowance->employee_id,
-            'module_type' => 'allowance',
-            'notification_type' => 'Allowance Created'
-        ]);
+        
 
                //  ========== add ============
                 $user = User::find($allowance->employee_id);
@@ -96,8 +86,8 @@ class AllowanceController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.' created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $allowance->employee->name. ' '.$typeoflog.' created',
+                        'message' => $allowance->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $allowance->id,
                     'module_type' => 'setsalary',
@@ -107,8 +97,8 @@ class AllowanceController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.'  created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $allowance->employee->name. ' '.$typeoflog.'  created',
+                        'message' => $allowance->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $allowance->employee_id,
                     'module_type' => 'employeeprofile',
