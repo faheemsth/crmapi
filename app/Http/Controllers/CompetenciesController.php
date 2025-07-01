@@ -86,7 +86,7 @@ class CompetenciesController extends Controller
             $request->all(),
             [
                 'name' => 'required|string',
-                'type' => 'required|'
+                'type' => 'required|array'
             ]
         );
 
@@ -99,7 +99,7 @@ class CompetenciesController extends Controller
 
         $competency = Competencies::create([
             'name' => $request->name,
-            'type' => explode(',', $request->type),
+            'type' => json_encode($request->type),
             'created_by' => \Auth::id()
         ]);
 
