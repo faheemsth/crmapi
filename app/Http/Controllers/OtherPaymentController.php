@@ -65,6 +65,7 @@ class OtherPaymentController extends Controller
         $OtherPayment->amount = $request->amount;
         $OtherPayment->created_by = Auth::user()->creatorId();
         $OtherPayment->save();
+         
 
          //  ========== add ============
                 $user = User::find($OtherPayment->employee_id);
@@ -72,8 +73,8 @@ class OtherPaymentController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.' created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $OtherPayment->employee->name. ' '.$typeoflog.' created',
+                        'message' => $OtherPayment->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $OtherPayment->employee_id,
                     'module_type' => 'setsalary',
@@ -83,8 +84,8 @@ class OtherPaymentController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.'  created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $OtherPayment->employee->name. ' '.$typeoflog.'  created',
+                        'message' => $OtherPayment->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $OtherPayment->employee_id,
                     'module_type' => 'employeeprofile',

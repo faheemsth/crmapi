@@ -63,15 +63,15 @@ class OvertimeController extends Controller
         $overtime->rate = $request->rate;
         $overtime->created_by = Auth::id();
         $overtime->save();
-
+        
        //  ========== add ============
                 $user = User::find($overtime->employee_id);
                 $typeoflog = 'over time';
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.' created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $overtime->employee->name. ' '.$typeoflog.' created',
+                        'message' => $overtime->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $overtime->employee_id,
                     'module_type' => 'setsalary',
@@ -81,8 +81,8 @@ class OvertimeController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.'  created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' => $overtime->employee->name. ' '.$typeoflog.'  created',
+                        'message' => $overtime->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $overtime->employee_id,
                     'module_type' => 'employeeprofile',

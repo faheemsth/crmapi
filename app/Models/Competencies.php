@@ -18,11 +18,13 @@ class Competencies extends Model
     {
         return $this->hasOne('Spatie\Permission\Models\Role', 'id', 'type');
     }
+
+    // add
     public function getRoleNamesAttribute()
     {
         $ids = explode(',', $this->type);
         $roles = \Spatie\Permission\Models\Role::whereIn('id', $ids)->pluck('name')->toArray();
         return implode(', ', $roles);
 
-    }
+    } 
 }

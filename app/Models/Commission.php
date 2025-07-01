@@ -15,7 +15,7 @@ class Commission extends Model
 
     public function employee()
     {
-        return $this->hasOne('App\Models\Employee', 'id', 'employee_id')->first();
+        return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
     }
     public static $commissiontype = [
         'fixed'=>'Fixed',

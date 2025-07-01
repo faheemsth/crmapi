@@ -13,10 +13,11 @@ class Allowance extends Model
         'amount',
         'created_by',
     ];
+     
 
     public function employee()
     {
-        return $this->hasOne('App\Models\Employee', 'id', 'employee_id')->first();
+        return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
     }
 
     public function allowance_option()

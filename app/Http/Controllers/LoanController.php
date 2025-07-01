@@ -62,14 +62,16 @@ class LoanController extends Controller
         $loan->created_by = Auth::user()->creatorId();
         $loan->save();
 
+       
+
              //  ========== add ============
                 $user = User::find($loan->employee_id);
                 $typeoflog = 'loan';
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.' created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' =>  $loan->employee->name. ' '.$typeoflog.' created',
+                        'message' =>  $loan->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $loan->employee_id,
                     'module_type' => 'setsalary',
@@ -79,8 +81,8 @@ class LoanController extends Controller
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.'  created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
+                        'title' =>  $loan->employee->name. ' '.$typeoflog.'  created',
+                        'message' =>  $loan->employee->name. ' '.$typeoflog.'  created'
                     ]),
                     'module_id' => $loan->employee_id,
                     'module_type' => 'employeeprofile',
