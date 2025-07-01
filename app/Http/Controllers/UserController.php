@@ -31,7 +31,6 @@ use Illuminate\Support\Facades\Mail;
 use App\Models\ExperienceCertificate;
 use App\Models\Notification;
 use App\Models\DealTask;
-use App\Models\Deal;
 use App\Models\Lead;
 use App\Models\DealApplication;
 use App\Models\EmergencyContact;
@@ -1177,6 +1176,7 @@ class UserController extends Controller
             'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'avatar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'id' => 'required|exists:users,id', // Ensure employee exists
+            'passport_expiry_date' => 'required', // Ensure employee exists
         ]);
 
         if ($validator->fails()) {
@@ -1235,6 +1235,20 @@ class UserController extends Controller
         }
         $employeeDocument->created_by = \Auth::id();
         $user->save();
+
+        
+
+        EmployeeMeta::updateOrCreate(
+                [
+                    'user_id' => $request->id,
+                    'meta_key' => 'passport_expiry_date',
+                ],
+                [
+                    'meta_value' => $request->passport_expiry_date,
+                    'created_by' => \Auth::id(),
+                ]
+        );
+
         $employeeDocument->save();
 
          // ============ edit ============
