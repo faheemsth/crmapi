@@ -99,7 +99,7 @@ class CompetenciesController extends Controller
 
         $competency = Competencies::create([
             'name' => $request->name,
-            'type' => implode(',', $request->type),
+            'type' => explode(',', $request->type),
             'created_by' => \Auth::id()
         ]);
 
