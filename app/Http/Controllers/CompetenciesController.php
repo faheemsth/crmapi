@@ -86,7 +86,7 @@ class CompetenciesController extends Controller
             $request->all(),
             [
                 'name' => 'required|string',
-                'type' => 'required|array'
+                'type' => 'required|'
             ]
         );
 
