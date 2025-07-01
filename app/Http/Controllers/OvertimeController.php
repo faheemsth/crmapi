@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Overtime;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -60,7 +61,7 @@ class OvertimeController extends Controller
         $overtime->number_of_days = $request->number_of_days;
         $overtime->hours = $request->hours;
         $overtime->rate = $request->rate;
-        $overtime->created_by = Auth::user()->creatorId();
+        $overtime->created_by = Auth::id();
         $overtime->save();
 
        //  ========== add ============
