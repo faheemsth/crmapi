@@ -743,9 +743,13 @@ class UserController extends Controller
 
         $num_results_on_page = env("RESULTS_ON_PAGE", 50);
 
+        if ($request->has('perPage')) {
+            $num_results_on_page = (int) $request->get('perPage');
+        }
+
         // Pagination parameters
         $page = $request->get('page', 1);
-        $num_results_on_page = $request->get('num_results_on_page', $num_results_on_page);
+        $num_results_on_page = $request->get('perPage', $num_results_on_page);
         $start = ($page - 1) * $num_results_on_page;
 
         if (\Auth::user()->can('manage user')) {
