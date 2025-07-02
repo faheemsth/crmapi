@@ -34,7 +34,7 @@ class CompetenciesController extends Controller
                 ->toArray();
 
             // Attach role names to the competency object
-            $competency->role_names = implode(', ', $roles);
+          //  $competency->role_names = implode(', ', $roles);
         }
 
         return response()->json([
