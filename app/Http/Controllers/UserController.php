@@ -1218,8 +1218,8 @@ class UserController extends Controller
             $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
         }
 
-        if (!empty($uploadedFiles['academic_docs'])) {
-            $employeeDocument->academic_documents = $uploadedFiles['academic_docs'];
+        if (!empty($uploadedFiles['academic_documents'])) {
+            $employeeDocument->academic_documents = $uploadedFiles['academic_documents'];
         }
 
         if (!empty($uploadedFiles['id_card'])) {
