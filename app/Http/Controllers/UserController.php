@@ -1189,7 +1189,7 @@ class UserController extends Controller
         }
 
         // Define allowed file types
-        $files = ['cv', 'academic_docs', 'id_card', 'avatar'];
+        $files = ['cv', 'academic_documents', 'id_card', 'avatar'];
         $uploadedFiles = [];
 
         foreach ($files as $fileType) {
