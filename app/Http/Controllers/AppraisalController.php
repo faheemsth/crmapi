@@ -515,15 +515,17 @@ class AppraisalController extends Controller
         }
 
         $userget = User::find($request->employee);
-        $user_type = Role::where('name', $request->type)->first();
+        $user_type = Role::where('name', $userget->type)->first();
+        //dd($user_type);
         $indicator = Indicator::where('designation', $user_type->id)->first();
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
-        $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $userget->type)->get();
+       $performance_types = Role::whereNotIn('name', $excludedTypes)
+            ->where('name', $userget->type)
+            ->get();
 
-        // Add competencies to each performance type
         foreach ($performance_types as $performance_type) {
-            $performance_type->competencies = Competencies::whereRaw("FIND_IN_SET(?, type)", [$performance_type->id])->get();
+            $performance_type->competencies = Competencies::whereJsonContains('type', $performance_type->id)->get();
         }
 
         return response()->json([

@@ -1694,7 +1694,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        $validator = \Validator::make($request->all(), [
+       $validator = \Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'dob' => 'required|date',
             'phone' => 'required|string|max:20',
@@ -1702,7 +1702,7 @@ class UserController extends Controller
             'passport_number' => 'required|string|unique:users,passport_number',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'role' => 'required|exists:roles,id',  // Updated validation to check role ID
+            'role' => 'required|exists:roles,id',
             'branch_id' => 'required|exists:branches,id',
             'region_id' => 'required|exists:regions,id',
             'brand_id' => 'required|exists:users,id',
@@ -1714,7 +1714,12 @@ class UserController extends Controller
             'bank_identifier_code' => 'required|string',
             'branch_location' => 'nullable|string',
             'tax_payer_id' => 'nullable|string',
+        ], [
+            // 💡 Custom messages
+            'passport_number.required' => 'Passport/CNIC number is required.',
+            'passport_number.unique' => 'This passportCNIC number is already in use.',
         ]);
+
 
         if ($validator->fails()) {
             return response()->json([
@@ -1847,26 +1852,31 @@ class UserController extends Controller
         }
 
         $validator = \Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'dob' => 'required|date',
-            'emp_id' => 'required|exists:users,id',
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string',
-            'passport_number' => 'required|string|unique:users,passport_number,' . $request->emp_id,
-            'email' => 'required|email|unique:users,email,' . $request->emp_id,
-            'role' => 'required',  // Updated validation to check role ID
-            'branch_id' => 'required|exists:branches,id',
-            'region_id' => 'required|exists:regions,id',
-            'brand_id' => 'required|exists:users,id',
-            'gender' => 'required|string',
-            'account_holder_name' => 'required|string',
-            'account_number' => 'required|string',
-            'Salary' => 'required|numeric|min:0',
-            'bank_name' => 'nullable|string',
-            'bank_identifier_code' => 'required|string',
-            'branch_location' => 'nullable|string',
-            'tax_payer_id' => 'nullable|string',
-        ]);
+                    'name' => 'required|string|max:255',
+                    'dob' => 'required|date',
+                    'emp_id' => 'required|exists:users,id',
+                    'phone' => 'required|string|max:20',
+                    'address' => 'required|string',
+                    'passport_number' => 'required|string|unique:users,passport_number,' . $request->emp_id,
+                    'email' => 'required|email|unique:users,email,' . $request->emp_id,
+                    'role' => 'required',
+                    'branch_id' => 'required|exists:branches,id',
+                    'region_id' => 'required|exists:regions,id',
+                    'brand_id' => 'required|exists:users,id',
+                    'gender' => 'required|string',
+                    'account_holder_name' => 'required|string',
+                    'account_number' => 'required|string',
+                    'Salary' => 'required|numeric|min:0',
+                    'bank_name' => 'nullable|string',
+                    'bank_identifier_code' => 'required|string',
+                    'branch_location' => 'nullable|string',
+                    'tax_payer_id' => 'nullable|string',
+                ], [
+                    // 🔽 Custom error messages
+                    'passport_number.required' => 'Passport/CNIC number is required.',
+                    'passport_number.unique'   => 'This passport/CNIC number already exists.',
+                ]);
+
 
         if ($validator->fails()) {
             return response()->json([
