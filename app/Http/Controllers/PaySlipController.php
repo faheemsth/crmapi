@@ -118,12 +118,20 @@ class PaySlipController extends Controller
         }
 
         $formattedMonthYear = $request->year . '-' . $request->month;
+        if($request->singleUserID){
+            $employeeID = User::findOrFail($request->singleUserID)->employee->id;
+        }else{
+            $employeeID = 0;
+        }
+        
 
         // Check for existing payslips
-        $existingPayslips = $this->getExistingPayslips($formattedMonthYear);
+        $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID);
 
         // Get eligible employees
         $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
+
+    
 
         if ($eligibleEmployees->isEmpty()) {
             return response()->json([
@@ -263,11 +271,19 @@ class PaySlipController extends Controller
         return range(date('Y'), date('Y') - 9);
     }
 
-    private function getExistingPayslips($formattedMonthYear)
+    private function getExistingPayslips($formattedMonthYear, $singleUserID = 0)
     {
-        return PaySlip::where('salary_month', $formattedMonthYear)
-            ->where('created_by', Auth::id())
-            ->pluck('employee_id');
+            // If a single user ID is provided, filter by that user
+            if ($singleUserID != 0) {
+                return PaySlip::where('salary_month', $formattedMonthYear)
+                    ->where('created_by', Auth::id())
+                    ->where('employee_id', $singleUserID)
+                    ->pluck('employee_id');
+            } else {
+            return PaySlip::where('salary_month', $formattedMonthYear)
+                ->where('created_by', Auth::id())
+                ->pluck('employee_id');
+        }
     }
 
     // private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
@@ -322,7 +338,21 @@ class PaySlipController extends Controller
     // Get the filtered user IDs
     $userIds = $usersQuery->pluck('id');
 
-    // Fetch employees with conditions and related users
+     
+
+
+     if ($singleUserID!= 0) {
+          // Fetch employees with conditions and related users
+    return Employee::where('company_doj', '<=', now()->endOfMonth()) 
+        ->whereNotNull('salary')
+        ->whereNotNull('salary_type')
+        ->whereIn('user_id', $userIds)
+        ->with('user') // Load related user data
+        ->get();
+
+    
+    }else{
+           // Fetch employees with conditions and related users
     return Employee::where('company_doj', '<=', now()->endOfMonth())
         ->whereNotIn('id', $existingPayslips)
         ->whereNotNull('salary')
@@ -331,7 +361,10 @@ class PaySlipController extends Controller
         ->with('user') // Load related user data
         ->get();
 
+    
     }
+
+}
 
     private function generatePayslips($employees, $formattedMonthYear)
     {
