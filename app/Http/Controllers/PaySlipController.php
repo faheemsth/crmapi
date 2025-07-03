@@ -511,7 +511,7 @@ class PaySlipController extends Controller
                 ], 404);
             }
             // Retrieve the payslip based on employee ID
-            $payslip = PaySlip::where('employee_id', $userId)->first();
+            $payslip = PaySlip::where('employee_id', $userId)->get();
 
             if (!$payslip) {
                 return response()->json([
@@ -520,7 +520,7 @@ class PaySlipController extends Controller
             }
 
             // Retrieve the employee data
-            $employee = Employee::find($payslip->employee_id);
+            $employee = Employee::find($userId);
 
             if (!$employee) {
                 return response()->json([
