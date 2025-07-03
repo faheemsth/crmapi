@@ -299,6 +299,7 @@ class AppraisalController extends Controller
         $appraisal->region_id = $request->region_id;
         $appraisal->branch = $request->lead_branch;
         $appraisal->employee = $request->lead_assigned_user;
+        $appraisal->rating = json_encode($request->rating, true);
         $appraisal->appraisal_date = $request->appraisal_date;
         $appraisal->remark = $request->remark;
         $appraisal->admission_rate = $request->admission_rate;
@@ -525,7 +526,10 @@ class AppraisalController extends Controller
             ->get();
 
         foreach ($performance_types as $performance_type) {
-            $performance_type->competencies = Competencies::whereJsonContains('type', $performance_type->id)->get();
+            $performance_type->competencies = Competencies::whereRaw(
+                'JSON_CONTAINS(type, ?, "$")',
+                [json_encode((int)$performance_type->id)]
+            )->get();
         }
 
         return response()->json([
@@ -562,7 +566,10 @@ class AppraisalController extends Controller
 
         // Add competencies to each performance type
         foreach ($performance_types as $performance_type) {
-            $performance_type->competencies = Competencies::whereRaw("FIND_IN_SET(?, type)", [$performance_type->id])->get();
+            $performance_type->competencies = Competencies::whereRaw(
+                'JSON_CONTAINS(type, ?, "$")',
+                [json_encode((int)$performance_type->id)]
+            )->get();
         }
 
         // Return JSON response
