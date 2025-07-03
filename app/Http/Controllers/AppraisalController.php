@@ -299,6 +299,7 @@ class AppraisalController extends Controller
         $appraisal->region_id = $request->region_id;
         $appraisal->branch = $request->lead_branch;
         $appraisal->employee = $request->lead_assigned_user;
+        $appraisal->rating = json_encode($request->rating, true);
         $appraisal->appraisal_date = $request->appraisal_date;
         $appraisal->remark = $request->remark;
         $appraisal->admission_rate = $request->admission_rate;
