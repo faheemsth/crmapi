@@ -523,7 +523,7 @@ class UserController extends Controller
     {
 
 
-        $EmployeeDetails = User::with('employee','Tag_ids')->select(
+        $EmployeeDetails = User::with('employee', 'Tag_ids')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',
@@ -591,7 +591,7 @@ class UserController extends Controller
             'module_type' => 'employee_notes',
             'notification_type' => 'employee notes created',
         ]);
-          addLogActivity([
+        addLogActivity([
             'type' => 'success',
             'note' => json_encode([
                 'title' => $internalEmployeeNotes->employee->name . ' employee notes  created',
@@ -628,7 +628,7 @@ class UserController extends Controller
             'module_type' => 'employee_notes',
             'notification_type' => 'employee notes deleted',
         ]);
-         addLogActivity([
+        addLogActivity([
             'type' => 'warning',
             'note' => json_encode([
                 'title' => $internalEmployeeNotes->employee->name . ' employee notes  deleted',
@@ -671,7 +671,7 @@ class UserController extends Controller
                 'message' => 'Record not found.',
             ], 404);
         }
-         $originalData = $internalEmployeeNotes->toArray();
+        $originalData = $internalEmployeeNotes->toArray();
         $internalEmployeeNotes->update([
             'brand_id' => $request->brand_id,
             'region_id' => $request->region_id,
@@ -682,11 +682,11 @@ class UserController extends Controller
         ]);
 
         $changes = [];
-         $updatedFields = [];
+        $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
-                    continue;
-                }
+            if (in_array($field, ['created_at', 'updated_at'])) {
+                continue;
+            }
             if ($internalEmployeeNotes->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
@@ -700,22 +700,22 @@ class UserController extends Controller
             'type' => 'info',
             'note' => json_encode([
                 'title' => $internalEmployeeNotes->employee->name . ' employee notes  updated',
-               'message' => 'Fields updated: ' . implode(', ', $updatedFields)
+                'message' => 'Fields updated: ' . implode(', ', $updatedFields)
             ]),
             'module_id' => $internalEmployeeNotes->id,
             'module_type' => 'employee_notes',
             'notification_type' => 'employee notes updated',
         ]);
         addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $internalEmployeeNotes->employee->name . ' employee notes  updated',
-                    'message' => 'Fields updated: ' . implode(', ', $updatedFields)
-                    ]),
-                    'module_id' => $internalEmployeeNotes->lead_assigned_user,
-                    'module_type' => 'employeeprofile',
-                    'notification_type' => 'employee notes updated',
-                ]);
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $internalEmployeeNotes->employee->name . ' employee notes  updated',
+                'message' => 'Fields updated: ' . implode(', ', $updatedFields)
+            ]),
+            'module_id' => $internalEmployeeNotes->lead_assigned_user,
+            'module_type' => 'employeeprofile',
+            'notification_type' => 'employee notes updated',
+        ]);
 
         return response()->json([
             'status' => 'success',
@@ -725,10 +725,10 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
-         
+
         $InternalEmployeeNotes = InternalEmployeeNotes::with('created_by')->with('lead_assigned_user')->where('lead_assigned_user', $request->id)
-        ->orderBy('id', 'desc')
-        ->get();
+            ->orderBy('id', 'desc')
+            ->get();
 
         return response()->json([
             'status' => 'success',
@@ -910,21 +910,21 @@ class UserController extends Controller
 
             DB::commit();
 
-                   //  ========== add ============
-               // $user = User::find($training->employee);
-                $typeoflog = 'brand';
-                addLogActivity([
-                    'type' => 'success',
-                    'note' => json_encode([
-                        'title' => $user->name. ' '.$typeoflog.' created',
-                        'message' => $user->name. ' '.$typeoflog.'  created'
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'brand',
-                    'notification_type' => ' '.$typeoflog.'  Created',
-                ]);
+            //  ========== add ============
+            // $user = User::find($training->employee);
+            $typeoflog = 'brand';
+            addLogActivity([
+                'type' => 'success',
+                'note' => json_encode([
+                    'title' => $user->name . ' ' . $typeoflog . ' created',
+                    'message' => $user->name . ' ' . $typeoflog . '  created'
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'brand',
+                'notification_type' => ' ' . $typeoflog . '  Created',
+            ]);
 
-               
+
 
 
             return response()->json([
@@ -971,7 +971,7 @@ class UserController extends Controller
         try {
             // Find user
             $user = User::findOrFail($request->id);
-             $originalData = $user->toArray();
+            $originalData = $user->toArray();
 
             // Update user details
             $user->update([
@@ -984,42 +984,42 @@ class UserController extends Controller
             // ============ edit ============
 
 
-        
 
 
-           // Log changed fields only
-        $changes = [];
-         $updatedFields = [];
-        foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
+
+            // Log changed fields only
+            $changes = [];
+            $updatedFields = [];
+            foreach ($originalData as $field => $oldValue) {
+                if (in_array($field, ['created_at', 'updated_at'])) {
                     continue;
                 }
-            if ($user->$field != $oldValue) {
-                $changes[$field] = [
-                    'old' => $oldValue,
-                    'new' => $user->$field
-                ];
-                $updatedFields[] = $field;
+                if ($user->$field != $oldValue) {
+                    $changes[$field] = [
+                        'old' => $oldValue,
+                        'new' => $user->$field
+                    ];
+                    $updatedFields[] = $field;
+                }
             }
-        }
-       // $user = User::find($EmergencyContact->user_id);
-         $typeoflog = 'brand';
-           
-        if (!empty($changes)) {
+            // $user = User::find($EmergencyContact->user_id);
+            $typeoflog = 'brand';
+
+            if (!empty($changes)) {
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'title' => $user->name .  ' ' . $typeoflog . '  updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => $changes
                     ]),
                     'module_id' => $user->id,
                     'module_type' => 'brand',
-                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                    'notification_type' =>  ' ' . $typeoflog . ' Updated'
                 ]);
             }
 
-       
+
 
             return response()->json([
                 'status' => 'success',
@@ -1068,21 +1068,21 @@ class UserController extends Controller
                 ], 404);
             }
 
-              //    =================== delete ===========
+            //    =================== delete ===========
 
-             
+
             $typeoflog = 'brand';
-                addLogActivity([
-                    'type' => 'warning',
-                    'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.'  deleted ',
-                        'message' => $user->name .  ' '.$typeoflog.'  deleted ' 
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'brand',
-                    'notification_type' =>  ' '.$typeoflog.'  deleted'
-                ]);
-            
+            addLogActivity([
+                'type' => 'warning',
+                'note' => json_encode([
+                    'title' => $user->name .  ' ' . $typeoflog . '  deleted ',
+                    'message' => $user->name .  ' ' . $typeoflog . '  deleted '
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'brand',
+                'notification_type' =>  ' ' . $typeoflog . '  deleted'
+            ]);
+
 
 
             // Delete user
@@ -1159,6 +1159,32 @@ class UserController extends Controller
         ]);
     }
 
+    public function employeeDocuments(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
+
+        $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)->get();
+
+        if (!$hrmFileAttachment) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Document not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'baseurl' =>  asset('/EmployeeDocument'),
+            'document' => $hrmFileAttachment
+        ]);
+    }
+
 
     public function UserEmployeeFileUpdate(Request $request)
     {
@@ -1212,9 +1238,9 @@ class UserController extends Controller
 
         // Retrieve or create the EmployeeDocument record
         $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
-         $user=User::find($request->id);
+        $user = User::find($request->id);
 
-         $originalData = $employeeDocument->toArray();
+        $originalData = $employeeDocument->toArray();
 
 
 
@@ -1233,41 +1259,41 @@ class UserController extends Controller
         if (!empty($uploadedFiles['avatar'])) {
             $user->avatar = $uploadedFiles['avatar'];
         }
- 
+
         if (!empty($uploadedFiles['cv'])) {
             $employeeDocument->resume = $uploadedFiles['cv'];
         }
         $employeeDocument->created_by = \Auth::id();
         $user->save();
 
-        
+
 
         EmployeeMeta::updateOrCreate(
-                [
-                    'user_id' => $request->id,
-                    'meta_key' => 'passport_expiry_date',
-                ],
-                [
-                    'meta_value' => $request->passport_expiry_date,
-                    'created_by' => \Auth::id(),
-                ]
+            [
+                'user_id' => $request->id,
+                'meta_key' => 'passport_expiry_date',
+            ],
+            [
+                'meta_value' => $request->passport_expiry_date,
+                'created_by' => \Auth::id(),
+            ]
         );
 
         $employeeDocument->save();
 
-         // ============ edit ============
+        // ============ edit ============
 
 
-        
 
 
-           // Log changed fields only
+
+        // Log changed fields only
         $changes = [];
-         $updatedFields = [];
+        $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
-                    continue;
-                }
+            if (in_array($field, ['created_at', 'updated_at'])) {
+                continue;
+            }
             if ($employeeDocument->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
@@ -1277,36 +1303,36 @@ class UserController extends Controller
             }
         }
         $user = User::find($employeeDocument->employee_id);
-         $typeoflog = 'employee document';
-           
-        if (!empty($changes)) {
-                addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'employee',
-                    'notification_type' =>  ' '.$typeoflog.' Updated'
-                ]);
-            }
+        $typeoflog = 'employee document';
 
-             
         if (!empty($changes)) {
-                addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.' updated ',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'employeeprofile',
-                    'notification_type' =>  ' '.$typeoflog.' Updated'
-                ]);
-            }
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name .  ' ' . $typeoflog . '  updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employee',
+                'notification_type' =>  ' ' . $typeoflog . ' Updated'
+            ]);
+        }
+
+
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name .  ' ' . $typeoflog . ' updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employeeprofile',
+                'notification_type' =>  ' ' . $typeoflog . ' Updated'
+            ]);
+        }
 
 
         return response()->json([
@@ -1315,6 +1341,146 @@ class UserController extends Controller
             'data' => $employeeDocument,
         ]);
     }
+
+    public function UserEmployeeFileDocument(Request $request)
+    {
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ]);
+        }
+
+        // Validation
+        $validator = \Validator::make($request->all(), [
+            'cv' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'avatar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'document_link' => 'required|file|mimes:jpg,jpeg,png,pdf|max:4096',
+
+            'id' => 'required|exists:users,id',
+            'passport_expiry_date' => 'nullable|date',
+
+            'documenttypeID' => 'required|exists:document_types,id',
+
+            'issue_date' => 'nullable|date',
+            'renewal_date' => 'nullable|date',
+            'comments' => 'nullable|string',
+            'set_as_reminder' => 'nullable|boolean',
+            'reminder_date' => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'validation error',
+                'data' => $validator->errors(),
+            ]);
+        }
+
+        // Upload files
+        $files = ['cv', 'academic_documents', 'id_card', 'avatar', 'document_link', 'profile_picture'];
+        $uploadedFiles = [];
+
+        foreach ($files as $fileType) {
+            if ($request->hasFile($fileType)) {
+                $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
+                $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
+                $uploadedFiles[$fileType] = $filename;
+            } else {
+                $uploadedFiles[$fileType] = null;
+            }
+        }
+
+        // Load employee and document 
+        $employeeDocument = new EmployeeDocument();
+        $employeeDocument->employee_id = $request->id;
+        $user = User::find($request->id);
+        $originalData = $employeeDocument->toArray();
+
+        // Apply uploaded file paths
+        if (!empty($uploadedFiles['profile_picture'])) {
+            $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
+        }
+
+        if (!empty($uploadedFiles['academic_documents'])) {
+            $employeeDocument->academic_documents = $uploadedFiles['academic_documents'];
+        }
+
+        if (!empty($uploadedFiles['id_card'])) {
+            $employeeDocument->id_card = $uploadedFiles['id_card'];
+        }
+
+        if (!empty($uploadedFiles['avatar'])) {
+            $user->avatar = $uploadedFiles['avatar'];
+        }
+
+        if (!empty($uploadedFiles['cv'])) {
+            $employeeDocument->resume = $uploadedFiles['cv'];
+        }
+
+        if (!empty($uploadedFiles['document_link'])) {
+            $employeeDocument->document_link = $uploadedFiles['document_link'];
+            $employeeDocument->documenttypeID = $request->documenttypeID;
+        }
+
+        $employeeDocument->created_by = \Auth::id();
+        $employeeDocument->description = $request->description;
+        $employeeDocument->renewal_date = $request->renewal_date;
+        $employeeDocument->comments = $request->comments;
+        $employeeDocument->set_as_reminder = $request->set_as_reminder;
+        $employeeDocument->reminder_date = $request->reminder_date; 
+        $employeeDocument->issue_date = $request->issue_date; 
+        $user->save();
+
+        // Update passport expiry
+        EmployeeMeta::updateOrCreate(
+            [
+                'user_id' => $request->id,
+                'meta_key' => 'passport_expiry_date',
+            ],
+            [
+                'meta_value' => $request->passport_expiry_date,
+                'created_by' => \Auth::id(),
+            ]
+        );
+
+        $employeeDocument->save();
+
+        // Log updated fields
+              //  ========== add ============ 
+                $typeoflog = 'employee document';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employee',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Employee updated successfully',
+            'data' => $employeeDocument,
+        ]);
+    }
+
 
     // Emergency Contact API Endpoints
     public function EmergencyContactPost(Request $request)
@@ -1336,19 +1502,19 @@ class UserController extends Controller
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $user->name. ' emergency contact created',
-                'message' => $user->name. ' emergency contact created'
+                'title' => $user->name . ' emergency contact created',
+                'message' => $user->name . ' emergency contact created'
             ]),
             'module_id' => $EmergencyContact->user_id,
             'module_type' => 'employee',
             'notification_type' => 'Emergency Contact Created',
         ]);
 
-          addLogActivity([
+        addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $user->name. ' emergency contact created',
-                'message' => $user->name. ' emergency contact created'
+                'title' => $user->name . ' emergency contact created',
+                'message' => $user->name . ' emergency contact created'
             ]),
             'module_id' => $EmergencyContact->user_id,
             'module_type' => 'employeeprofile',
@@ -1365,22 +1531,22 @@ class UserController extends Controller
     public function EmergencyContactUpdate(Request $request)
     {
 
-       
-        $validator = Validator::make($request->all(), [
-                'id' => 'required|integer|exists:emergency_contacts,id',
-                'emerg_name' => 'required|string|max:255',
-                'emerg_phone' => 'required|string|max:20',
-            ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => $validator->errors(),
-                ], 422);
-            }
-          
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:emergency_contacts,id',
+            'emerg_name' => 'required|string|max:255',
+            'emerg_phone' => 'required|string|max:20',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors(),
+            ], 422);
+        }
+
         $EmergencyContact = EmergencyContact::find($request->id);
-         
+
         if (!$EmergencyContact) {
             return response()->json([
                 'status' => 'error',
@@ -1392,13 +1558,13 @@ class UserController extends Controller
         $EmergencyContact->emerg_phone = $request->emerg_phone;
         $EmergencyContact->save();
 
-          // Log changed fields only
+        // Log changed fields only
         $changes = [];
-         $updatedFields = [];
+        $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
-                    continue;
-                }
+            if (in_array($field, ['created_at', 'updated_at'])) {
+                continue;
+            }
             if ($EmergencyContact->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
@@ -1408,35 +1574,35 @@ class UserController extends Controller
             }
         }
         $user = User::find($EmergencyContact->user_id);
-           
-        if (!empty($changes)) {
-                addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $user->name . ' emergency contact updated ',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
-                    'module_id' => $EmergencyContact->user_id,
-                    'module_type' => 'employee',
-                    'notification_type' => 'Emergency Contact Updated'
-                ]);
-            }
 
-             
         if (!empty($changes)) {
-                addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $user->name . ' emergency contact updated ',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
-                    'module_id' => $EmergencyContact->user_id,
-                    'module_type' => 'employeeprofile',
-                    'notification_type' => 'Emergency Contact Updated'
-                ]);
-            }
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name . ' emergency contact updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $EmergencyContact->user_id,
+                'module_type' => 'employee',
+                'notification_type' => 'Emergency Contact Updated'
+            ]);
+        }
+
+
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name . ' emergency contact updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $EmergencyContact->user_id,
+                'module_type' => 'employeeprofile',
+                'notification_type' => 'Emergency Contact Updated'
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -1448,16 +1614,16 @@ class UserController extends Controller
     public function EmergencyContactDelete(Request $request)
     {
         $validator = Validator::make($request->all(), [
-                'id' => 'required|integer|exists:emergency_contacts,id'
-            ]);
+            'id' => 'required|integer|exists:emergency_contacts,id'
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => $validator->errors(),
-                ], 422);
-            }
-          
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors(),
+            ], 422);
+        }
+
 
         $EmergencyContact = EmergencyContact::find($request->id);
         if (!$EmergencyContact) {
@@ -1466,36 +1632,36 @@ class UserController extends Controller
                 'message' => __('Emergency Contact not found!'),
             ], 404);
         }
-         $user = User::find($EmergencyContact->user_id);
+        $user = User::find($EmergencyContact->user_id);
         $EmergencyContact->delete();
 
-         
-           
-        
-                addLogActivity([
-                    'type' => 'warning',
-                    'note' => json_encode([
-                        'title' => $user->name . ' emergency contact deleted ',
-                        'message' => $user->name . ' emergency contact deleted ' 
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'employee',
-                    'notification_type' => 'Emergency Contact deleted'
-                ]);
-            
 
-                
-                addLogActivity([
-                    'type' => 'warning',
-                    'note' => json_encode([
-                        'title' => $user->name . ' emergency contact deleted ',
-                        'message' => $user->name . ' emergency contact deleted ' 
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'employeeprofile',
-                    'notification_type' => 'Emergency Contact deleted'
-                ]);
-            
+
+
+        addLogActivity([
+            'type' => 'warning',
+            'note' => json_encode([
+                'title' => $user->name . ' emergency contact deleted ',
+                'message' => $user->name . ' emergency contact deleted '
+            ]),
+            'module_id' => $user->id,
+            'module_type' => 'employee',
+            'notification_type' => 'Emergency Contact deleted'
+        ]);
+
+
+
+        addLogActivity([
+            'type' => 'warning',
+            'note' => json_encode([
+                'title' => $user->name . ' emergency contact deleted ',
+                'message' => $user->name . ' emergency contact deleted '
+            ]),
+            'module_id' => $user->id,
+            'module_type' => 'employeeprofile',
+            'notification_type' => 'Emergency Contact deleted'
+        ]);
+
 
         return response()->json([
             'status' => 'success',
@@ -1516,24 +1682,24 @@ class UserController extends Controller
         $AdditionalAddress->address = $request->address;
         $AdditionalAddress->save();
 
-       // ========== add ============
+        // ========== add ============
         $user = User::find($AdditionalAddress->user_id);
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $user->name. ' additional address created',
-                'message' => $user->name. ' additional address created'
+                'title' => $user->name . ' additional address created',
+                'message' => $user->name . ' additional address created'
             ]),
             'module_id' => $AdditionalAddress->user_id,
             'module_type' => 'employee',
             'notification_type' => 'additional address Created',
         ]);
 
-          addLogActivity([
+        addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $user->name. ' additional address created',
-                'message' => $user->name. ' additional address created'
+                'title' => $user->name . ' additional address created',
+                'message' => $user->name . ' additional address created'
             ]),
             'module_id' => $AdditionalAddress->user_id,
             'module_type' => 'employeeprofile',
@@ -1566,19 +1732,19 @@ class UserController extends Controller
         $AdditionalAddress->address = $request->address;
         $AdditionalAddress->save();
 
-      //  ============ edit ============
+        //  ============ edit ============
 
 
-         
 
 
-           // Log changed fields only
+
+        // Log changed fields only
         $changes = [];
-         $updatedFields = [];
+        $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
-                    continue;
-                }
+            if (in_array($field, ['created_at', 'updated_at'])) {
+                continue;
+            }
             if ($AdditionalAddress->$field != $oldValue) {
                 $changes[$field] = [
                     'old' => $oldValue,
@@ -1588,35 +1754,35 @@ class UserController extends Controller
             }
         }
         $user = User::find($AdditionalAddress->user_id);
-           
-        if (!empty($changes)) {
-                addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $user->name . ' additional address updated ',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
-                    'module_id' => $AdditionalAddress->user_id,
-                    'module_type' => 'employee',
-                    'notification_type' => 'additional address Updated'
-                ]);
-            }
 
-             
         if (!empty($changes)) {
-                addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $user->name . ' additional address updated ',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
-                    'module_id' => $AdditionalAddress->user_id,
-                    'module_type' => 'employeeprofile',
-                    'notification_type' => 'additional address Updated'
-                ]);
-            }
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name . ' additional address updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $AdditionalAddress->user_id,
+                'module_type' => 'employee',
+                'notification_type' => 'additional address Updated'
+            ]);
+        }
+
+
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name . ' additional address updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $AdditionalAddress->user_id,
+                'module_type' => 'employeeprofile',
+                'notification_type' => 'additional address Updated'
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -1638,33 +1804,33 @@ class UserController extends Controller
 
         $AdditionalAddress->delete();
 
-         //    =================== delete ===========
+        //    =================== delete ===========
 
-            $user = User::find($AdditionalAddress->user_id); 
-                addLogActivity([
-                    'type' => 'warning',
-                    'note' => json_encode([
-                        'title' => $user->name . ' additional address deleted ',
-                        'message' => $user->name . ' additional address deleted ' 
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'employee',
-                    'notification_type' => 'additional address deleted'
-                ]);
-            
+        $user = User::find($AdditionalAddress->user_id);
+        addLogActivity([
+            'type' => 'warning',
+            'note' => json_encode([
+                'title' => $user->name . ' additional address deleted ',
+                'message' => $user->name . ' additional address deleted '
+            ]),
+            'module_id' => $user->id,
+            'module_type' => 'employee',
+            'notification_type' => 'additional address deleted'
+        ]);
 
-                
-                addLogActivity([
-                    'type' => 'warning',
-                    'note' => json_encode([
-                        'title' => $user->name . ' additional address deleted ',
-                        'message' => $user->name . ' additional address deleted ' 
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'employeeprofile',
-                    'notification_type' => 'additional address deleted'
-                ]);
-            
+
+
+        addLogActivity([
+            'type' => 'warning',
+            'note' => json_encode([
+                'title' => $user->name . ' additional address deleted ',
+                'message' => $user->name . ' additional address deleted '
+            ]),
+            'module_id' => $user->id,
+            'module_type' => 'employeeprofile',
+            'notification_type' => 'additional address deleted'
+        ]);
+
 
         return response()->json([
             'status' => 'success',
@@ -1698,7 +1864,7 @@ class UserController extends Controller
             ], 403);
         }
 
-       $validator = \Validator::make($request->all(), [
+        $validator = \Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'dob' => 'required|date',
             'phone' => 'required|string|max:20',
@@ -1800,7 +1966,7 @@ class UserController extends Controller
             $employee->bank_identifier_code = $request->bank_identifier_code;
             $employee->branch_location = $request->branch_location;
             $employee->tax_payer_id = $request->tax_payer_id;
-            $employee->salary=$request->Salary;
+            $employee->salary = $request->Salary;
             $employee->created_by = \Auth::user()->id;
             $employee->save();
 
@@ -1808,20 +1974,20 @@ class UserController extends Controller
             addLogActivity([
                 'type' => 'success',
                 'note' => json_encode([
-                        'title' => $user->name. '  created',
-                        'message' => $user->name. '  created'
-                    ]),
+                    'title' => $user->name . '  created',
+                    'message' => $user->name . '  created'
+                ]),
                 'module_id' => $user->id,
                 'module_type' => 'employee',
                 'notification_type' => 'Employee Created',
             ]);
 
-              addLogActivity([
+            addLogActivity([
                 'type' => 'success',
                 'note' => json_encode([
-                        'title' => $user->name. '  created',
-                        'message' => $user->name. '  created'
-                    ]),
+                    'title' => $user->name . '  created',
+                    'message' => $user->name . '  created'
+                ]),
                 'module_id' => $user->id,
                 'module_type' => 'employeeprofile',
                 'notification_type' => 'Employee Created',
@@ -1856,30 +2022,30 @@ class UserController extends Controller
         }
 
         $validator = \Validator::make($request->all(), [
-                    'name' => 'required|string|max:255',
-                    'dob' => 'required|date',
-                    'emp_id' => 'required|exists:users,id',
-                    'phone' => 'required|string|max:20',
-                    'address' => 'required|string',
-                    'passport_number' => 'required|string|unique:users,passport_number,' . $request->emp_id,
-                    'email' => 'required|email|unique:users,email,' . $request->emp_id,
-                    'role' => 'required',
-                    'branch_id' => 'required|exists:branches,id',
-                    'region_id' => 'required|exists:regions,id',
-                    'brand_id' => 'required|exists:users,id',
-                    'gender' => 'required|string',
-                    'account_holder_name' => 'required|string',
-                    'account_number' => 'required|string',
-                    'Salary' => 'required|numeric|min:0',
-                    'bank_name' => 'nullable|string',
-                    'bank_identifier_code' => 'required|string',
-                    'branch_location' => 'nullable|string',
-                    'tax_payer_id' => 'nullable|string',
-                ], [
-                    // 🔽 Custom error messages
-                    'passport_number.required' => 'Passport/CNIC number is required.',
-                    'passport_number.unique'   => 'This passport/CNIC number already exists.',
-                ]);
+            'name' => 'required|string|max:255',
+            'dob' => 'required|date',
+            'emp_id' => 'required|exists:users,id',
+            'phone' => 'required|string|max:20',
+            'address' => 'required|string',
+            'passport_number' => 'required|string|unique:users,passport_number,' . $request->emp_id,
+            'email' => 'required|email|unique:users,email,' . $request->emp_id,
+            'role' => 'required',
+            'branch_id' => 'required|exists:branches,id',
+            'region_id' => 'required|exists:regions,id',
+            'brand_id' => 'required|exists:users,id',
+            'gender' => 'required|string',
+            'account_holder_name' => 'required|string',
+            'account_number' => 'required|string',
+            'Salary' => 'required|numeric|min:0',
+            'bank_name' => 'nullable|string',
+            'bank_identifier_code' => 'required|string',
+            'branch_location' => 'nullable|string',
+            'tax_payer_id' => 'nullable|string',
+        ], [
+            // 🔽 Custom error messages
+            'passport_number.required' => 'Passport/CNIC number is required.',
+            'passport_number.unique'   => 'This passport/CNIC number already exists.',
+        ]);
 
 
         if ($validator->fails()) {
@@ -1896,10 +2062,10 @@ class UserController extends Controller
             // Create User
             $user = User::find($request->emp_id) ?? new User();
 
-             $originalUserData = $user->exists ? $user->toArray() : [];
+            $originalUserData = $user->exists ? $user->toArray() : [];
             $user->name = $request->name;
             $user->email = $request->email;
-          //  $user->password = $password;
+            //  $user->password = $password;
             $user->passport_number = $request->passport_number;
             $user->type = $request->role; // Storing role ID
             $user->branch_id = $request->branch_id;
@@ -1940,7 +2106,7 @@ class UserController extends Controller
             }
 
             // Create Employee
-            $employee = Employee::where('user_id',$user->id)->first() ?? new Employee();
+            $employee = Employee::where('user_id', $user->id)->first() ?? new Employee();
             $originalEmployeeData = $employee->exists ? $employee->toArray() : [];
             $employee->user_id = $user->id;
             $employee->name = $request->name;
@@ -1959,7 +2125,7 @@ class UserController extends Controller
             $employee->bank_identifier_code = $request->bank_identifier_code;
             $employee->branch_location = $request->branch_location;
             $employee->tax_payer_id = $request->tax_payer_id;
-            $employee->salary=$request->Salary;
+            $employee->salary = $request->Salary;
             $employee->created_by = \Auth::user()->id;
             $employee->save();
 
@@ -1968,42 +2134,42 @@ class UserController extends Controller
             $employeeChanges = [];
             $updatedFields = [];
 
-             // Check user changes
-                foreach ($originalUserData as $field => $oldValue) {
-                    if (in_array($field, ['created_at', 'updated_at', 'password'])) {
-                        continue;
-                    }
-                    if ($user->$field != $oldValue) {
-                        $userChanges[$field] = [
-                            'old' => $oldValue,
-                            'new' => $user->$field
-                        ];
-                        $updatedFields[] = 'user.'.$field;
-                    }
+            // Check user changes
+            foreach ($originalUserData as $field => $oldValue) {
+                if (in_array($field, ['created_at', 'updated_at', 'password'])) {
+                    continue;
                 }
+                if ($user->$field != $oldValue) {
+                    $userChanges[$field] = [
+                        'old' => $oldValue,
+                        'new' => $user->$field
+                    ];
+                    $updatedFields[] = 'user.' . $field;
+                }
+            }
 
-                // Check employee changes
-                foreach ($originalEmployeeData as $field => $oldValue) {
-                    if (in_array($field, ['created_at', 'updated_at', 'password'])) {
-                        continue;
-                    }
-                    if ($employee->$field != $oldValue) {
-                        $employeeChanges[$field] = [
-                            'old' => $oldValue,
-                            'new' => $employee->$field
-                        ];
-                        $updatedFields[] = 'employee.'.$field;
-                    }
+            // Check employee changes
+            foreach ($originalEmployeeData as $field => $oldValue) {
+                if (in_array($field, ['created_at', 'updated_at', 'password'])) {
+                    continue;
                 }
+                if ($employee->$field != $oldValue) {
+                    $employeeChanges[$field] = [
+                        'old' => $oldValue,
+                        'new' => $employee->$field
+                    ];
+                    $updatedFields[] = 'employee.' . $field;
+                }
+            }
             // Log Activity
             // Log activity with detailed changes
 
-          //  dd($userChanges, $employeeChanges, $updatedFields);
+            //  dd($userChanges, $employeeChanges, $updatedFields);
             if (!empty($userChanges) || !empty($employeeChanges)) {
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name. ' updated ' ,
+                        'title' => $user->name . ' updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => [
                             'user' => $userChanges,
@@ -2015,11 +2181,11 @@ class UserController extends Controller
                     'notification_type' => 'Employee Updated',
                 ]);
             }
-             if (!empty($userChanges) || !empty($employeeChanges)) {
+            if (!empty($userChanges) || !empty($employeeChanges)) {
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name. ' updated ' ,
+                        'title' => $user->name . ' updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => [
                             'user' => $userChanges,
@@ -2093,7 +2259,7 @@ class UserController extends Controller
         try {
             // Find the user by ID
             $user = User::findOrFail($request->id);
-             $originalData = $user->toArray();
+            $originalData = $user->toArray();
 
             // Update user settings
             $user->isloginrestrickted = $request->isloginrestrickted;
@@ -2103,56 +2269,56 @@ class UserController extends Controller
 
             // Save the changes
             $user->save();
-             // ============ edit ============
+            // ============ edit ============
 
 
-        
 
 
-           // Log changed fields only
-        $changes = [];
-         $updatedFields = [];
-        foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
+
+            // Log changed fields only
+            $changes = [];
+            $updatedFields = [];
+            foreach ($originalData as $field => $oldValue) {
+                if (in_array($field, ['created_at', 'updated_at'])) {
                     continue;
                 }
-            if ($user->$field != $oldValue) {
-                $changes[$field] = [
-                    'old' => $oldValue,
-                    'new' => $user->$field
-                ];
-                $updatedFields[] = $field;
+                if ($user->$field != $oldValue) {
+                    $changes[$field] = [
+                        'old' => $oldValue,
+                        'new' => $user->$field
+                    ];
+                    $updatedFields[] = $field;
+                }
             }
-        }
-       // $user = User::find($EmergencyContact->user_id);
-         $typeoflog = 'employee attendance setting';
-           
-        if (!empty($changes)) {
+            // $user = User::find($EmergencyContact->user_id);
+            $typeoflog = 'employee attendance setting';
+
+            if (!empty($changes)) {
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'title' => $user->name .  ' ' . $typeoflog . '  updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => $changes
                     ]),
                     'module_id' => $user->id,
                     'module_type' => 'employee',
-                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                    'notification_type' =>  ' ' . $typeoflog . ' Updated'
                 ]);
             }
 
-             
-        if (!empty($changes)) {
+
+            if (!empty($changes)) {
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.' updated ',
+                        'title' => $user->name .  ' ' . $typeoflog . ' updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => $changes
                     ]),
                     'module_id' => $user->id,
                     'module_type' => 'employeeprofile',
-                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                    'notification_type' =>  ' ' . $typeoflog . ' Updated'
                 ]);
             }
 
@@ -2203,7 +2369,7 @@ class UserController extends Controller
             // Find the user by ID
             $user = User::findOrFail($request->id);
 
-             $originalData = $user->toArray();
+            $originalData = $user->toArray();
 
             // Update user information
             $user->admission = $request->admission;
@@ -2216,56 +2382,56 @@ class UserController extends Controller
 
 
 
-             // ============ edit ============
+            // ============ edit ============
 
 
-        
 
 
-           // Log changed fields only
-        $changes = [];
-         $updatedFields = [];
-        foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
+
+            // Log changed fields only
+            $changes = [];
+            $updatedFields = [];
+            foreach ($originalData as $field => $oldValue) {
+                if (in_array($field, ['created_at', 'updated_at'])) {
                     continue;
                 }
-            if ($user->$field != $oldValue) {
-                $changes[$field] = [
-                    'old' => $oldValue,
-                    'new' => $user->$field
-                ];
-                $updatedFields[] = $field;
+                if ($user->$field != $oldValue) {
+                    $changes[$field] = [
+                        'old' => $oldValue,
+                        'new' => $user->$field
+                    ];
+                    $updatedFields[] = $field;
+                }
             }
-        }
-       // $user = User::find($EmergencyContact->user_id);
-         $typeoflog = 'employee target setting';
-           
-        if (!empty($changes)) {
+            // $user = User::find($EmergencyContact->user_id);
+            $typeoflog = 'employee target setting';
+
+            if (!empty($changes)) {
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'title' => $user->name .  ' ' . $typeoflog . '  updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => $changes
                     ]),
                     'module_id' => $user->id,
                     'module_type' => 'employee',
-                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                    'notification_type' =>  ' ' . $typeoflog . ' Updated'
                 ]);
             }
 
-             
-        if (!empty($changes)) {
+
+            if (!empty($changes)) {
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name .  ' '.$typeoflog.' updated ',
+                        'title' => $user->name .  ' ' . $typeoflog . ' updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => $changes
                     ]),
                     'module_id' => $user->id,
                     'module_type' => 'employeeprofile',
-                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                    'notification_type' =>  ' ' . $typeoflog . ' Updated'
                 ]);
             }
 
@@ -2282,9 +2448,9 @@ class UserController extends Controller
             ], 500);
         }
     }
-    
 
-  public function storeOrUpdateMetas(Request $request)
+
+    public function storeOrUpdateMetas(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|integer|exists:users,id',
@@ -2435,7 +2601,7 @@ class UserController extends Controller
                 'msg' => 'Permission Denied',
             ], 403);
         }
- 
+
 
         // Validate the incoming request data
         $validator = \Validator::make(
@@ -2459,7 +2625,7 @@ class UserController extends Controller
             $user->is_active = $request->is_active;
             $user->save();
 
-             // Log activity
+            // Log activity
             $statusMap = [
                 0 => 'Inactive',
                 1 => 'Active',
@@ -2469,31 +2635,31 @@ class UserController extends Controller
 
             $statusText = $statusMap[$request->is_active] ?? 'Unknown';
 
-                // $logData = [
-                //     'type' => 'info',
-                //     'note' => json_encode([
-                //         'title' => $user->name . ' status updated to ' . $statusText,
-                //         'message' => $user->name . ' status updated to ' . $statusText,
-                //     ]),
-                //     'module_id' => $user->id,
-                //     'module_type' => 'employee',
-                //     'notification_type' => 'employee Updated'
-                // ];
-                // addLogActivity($logData);
-                $logData = [
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $user->name . ' status updated to ' . $statusText,
-                        'message' => $user->name . ' status updated to ' . $statusText,
-                    ]),
-                    'module_id' => $user->id,
-                    'module_type' => 'employeeprofile',
-                    'notification_type' => 'employee Updated'
-                ];
-                addLogActivity($logData);
+            // $logData = [
+            //     'type' => 'info',
+            //     'note' => json_encode([
+            //         'title' => $user->name . ' status updated to ' . $statusText,
+            //         'message' => $user->name . ' status updated to ' . $statusText,
+            //     ]),
+            //     'module_id' => $user->id,
+            //     'module_type' => 'employee',
+            //     'notification_type' => 'employee Updated'
+            // ];
+            // addLogActivity($logData);
+            $logData = [
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name . ' status updated to ' . $statusText,
+                    'message' => $user->name . ' status updated to ' . $statusText,
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employeeprofile',
+                'notification_type' => 'employee Updated'
+            ];
+            addLogActivity($logData);
             return response()->json([
                 'status' => 'success',
-                'msg' => $statusText.'  Employee successfully',
+                'msg' => $statusText . '  Employee successfully',
             ], 200);
         } catch (\Exception $e) {
             // Handle unexpected errors

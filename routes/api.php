@@ -169,7 +169,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UserEmployeeFileUpdate
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
+    Route::post('/UserEmployeeFileDocument', [UserController::class, 'UserEmployeeFileDocument']);
     Route::post('/employeeFileAttachments', [UserController::class, 'employeeFileAttachments']);
+    Route::post('/employeeDocuments', [UserController::class, 'employeeDocuments']);
     Route::post('/EmployeeMetaUpdate', [UserController::class, 'storeOrUpdateMetas']);
     Route::post('/getEmployeeMeta', [UserController::class, 'getEmployeeMeta']);
 
