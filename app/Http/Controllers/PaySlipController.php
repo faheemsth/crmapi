@@ -123,7 +123,7 @@ class PaySlipController extends Controller
         $existingPayslips = $this->getExistingPayslips($formattedMonthYear);
 
         // Get eligible employees
-        $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips);
+        $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
 
         if ($eligibleEmployees->isEmpty()) {
             return response()->json([
@@ -279,7 +279,7 @@ class PaySlipController extends Controller
     //         ->get();
     // }
 
-    private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
+    private function getEligibleEmployees($formattedMonthYear, $existingPayslips,$singleUserID =0)
     {
     $excludedTypes = ['super admin', 'company', 'team', 'client'];
 
@@ -308,7 +308,10 @@ class PaySlipController extends Controller
 
     // Apply user type-specific filtering
     $user = \Auth::user();
-    if ($user->type == 'super admin') {
+
+    if ($singleUserID!= 0) {
+        $usersQuery->where('id', $singleUserID);
+    }elseif ($user->type == 'super admin') {
         // No additional filtering
     } elseif ($user->type == 'company') {
         $usersQuery->where('brand_id', $user->id);
