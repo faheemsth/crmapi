@@ -124,7 +124,7 @@ class PaySlipController extends Controller
             $employeeID = 0;
         }
         
-
+        dd($request->all());
         // Check for existing payslips
         $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID);
 
