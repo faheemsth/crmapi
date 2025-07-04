@@ -377,8 +377,7 @@ class TrainingController extends Controller
         $statusText = $statusMap[$request->status] ?? 'Unknown';
 
         
-
-        if (!empty($changes)) {
+ 
             $user = User::find($training->employee); // Or $training->employee if relation
             $logNote = [
                 'title' => $user->name . ' training status updated to ' . $statusText,
@@ -402,7 +401,7 @@ class TrainingController extends Controller
                 'module_type' => 'employeeprofile',
                 'notification_type' => 'training Updated',
             ]);
-        }
+        
 
         return response()->json([
             'status' => 'success',
