@@ -1481,6 +1481,77 @@ class UserController extends Controller
         ]);
     }
 
+    public function UserEmployeeFileDocumentDelete(Request $request)
+    {
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ]);
+        }
+
+        // Validation
+        $validator = \Validator::make($request->all(), [ 
+            'id' => 'required|exists:employee_documents,id' 
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'validation error',
+                'data' => $validator->errors(),
+            ]);
+        }
+
+        
+
+        $EmployeeDocument = EmployeeDocument::find($request->id);
+        if (!$EmployeeDocument) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('employee document not found!'),
+            ], 404);
+        }
+        $user = User::find($EmployeeDocument->employee_id);
+        $EmployeeDocument->delete();
+
+
+
+ 
+
+
+        // Log updated fields
+              //  ========== add ============ 
+                $typeoflog = 'employee document';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' deleted',
+                        'message' => $user->name. ' '.$typeoflog.'  deleted'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employee',
+                    'notification_type' => ' '.$typeoflog.'  deleted',
+                ]);
+
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  deleted',
+                        'message' => $user->name. ' '.$typeoflog.'  deleted'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  deleted',
+                ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'document deleted successfully',
+        ]);
+    }
+
+
 
     // Emergency Contact API Endpoints
     public function EmergencyContactPost(Request $request)

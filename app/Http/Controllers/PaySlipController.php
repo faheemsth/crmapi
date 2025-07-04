@@ -131,7 +131,7 @@ class PaySlipController extends Controller
         // Get eligible employees
         $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
 
-    
+        
 
         if ($eligibleEmployees->isEmpty()) {
             return response()->json([
@@ -342,9 +342,9 @@ class PaySlipController extends Controller
 
 
      if ($singleUserID!= 0) {
+        
           // Fetch employees with conditions and related users
-    return Employee::where('company_doj', '<=', now()->endOfMonth()) 
-        ->whereNotNull('salary')
+    return Employee::whereNotNull('salary')
         ->whereNotNull('salary_type')
         ->whereIn('user_id', $userIds)
         ->with('user') // Load related user data
