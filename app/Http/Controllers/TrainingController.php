@@ -337,7 +337,80 @@ class TrainingController extends Controller
             'message' => __('Training updated successfully.'),
             'data' => $training
         ], 200);
+    }   
+   public function updateTrainingStatus(Request $request)
+    {
+        if (!Auth::user()->can('edit training')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:trainings,id',
+            'status' => 'required|in:0,1,2,3',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $validator->errors(),
+            ], 422);
+        }
+
+        $training = Training::findOrFail($request->id);
+        
+
+        $training->update([
+            'status' => $request->status,
+        ]);
+
+        // Log activity
+        $statusMap = [
+            0 => 'Pending',
+            1 => 'Completed',
+            2 => 'Terminated',
+            3 => 'Suspended',
+        ];
+
+        $statusText = $statusMap[$request->status] ?? 'Unknown';
+
+        
+
+        if (!empty($changes)) {
+            $user = User::find($training->employee); // Or $training->employee if relation
+            $logNote = [
+                'title' => $user->name . ' training status updated to ' . $statusText,
+                'message' => $user->name . ' training status updated to ' . $statusText,
+            ];
+
+            // Log for module_type: employee
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode($logNote),
+                'module_id' => $training->id,
+                'module_type' => 'employee',
+                'notification_type' => 'training Updated',
+            ]);
+
+            // Log for module_type: employeeprofile
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode($logNote),
+                'module_id' => $training->employee,
+                'module_type' => 'employeeprofile',
+                'notification_type' => 'training Updated',
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Training updated successfully.'),
+            'data' => $training
+        ], 200);
     }
+
 
     /**
      * Delete a training.

@@ -191,6 +191,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateTraining', [TrainingController::class, 'updateTraining']);
     Route::post('/deleteTraining', [TrainingController::class, 'deleteTraining']);
     Route::post('/TrainingDetail', [TrainingController::class, 'TrainingDetail']);
+    Route::post('/updateTrainingStatus', [TrainingController::class, 'updateTrainingStatus']);
 
     // Training
     Route::post('/getIndicators', [IndicatorController::class, 'getIndicators']);
