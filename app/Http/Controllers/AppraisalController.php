@@ -509,11 +509,15 @@ class AppraisalController extends Controller
     {
          $validator = Validator::make($request->all(), [
             'employee' => 'required|exists:users,id',
+            'appraisal' => 'required|exists:appraisals,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
+
+         // Fetch appraisal data
+        $appraisal = Appraisal::with('appraisalRemarks')->find($request->appraisal);
 
         $userget = User::find($request->employee);
         $user_type = Role::where('name', $userget->type)->first();
