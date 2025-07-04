@@ -523,7 +523,7 @@ class UserController extends Controller
     {
 
 
-        $EmployeeDetails = User::with('employee', 'Tag_ids')->select(
+        $EmployeeDetails = User::with('employee')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',

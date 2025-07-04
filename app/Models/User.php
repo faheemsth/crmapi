@@ -20,7 +20,7 @@ class User extends Authenticatable
 
 
 
-    protected $appends = ['profile'];
+    protected $appends = ['profile','tag_names']; 
 
     protected $fillable = [
         'name',
@@ -96,7 +96,22 @@ class User extends Authenticatable
 
     public $settings;
 
+      // add
+   public function getTagNamesAttribute()
+{
+    // Convert comma-separated string to array
+    $ids = explode(',', $this->tag_ids);
 
+    // Clean and filter the array
+    $ids = array_filter(array_map('trim', $ids));
+
+    if (empty($ids)) {
+        return '';
+    }
+
+    $tags = Tag::whereIn('id', $ids)->pluck('name')->toArray();
+    return implode(', ', $tags);
+}
     public function creatorId()
     {
         if ($this->type == 'team' || $this->type == 'company' || $this->type == 'super admin') {
@@ -272,7 +287,7 @@ class User extends Authenticatable
 
     public function Tag_ids()
     {
-        return $this->hasOne('App\Models\Tag', 'id', 'tag_ids');
+        return $this->belongsToMany('App\Models\Tag', 'id', 'tag_ids');
     }
     public function employee()
     {
