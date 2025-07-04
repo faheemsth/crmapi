@@ -519,7 +519,8 @@ class AppraisalController extends Controller
         $user_type = Role::where('name', $userget->type)->first();
         //dd($user_type);
         $indicator = Indicator::where('designation', $user_type->id)->first();
-        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
+        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : []; 
+        $rating = !empty($appraisal) ? json_decode($appraisal->rating, true) : [];
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
        $performance_types = Role::whereNotIn('name', $excludedTypes)
             ->where('name', $userget->type)
@@ -537,6 +538,7 @@ class AppraisalController extends Controller
             'userget' => $userget,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
+            'rating' => $rating,
         ]);
     }
 
