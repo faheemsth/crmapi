@@ -187,8 +187,7 @@ class UserController extends Controller
             'branch_id' => 'nullable|integer|exists:branches,id',
             'name' => 'nullable|string',
             'is_active' => 'nullable|string',
-            'tag_ids' => 'nullable|array',
-            'tag_ids.*' => 'integer',
+            'tag_ids' => 'nullable|string',
             'Designation' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
@@ -236,10 +235,7 @@ class UserController extends Controller
         }
         if ($request->filled('tag_ids')) 
         {
-            $tagIds = $request->input('tag_ids');
-            $employeesQuery->whereHas('Tag_ids', function ($q) use ($tagIds) {
-                $q->whereIn('tag_id', $tagIds);
-            });
+            $employeesQuery->whereIn('tag_ids', $request->filled('tag_ids'));
         }
 
         
