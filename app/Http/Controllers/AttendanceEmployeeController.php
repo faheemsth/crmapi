@@ -391,13 +391,19 @@ public function getAttendances(Request $request)
             ->when($request->filled('emp_id'), fn($q) => $q->whereHas('user', fn($uq) => $uq->where('id', $request->emp_id)))
             ->when(!empty($tagIds), function ($q) use ($tagIds) {
                 $q->whereHas('user', function ($uq) use ($tagIds) {
-                    foreach ($tagIds as $tagId) {
-                        $uq->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
-                    }
+                    $uq->where(function($innerQuery) use ($tagIds) {
+                        foreach ($tagIds as $tagId) {
+                            $innerQuery->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                        }
+                    });
                 });
             });
+        
+           
 
         $employees = $employeeQuery->paginate($perPage, ['*'], 'page', $page);
+
+        
 
         // Define date range
         $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date) : now()->startOfMonth();
@@ -425,7 +431,11 @@ public function getAttendances(Request $request)
                 ->keyBy('date');
 
             $current = $startDate->copy();
+            $today = Carbon::today(); // Get current date
             while ($current <= $endDate) {
+                  if ($current > $today) {
+                        break;
+                    }
                 $date = $current->format('Y-m-d');
                 $attendance = $attendances[$date] ?? null;
 

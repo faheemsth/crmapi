@@ -118,7 +118,7 @@ class OtherPaymentController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'OtherPayment_id'     => 'required|exists:Other_Payments,id',
+            'OtherPayment_id'     => 'required|exists:other_payments,id',
             'employee_id'      => 'nullable|integer|exists:employees,id',
             'title'            => 'nullable|string|max:255',
             'type'             => 'nullable|string',
@@ -175,7 +175,7 @@ class OtherPaymentController extends Controller
         $validator = \Validator::make(
             $request->all(),
             [
-                'id' => 'required|exists:Other_Payments,id',
+                'id' => 'required|exists:other_payments,id',
             ]
         );
 
