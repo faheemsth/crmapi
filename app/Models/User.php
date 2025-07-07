@@ -20,7 +20,7 @@ class User extends Authenticatable
 
 
 
-    protected $appends = ['profile','tag_names']; 
+    protected $appends = ['profile']; 
 
     protected $fillable = [
         'name',
@@ -83,6 +83,7 @@ class User extends Authenticatable
         'admin_action_status',
         'admin_action_reason',
         'admin_action_attachments',
+        'tag_ids',
     ];
 
     protected $hidden = [
@@ -96,15 +97,14 @@ class User extends Authenticatable
 
     public $settings;
 
-      // add
-   public function getTagNamesAttribute()
+  public function getTagNamesAttribute()
 {
-    // Convert comma-separated string to array
-    $ids = explode(',', $this->tag_ids);
+    if (empty($this->tag_ids)) {
+        return '';
+    }
 
-    // Clean and filter the array
-    $ids = array_filter(array_map('trim', $ids));
-
+    $ids = array_filter(array_map('intval', explode(',', $this->tag_ids)));
+    
     if (empty($ids)) {
         return '';
     }

@@ -182,6 +182,8 @@ class LoginRegisterController extends Controller
         $data['user'] = $userArray;
         $data['roles'] = $user->getRoleNames(); // Get user roles
         $data['permissions'] = $user->getAllPermissions()->pluck('name');; // Correct way to fetch permissions
+        $data['encrptID'] =  encryptData($user->id);
+       
 
         return response()->json([
             'status' => 'success',
@@ -235,6 +237,7 @@ class LoginRegisterController extends Controller
     $data['user'] = $userArray;
     $data['roles'] = $user->getRoleNames(); // Get user roles
     $data['permissions'] = $user->getAllPermissions()->pluck('name');; // Correct way to fetch permissions
+    $data['encrptID'] =  encryptData($user->id);
 
     $response = [
         'status' => 'success',

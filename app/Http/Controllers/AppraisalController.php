@@ -526,7 +526,7 @@ class AppraisalController extends Controller
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : []; 
         $rating = !empty($appraisal) ? json_decode($appraisal->rating, true) : [];
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
-       $performance_types = Role::whereNotIn('name', $excludedTypes)
+        $performance_types = Role::whereNotIn('name', $excludedTypes)
             ->where('name', $userget->type)
             ->get();
 

@@ -1205,8 +1205,7 @@ class UserController extends Controller
             'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'avatar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'id' => 'required|exists:users,id', // Ensure employee exists
-            'passport_expiry_date' => 'required', // Ensure employee exists
+            'id' => 'required|exists:users,id', // Ensure employee exists 
         ]);
 
         if ($validator->fails()) {
