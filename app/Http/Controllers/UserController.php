@@ -235,7 +235,12 @@ class UserController extends Controller
         }
         if ($request->filled('tag_ids')) 
         {
-            $employeesQuery->whereIn('tag_ids', $request->filled('tag_ids'));
+            $tagIds = explode(',', $request->input('tag_ids')); // [6,4]
+            $employeesQuery->where(function($query) use ($tagIds) {
+                foreach ($tagIds as $tagId) {
+                    $query->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                }
+            });
         }
 
         
