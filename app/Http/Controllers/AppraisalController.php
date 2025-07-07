@@ -509,7 +509,7 @@ class AppraisalController extends Controller
     {
          $validator = Validator::make($request->all(), [
             'employee' => 'required|exists:users,id',
-            'appraisal' => 'required|exists:appraisals,id',
+            'appraisal' => 'nullable|exists:appraisals,id',
         ]);
 
         if ($validator->fails()) {
