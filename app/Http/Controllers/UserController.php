@@ -186,6 +186,8 @@ class UserController extends Controller
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
             'name' => 'nullable|string',
+            'is_active' => 'nullable|string',
+            'tag_ids' => 'nullable|string',
             'Designation' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
@@ -231,9 +233,24 @@ class UserController extends Controller
         if ($request->filled('Designation')) {
             $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
         }
+        if ($request->filled('tag_ids')) 
+        {
+            $tagIds = explode(',', $request->input('tag_ids')); // [6,4]
+            $employeesQuery->where(function($query) use ($tagIds) {
+                foreach ($tagIds as $tagId) {
+                    $query->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                }
+            });
+        }
+
+        
         if ($request->filled('phone')) {
             $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
         }
+        if ($request->filled('is_active')) {
+            $employeesQuery->where('is_active', $request->is_active);
+        }
+        
         if ($request->filled('search')) {
             $search = $request->search;
             $employeesQuery->where(function ($query) use ($search) {
