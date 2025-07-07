@@ -168,7 +168,7 @@ class AttendanceEmployeeController extends Controller
 
             $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
             $page = $request->input('page', 1);
-
+            $tagIds = explode(',', $request->input('tag_ids')); // [6,4]
             // Retrieve employees
            $employees = Employee::with(['user'])
                 ->when($request->filled('brand_id'), function ($query) use ($request) {
@@ -179,13 +179,12 @@ class AttendanceEmployeeController extends Controller
                         $q->where('id', $request->emp_id);
                     });
                 }) // ✅ Properly closed here
-                ->when($request->filled('tag_id'), function ($query) use ($request) {
-                   
-                    $query->whereHas('user', function ($q) use ($request) {
-                        $q->where('tag_ids', $request->tag_id);
+                ->when($request->filled('tag_ids'), function ($query) use ($tagIds) {
+                    $query->whereHas('user', function ($q) use ($tagIds) {
+                        foreach ($tagIds as $tagId) {
+                            $q->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                        }
                     });
-
-                    
                 })
                 ->get();
 
