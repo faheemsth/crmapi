@@ -186,6 +186,7 @@ class UserController extends Controller
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
             'name' => 'nullable|string',
+            'is_active' => 'nullable|string',
             'Designation' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
@@ -234,6 +235,10 @@ class UserController extends Controller
         if ($request->filled('phone')) {
             $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
         }
+        if ($request->filled('is_active')) {
+            $employeesQuery->where('is_active', $request->is_active);
+        }
+        
         if ($request->filled('search')) {
             $search = $request->search;
             $employeesQuery->where(function ($query) use ($search) {
