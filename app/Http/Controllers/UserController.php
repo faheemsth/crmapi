@@ -187,6 +187,7 @@ class UserController extends Controller
             'branch_id' => 'nullable|integer|exists:branches,id',
             'name' => 'nullable|string',
             'is_active' => 'nullable|string',
+            'tag_ids' => 'nullable|string',
             'Designation' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
@@ -232,6 +233,15 @@ class UserController extends Controller
         if ($request->filled('Designation')) {
             $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
         }
+        if ($request->filled('tag_ids')) 
+        {
+            $tagIds = $request->input('tag_ids');
+            $employeesQuery->whereHas('tags', function ($q) use ($tagIds) {
+                $q->whereIn('tag_id', $tagIds);
+            });
+        }
+
+        
         if ($request->filled('phone')) {
             $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
         }
