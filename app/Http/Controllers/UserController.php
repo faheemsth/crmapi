@@ -237,7 +237,7 @@ class UserController extends Controller
         if ($request->filled('tag_ids')) 
         {
             $tagIds = $request->input('tag_ids');
-            $employeesQuery->whereHas('tags', function ($q) use ($tagIds) {
+            $employeesQuery->whereHas('Tag_ids', function ($q) use ($tagIds) {
                 $q->whereIn('tag_id', $tagIds);
             });
         }
