@@ -188,7 +188,7 @@ class UserController extends Controller
             'name' => 'nullable|string',
             'is_active' => 'nullable|string',
             'tag_ids' => 'nullable|string',
-            'Designation' => 'nullable|string',
+            'designation_id' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
             'download_csv' => 'nullable|boolean', // Add this parameter
@@ -230,8 +230,8 @@ class UserController extends Controller
         if ($request->filled('name')) {
             $employeesQuery->where('name', 'like', '%' . $request->name . '%');
         }
-        if ($request->filled('Designation')) {
-            $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
+        if ($request->filled('designation_id')) {
+            $employeesQuery->where('designation_id', $request->designation_id);
         }
         if ($request->filled('tag_ids')) 
         {
@@ -1971,6 +1971,7 @@ class UserController extends Controller
             'bank_identifier_code' => 'required|string',
             'branch_location' => 'nullable|string',
             'tax_payer_id' => 'nullable|string',
+            'designation_id' => 'required|exists:designations,id',
         ], [
             // 💡 Custom messages
             'passport_number.required' => 'Passport/CNIC number is required.',
@@ -2011,6 +2012,7 @@ class UserController extends Controller
             $user->City = $request->City;
             $user->country_id = $request->country;
             $user->tag_ids = $request->tag_ids;
+            $user->designation_id = $request->designation_id;
             $user->save();
 
             // Assign Role using Role ID
@@ -2128,6 +2130,7 @@ class UserController extends Controller
             'bank_identifier_code' => 'required|string',
             'branch_location' => 'nullable|string',
             'tax_payer_id' => 'nullable|string',
+            'designation_id' => 'required|exists:designations,id',
         ], [
             // 🔽 Custom error messages
             'passport_number.required' => 'Passport/CNIC number is required.',
@@ -2170,6 +2173,7 @@ class UserController extends Controller
             $user->City = $request->City;
             $user->country_id = $request->country;
             $user->tag_ids = $request->tag_ids;
+            $user->designation_id = $request->designation_id;
             $user->save();
 
             // Assign Role using Role ID
