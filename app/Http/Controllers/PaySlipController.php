@@ -128,11 +128,12 @@ class PaySlipController extends Controller
         // Check for existing payslips
         $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID);
 
+      
+
         // Get eligible employees
         $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
 
-        
-
+          
         if ($eligibleEmployees->isEmpty()) {
             return response()->json([
                 'status' => 'error',
@@ -275,13 +276,12 @@ class PaySlipController extends Controller
     {
             // If a single user ID is provided, filter by that user
             if ($singleUserID != 0) {
-                return PaySlip::where('salary_month', $formattedMonthYear)
-                    ->where('created_by', Auth::id())
+                
+                return PaySlip::where('salary_month', $formattedMonthYear) 
                     ->where('employee_id', $singleUserID)
                     ->pluck('employee_id');
             } else {
-            return PaySlip::where('salary_month', $formattedMonthYear)
-                ->where('created_by', Auth::id())
+            return PaySlip::where('salary_month', $formattedMonthYear) 
                 ->pluck('employee_id');
         }
     }
@@ -342,10 +342,10 @@ class PaySlipController extends Controller
 
 
      if ($singleUserID!= 0) {
-        
+       
+         
           // Fetch employees with conditions and related users
-    return Employee::whereNotNull('salary')
-        ->whereNotNull('salary_type')
+    return Employee::whereNotNull('salary') 
         ->whereIn('user_id', $userIds)
         ->with('user') // Load related user data
         ->get();
@@ -355,8 +355,7 @@ class PaySlipController extends Controller
            // Fetch employees with conditions and related users
     return Employee::where('company_doj', '<=', now()->endOfMonth())
         ->whereNotIn('id', $existingPayslips)
-        ->whereNotNull('salary')
-        ->whereNotNull('salary_type')
+        ->whereNotNull('salary') 
         ->whereIn('user_id', $userIds)
         ->with('user') // Load related user data
         ->get();
