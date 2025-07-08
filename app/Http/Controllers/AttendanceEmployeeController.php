@@ -385,19 +385,29 @@ public function getAttendances(Request $request)
 
         // Paginate employees
         $employeeQuery = Employee::with(['user.branch'])
-            ->when($request->filled('brand_id'), fn($q) => $q->whereHas('user', fn($uq) => $uq->where('brand_id', $request->brand_id)))
-            ->when($request->filled('region_id'), fn($q) => $q->whereHas('user', fn($uq) => $uq->where('region_id', $request->region_id)))
-            ->when($request->filled('branch_id'), fn($q) => $q->whereHas('user', fn($uq) => $uq->where('branch_id', $request->branch_id)))
-            ->when($request->filled('emp_id'), fn($q) => $q->whereHas('user', fn($uq) => $uq->where('id', $request->emp_id)))
-            ->when(!empty($tagIds), function ($q) use ($tagIds) {
-                $q->whereHas('user', function ($uq) use ($tagIds) {
-                    $uq->where(function($innerQuery) use ($tagIds) {
-                        foreach ($tagIds as $tagId) {
-                            $innerQuery->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
-                        }
+                ->when($request->filled('brand_id'), fn($q) =>
+                    $q->whereHas('user', fn($uq) => $uq->where('brand_id', $request->brand_id)))
+                ->when($request->filled('region_id'), fn($q) =>
+                    $q->whereHas('user', fn($uq) => $uq->where('region_id', $request->region_id)))
+                ->when($request->filled('branch_id'), fn($q) =>
+                    $q->whereHas('user', fn($uq) => $uq->where('branch_id', $request->branch_id)))
+                ->when($request->filled('emp_id'), fn($q) =>
+                    $q->whereHas('user', fn($uq) => $uq->where('id', $request->emp_id)))
+                ->when(!empty($tagIds), function ($q) use ($tagIds) {
+                    $q->whereHas('user', function ($uq) use ($tagIds) {
+                        $uq->where(function($innerQuery) use ($tagIds) {
+                            foreach ($tagIds as $tagId) {
+                                $innerQuery->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                            }
+                        });
+                    });
+                })
+                ->when($request->filled('search'), function ($q) use ($request) {
+                    $q->whereHas('user', function ($uq) use ($request) {
+                        $uq->where('name', 'like', '%' . $request->search . '%');
                     });
                 });
-            });
+
         
            
 
@@ -477,11 +487,11 @@ public function getAttendances(Request $request)
             $data = array_filter($data, fn($d) => $d['status'] === $status);
         }
 
-        // Filter search
-        if ($request->filled('search')) {
-            $search = strtolower($request->search);
-            $data = array_filter($data, fn($d) => str_contains(strtolower($d['employee_name']), $search));
-        }
+        // // Filter search
+        // if ($request->filled('search')) {
+        //     $search = strtolower($request->search);
+        //     $data = array_filter($data, fn($d) => str_contains(strtolower($d['employee_name']), $search));
+        // }
 
         // If CSV download
         if ($request->input('download_csv')) {
