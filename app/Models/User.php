@@ -94,7 +94,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
-
+     protected $with = ['designation'];
     public $settings;
 
   public function getTagNamesAttribute()
@@ -124,6 +124,10 @@ class User extends Authenticatable
     public function manager()
     {
         return $this->hasOne('App\Models\User', 'id', 'project_manager_id');
+    }   
+     public function designation()
+    {
+        return $this->hasOne('App\Models\Designation', 'id', 'designation_id');
     }
     public function branch()
     {

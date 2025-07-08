@@ -31,6 +31,7 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PayslipTypeController;
 use App\Http\Controllers\TrainingTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
@@ -512,6 +513,15 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getTagsbytype', [TagController::class, 'getTags']);
      Route::post('/updateTag', [TagController::class, 'updateTag']);
      Route::post('/deleteTag', [TagController::class, 'deleteTag']);
+
+       //   Institute  
+     Route::post('/addDesignation', [DesignationController::class, 'addDesignation']);
+     Route::post('/getDesignationPluck', [DesignationController::class, 'getDesignationPluck']);
+     Route::get('/getDesignations', [DesignationController::class, 'getDesignations']);
+     Route::post('/updateDesignation', [DesignationController::class, 'updateDesignation']);
+     Route::post('/deleteDesignation', [DesignationController::class, 'deleteDesignation']);
+
+
      //   Institute DocumentType
      Route::post('/addDocumentType', [DocumentTypeController::class, 'addDocumentType']);
      Route::post('/getDocumentTypePluck', [DocumentTypeController::class, 'getDocumentTypePluck']);
