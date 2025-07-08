@@ -188,7 +188,7 @@ class UserController extends Controller
             'name' => 'nullable|string',
             'is_active' => 'nullable|string',
             'tag_ids' => 'nullable|string',
-            'Designation' => 'nullable|string',
+            'designation_id' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
             'download_csv' => 'nullable|boolean', // Add this parameter
@@ -230,8 +230,8 @@ class UserController extends Controller
         if ($request->filled('name')) {
             $employeesQuery->where('name', 'like', '%' . $request->name . '%');
         }
-        if ($request->filled('Designation')) {
-            $employeesQuery->where('type', 'like', '%' . $request->Designation . '%');
+        if ($request->filled('designation_id')) {
+            $employeesQuery->where('designation_id', $request->designation_id);
         }
         if ($request->filled('tag_ids')) 
         {
