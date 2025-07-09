@@ -2156,7 +2156,6 @@ class UserController extends Controller
             $user->name = $request->name;
             $user->email = $request->email;
             //  $user->password = $password;
-            $user->avatar = $user->avatar; // preserves existing
             $user->passport_number = $request->passport_number;
             $user->type = $request->role; // Storing role ID
             $user->branch_id = $request->branch_id;
