@@ -186,6 +186,7 @@ class UserController extends Controller
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
             'name' => 'nullable|string',
+            'type' => 'nullable|string',
             'is_active' => 'nullable|string',
             'tag_ids' => 'nullable|string',
             'designation_id' => 'nullable|string',
@@ -226,6 +227,9 @@ class UserController extends Controller
         }
         if ($request->filled('branch_id')) {
             $employeesQuery->where('branch_id', $request->branch_id);
+        }
+        if ($request->filled('type')) {
+            $employeesQuery->where('type', 'like', '%' . $request->type . '%');
         }
         if ($request->filled('name')) {
             $employeesQuery->where('name', 'like', '%' . $request->name . '%');
