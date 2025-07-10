@@ -617,7 +617,47 @@ class GeneralController extends Controller
             ], 500);
         }
     }
+    public function UpdateFilterSave(Request $request)
+    {
+        // Validate incoming request parameters
+        $validator = Validator::make($request->all(), [
+            'filter_name' => 'required|string|max:255',
+            'url' => 'required|url',
+            'module' => 'required|string|max:255',
+            'count' => 'required|integer|min:0',
+            'FilterID' => 'required',
+        ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'failure',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Save the filter data
+        try {
+            $filter = SavedFilter::find($request->FilterID) ?? new SavedFilter();
+            $filter->filter_name = $request->filter_name;
+            $filter->url = $request->url;
+            $filter->module = $request->module;
+            $filter->count = $request->count;
+            $filter->created_by = auth()->id(); // Use the authenticated user's ID
+            $filter->save();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Filter Update successfully.',
+                'data' => $filter,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'failure',
+                'message' => 'An error occurred while saving the filter.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
     public function Country()
     {
         $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
@@ -657,10 +697,17 @@ class GeneralController extends Controller
     }
 
     // Fetch log activity records
-    $logs = LogActivity::with('createdBy')->where('module_id', $request->id)
+    if( $request->type=='user'){
+            $logs = LogActivity::with('createdBy')->where('created_by', $request->id) 
+                ->orderBy('created_at', 'desc')
+                ->get();
+    }else{
+        $logs = LogActivity::with('createdBy')->where('module_id', $request->id)
                 ->where('module_type', $request->type)
                 ->orderBy('created_at', 'desc')
                 ->get();
+    }
+    
 
     return response()->json([
         'status' => true,

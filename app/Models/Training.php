@@ -17,6 +17,7 @@ class Training extends Model
         'end_date',
         'description',
         'created_by',
+        'status',
     ];
 
 

@@ -66,7 +66,7 @@ class AppraisalController extends Controller
             'assigned_to.name as created_user',
             'branches.name as branch_id',
         )
-            ->with('employees')
+            ->with('employees','appraisalRemarks')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -98,11 +98,13 @@ class AppraisalController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $appraisalQuery->where(function ($query) use ($search) {
-                $query->where('appraisals.title', 'like', "%$search%")
-                    ->orWhere('users.name', 'like', "%$search%")
+            $appraisalQuery->where(function($query) use ($search) {
+                $query->whereHas('employees', function($q) use ($search) {
+                        $q->where('name', 'like', "%$search%");
+                    })
+                    ->orWhere('regions.name', 'like', "%$search%")
                     ->orWhere('branches.name', 'like', "%$search%")
-                    ->orWhere('regions.name', 'like', "%$search%");
+                    ->orWhere('users.name', 'like', "%$search%");
             });
         }
 
@@ -173,12 +175,12 @@ class AppraisalController extends Controller
         if ($existingAppraisal) {
             $employee = User::find($existingAppraisal->employee);
             return response()->json([
-                'status' => 'duplicate',
+                'status' => 'error',
                 'message' => __('Related to :user on :date, an appraisal already exists.', [
                     'user' => $employee->name ?? 'User',
                     'date' => $request->appraisal_date,
                 ]),
-            ], 409);
+            ], 422);
         }
 
         // Create a new Appraisal instance
@@ -204,13 +206,45 @@ class AppraisalController extends Controller
         // Insert competency remarks if provided
         if (!empty($request->competencyRemarks) && is_array($request->competencyRemarks)) {
             foreach ($request->competencyRemarks as $competencyId => $remark) {
-                AppraisalRemark::create([
-                    'appraisal_id' => $appraisal->id,
-                    'competencies_id' => $competencyId,
-                    'remarks' => $remark,
-                ]);
+                if (!empty($competencyId) && !empty($remark)) {
+                    AppraisalRemark::create([
+                        'appraisal_id' => $appraisal->id,
+                        'competencies_id' => $competencyId,
+                        'remarks' => $remark,
+                    ]);
+                } else {
+                    logger()->warning("Missing competency ID or remark", [
+                        'competencyId' => $competencyId,
+                        'remark' => $remark,
+                    ]);
+                }
             }
         }
+
+            //  ========== add ============
+        $user = User::find($appraisal->employee);
+        addLogActivity([
+            'type' => 'success',
+            'note' => json_encode([
+                'title' => $user->name. ' appraisalt created',
+                'message' => $user->name. ' appraisal created'
+            ]),
+            'module_id' => $appraisal->id,
+            'module_type' => 'appraisal',
+            'notification_type' => 'appraisal Created',
+        ]);
+
+          addLogActivity([
+            'type' => 'success',
+            'note' => json_encode([
+                'title' => $user->name. ' appraisal created',
+                'message' => $user->name. ' appraisal created'
+            ]),
+            'module_id' => $appraisal->employee,
+            'module_type' => 'employeeprofile',
+            'notification_type' => 'Appraisal Created',
+        ]);
+
 
         return response()->json([
             'status' => 'success',
@@ -258,11 +292,14 @@ class AppraisalController extends Controller
         // Retrieve the Appraisal
         $appraisal = Appraisal::findOrFail($request->id);
 
+        $originalData = $appraisal->toArray();
+
         // Update appraisal details
         $appraisal->brand_id = $request->brand_id;
         $appraisal->region_id = $request->region_id;
         $appraisal->branch = $request->lead_branch;
         $appraisal->employee = $request->lead_assigned_user;
+        $appraisal->rating = json_encode($request->rating, true);
         $appraisal->appraisal_date = $request->appraisal_date;
         $appraisal->remark = $request->remark;
         $appraisal->admission_rate = $request->admission_rate;
@@ -287,21 +324,55 @@ class AppraisalController extends Controller
         }
 
         // Log activity if appraisal is submitted
-        if ($request->save_type === 'Submit') {
-            LogActivity::create([
-                'type' => 'info',
-                'start_date' => now()->toDateString(),
-                'time' => now()->toTimeString(),
-                'note' => json_encode([
-                    'title' => 'Submitted Appraisal',
-                    'message' => 'Submitted Appraisal successfully',
-                ]),
-                'module_type' => 'hrm',
-                'module_id' => $appraisal->employee,
-                'notification_type' => 'Submitted Appraisal',
-                'created_by' => $appraisal->created_by,
-            ]);
+         // ============ edit ============
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($appraisal->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $appraisal->$field
+                ];
+                $updatedFields[] = $field;
+            }
         }
+        $user = User::find($appraisal->employee);
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $appraisal->id,
+                    'module_type' => 'appraisal',
+                    'notification_type' => 'appraisal Updated'
+                ]);
+            }
+
+             
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $appraisal->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => 'appraisal Updated'
+                ]);
+            }
+
+
 
         return response()->json([
             'status' => 'success',
@@ -337,6 +408,34 @@ class AppraisalController extends Controller
 
         // Delete the Appraisal
         $appraisal->delete();
+
+            //    =================== delete ===========
+
+            $user = User::find($appraisal->employee); 
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal deleted ',
+                        'message' => $user->name . ' appraisal deleted '
+                    ]),
+                    'module_id' => $appraisal->id,
+                    'module_type' => 'appraisal',
+                    'notification_type' => 'appraisal deleted'
+                ]);
+            
+
+                
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name . ' appraisal deleted ',
+                        'message' => $user->name . ' appraisal deleted '
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => 'appraisal deleted'
+                ]);
+            
 
         return response()->json(['status' => 'success', 'message' => 'Appraisal and related remarks successfully deleted.']);
     }
@@ -408,16 +507,34 @@ class AppraisalController extends Controller
 
     public function fetchperformance(Request $request)
     {
+         $validator = Validator::make($request->all(), [
+            'employee' => 'required|exists:users,id',
+            'appraisal' => 'nullable|exists:appraisals,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
+
+         // Fetch appraisal data
+        $appraisal = Appraisal::with('appraisalRemarks')->find($request->appraisal);
+
         $userget = User::find($request->employee);
         $user_type = Role::where('name', $userget->type)->first();
+        //dd($user_type);
         $indicator = Indicator::where('designation', $user_type->id)->first();
-        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
+        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : []; 
+        $rating = !empty($appraisal) ? json_decode($appraisal->rating, true) : [];
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
-        $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $userget->type)->get();
+        $performance_types = Role::whereNotIn('name', $excludedTypes)
+            ->where('name', $userget->type)
+            ->get();
 
-        // Add competencies to each performance type
         foreach ($performance_types as $performance_type) {
-            $performance_type->competencies = Competencies::whereRaw("FIND_IN_SET(?, type)", [$performance_type->id])->get();
+            $performance_type->competencies = Competencies::whereRaw(
+                'JSON_CONTAINS(type, ?, "$")',
+                [json_encode((int)$performance_type->id)]
+            )->get();
         }
 
         return response()->json([
@@ -425,13 +542,14 @@ class AppraisalController extends Controller
             'userget' => $userget,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
+            'rating' => $rating,
         ]);
     }
 
     public function fetchperformanceedit(Request $request)
     {
         // Fetch appraisal data
-        $appraisal = Appraisal::find($request->appraisal);
+        $appraisal = Appraisal::with('appraisalRemarks')->find($request->appraisal);
 
         // Fetch user data
         $userget = User::find($request->employee);
@@ -454,7 +572,10 @@ class AppraisalController extends Controller
 
         // Add competencies to each performance type
         foreach ($performance_types as $performance_type) {
-            $performance_type->competencies = Competencies::whereRaw("FIND_IN_SET(?, type)", [$performance_type->id])->get();
+            $performance_type->competencies = Competencies::whereRaw(
+                'JSON_CONTAINS(type, ?, "$")',
+                [json_encode((int)$performance_type->id)]
+            )->get();
         }
 
         // Return JSON response

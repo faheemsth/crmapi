@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\OtherPayment;
 use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -64,18 +65,32 @@ class OtherPaymentController extends Controller
         $OtherPayment->amount = $request->amount;
         $OtherPayment->created_by = Auth::user()->creatorId();
         $OtherPayment->save();
+         
 
-        // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'OtherPayment Created',
-                'message' => 'Employee OtherPayment record created successfully'
-            ]),
-            'module_id' => $OtherPayment->id,
-            'module_type' => 'OtherPayment',
-            'notification_type' => 'OtherPayment Created'
-        ]);
+         //  ========== add ============
+                $user = User::find($OtherPayment->employee_id);
+                $typeoflog = 'Other Payment';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $OtherPayment->employee->name. ' '.$typeoflog.' created',
+                        'message' => $OtherPayment->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $OtherPayment->employee_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $OtherPayment->employee->name. ' '.$typeoflog.'  created',
+                        'message' => $OtherPayment->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $OtherPayment->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
 
         return response()->json([
             'status' => 'success',
@@ -103,7 +118,7 @@ class OtherPaymentController extends Controller
 
         // Validate input
         $validator = Validator::make($request->all(), [
-            'OtherPayment_id'     => 'required|exists:Other_Payments,id',
+            'OtherPayment_id'     => 'required|exists:other_payments,id',
             'employee_id'      => 'nullable|integer|exists:employees,id',
             'title'            => 'nullable|string|max:255',
             'type'             => 'nullable|string',
@@ -160,7 +175,7 @@ class OtherPaymentController extends Controller
         $validator = \Validator::make(
             $request->all(),
             [
-                'id' => 'required|exists:Other_Payments,id',
+                'id' => 'required|exists:other_payments,id',
             ]
         );
 

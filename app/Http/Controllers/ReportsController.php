@@ -105,6 +105,7 @@ class ReportsController extends Controller
 
         // Institute-wise application count (>0)
         $instituteCounts = (clone $query)->select('university_name', DB::raw('count(*) as application_count'))
+            ->whereIn('stage_id', $visaStages)
             ->groupBy('university_name')
             ->having('application_count', '>', 0)
             ->get();

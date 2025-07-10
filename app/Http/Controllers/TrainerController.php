@@ -25,7 +25,7 @@ class TrainerController extends Controller
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
-            'brand_id' => 'nullable|integer|exists:brands,id',
+            'brand_id' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
@@ -206,6 +206,22 @@ class TrainerController extends Controller
 
         $trainer = Trainer::create(array_merge($request->all(), ['created_by' => Auth::id()]));
 
+               //  ========== add ============
+                
+                $typeoflog = 'trainer';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $trainer->firstname. ' '.$typeoflog.' created',
+                        'message' => $trainer->firstname. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $trainer->id,
+                    'module_type' => 'training',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+               
+
         return response()->json(['status' => 'success', 'message' => 'Trainer created successfully.', 'data' => $trainer]);
     }
 
@@ -234,11 +250,54 @@ class TrainerController extends Controller
         }
 
         $trainer = Trainer::find($request->id);
+         $originalData = $trainer->toArray();
         if (!$trainer) {
             return response()->json(['status' => 'error', 'message' => 'Trainer not found.'], 404);
         }
 
         $trainer->update($request->all());
+
+        // ============ edit ============
+
+
+        
+
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($trainer->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $trainer->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        } 
+         $typeoflog = 'trainer';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $trainer->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $trainer->id,
+                    'module_type' => 'trainer',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+       
+
+
+
         return response()->json(['status' => 'success', 'message' => 'Trainer updated successfully.', 'data' => $trainer]);
     }
 
@@ -261,7 +320,19 @@ class TrainerController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Trainer not found.'], 404);
         }
 
-
+          //    =================== delete ===========
+ 
+            $typeoflog = 'trainer';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $trainer->firstname .  ' '.$typeoflog.'  deleted ',
+                        'message' => $trainer->firstname .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $trainer->id,
+                    'module_type' => 'trainer',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
 
         $trainer->delete();
         return response()->json(['status' => 'success', 'message' => 'Trainer successfully deleted.']);

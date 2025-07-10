@@ -44,10 +44,25 @@ class IndicatorController extends Controller
         $indicator_query = Indicator::with(['created_by', 'brand', 'branch', 'region','updated_by','designations','departments']);
 
         // Apply search filter if provided
+        // Apply search filter if provided
         if ($request->filled('search')) {
             $search = $request->input('search');
             $indicator_query->where(function ($query) use ($search) {
-                $query->where('indicators.name', 'like', "%$search%");
+                $query->whereHas('created_by', function($q) use ($search) {
+                    $q->where('name', 'like', "%$search%");
+                })
+                ->orWhereHas('brand', function($q) use ($search) {
+                    $q->where('name', 'like', "%$search%");
+                })
+                ->orWhereHas('branch', function($q) use ($search) {
+                    $q->where('name', 'like', "%$search%");
+                })
+                ->orWhereHas('region', function($q) use ($search) {
+                    $q->where('name', 'like', "%$search%");
+                })
+                ->orWhereHas('updated_by', function($q) use ($search) {
+                    $q->where('name', 'like', "%$search%");
+                });
             });
         }
 

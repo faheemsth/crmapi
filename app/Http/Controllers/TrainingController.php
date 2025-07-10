@@ -31,7 +31,7 @@ class TrainingController extends Controller
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
-            'brand_id' => 'nullable|integer|exists:brands,id',
+            'brand_id' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
             'employee_id' => 'nullable|integer|exists:users,id',
@@ -52,14 +52,21 @@ class TrainingController extends Controller
          $Training_query = Training::with(['created_by', 'brand', 'branch', 'region', 'trainer','training_type','assign_to']);
 
         // Apply search filter if provided
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $Training_query->where(function ($query) use ($search) {
-                $query->where('trainings.training_type', 'like', "%$search%")
-                    ->orWhere('trainings.trainer', 'like', "%$search%")
-                    ->orWhere('trainings.training_cost', 'like', "%$search%");
-            });
-        }
+                    
+            if ($request->filled('search')) {
+                $search = $request->input('search');
+
+                $Training_query->where(function ($query) use ($search) {
+                    $query->orWhere('training_cost', 'like', "%$search%")
+                         ->orWhereHas('training_type', function ($q) use ($search) {
+                            $q->where('name', 'like', "%$search%") ;
+                        })
+                        ->orWhereHas('trainer', function ($q) use ($search) {
+                            $q->where('firstname', 'like', "%$search%")
+                            ->orWhere('lastname', 'like', "%$search%");
+                        });
+                });
+            }
 
         // Apply user-specific filters
         $user = Auth::user();
@@ -150,6 +157,32 @@ class TrainingController extends Controller
             $training->created_by = \Auth::id();
             $training->save();
 
+             //  ========== add ============
+                $user = User::find($training->employee);
+                $typeoflog = 'training';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $training->id,
+                    'module_type' => 'employee',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $training->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Training created successfully.',
@@ -209,7 +242,7 @@ class TrainingController extends Controller
             'region_id' => 'required|numeric|min:1|exists:regions,id',
             'lead_branch' => 'required|numeric|min:1|exists:branches,id',
             'training_type' => 'required|string|max:255',
-            'training_cost' => 'required|numeric|min:0',
+            'training_cost' => 'required|numeric|min:0|max:999999',
             'lead_assigned_user' => 'required|integer|exists:users,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
@@ -221,12 +254,12 @@ class TrainingController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'errors' => $validator->errors()
+                'error' => $validator->errors(),
             ], 422);
         }
 
         $training = Training::findOrFail($request->id);
-
+         $originalData = $training->toArray();
 
 
         $training->update([
@@ -243,12 +276,140 @@ class TrainingController extends Controller
             'description' => $request->description,
         ]);
 
+
+        // ============ edit ============
+
+
+        
+
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($training->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $training->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        }
+        $user = User::find($training->employee);
+         $typeoflog = 'training';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $training->id,
+                    'module_type' => 'employee',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+             
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.' updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $training->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Training updated successfully.'),
+            'data' => $training
+        ], 200);
+    }   
+   public function updateTrainingStatus(Request $request)
+    {
+        if (!Auth::user()->can('edit training')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:trainings,id',
+            'status' => 'required|in:0,1,2,3',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $validator->errors(),
+            ], 422);
+        }
+
+        $training = Training::findOrFail($request->id);
+        
+
+        $training->update([
+            'status' => $request->status,
+        ]);
+
+        // Log activity
+        $statusMap = [
+            0 => 'Pending',
+            1 => 'Completed',
+            2 => 'Terminated',
+            3 => 'Suspended',
+        ];
+
+        $statusText = $statusMap[$request->status] ?? 'Unknown';
+
+        
+ 
+            $user = User::find($training->employee); // Or $training->employee if relation
+            $logNote = [
+                'title' => $user->name . ' training status updated to ' . $statusText,
+                'message' => $user->name . ' training status updated to ' . $statusText,
+            ];
+
+            // Log for module_type: employee
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode($logNote),
+                'module_id' => $training->id,
+                'module_type' => 'employee',
+                'notification_type' => 'training Updated',
+            ]);
+
+            // Log for module_type: employeeprofile
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode($logNote),
+                'module_id' => $training->employee,
+                'module_type' => 'employeeprofile',
+                'notification_type' => 'training Updated',
+            ]);
+        
+
         return response()->json([
             'status' => 'success',
             'message' => __('Training updated successfully.'),
             'data' => $training
         ], 200);
     }
+
 
     /**
      * Delete a training.
@@ -276,6 +437,34 @@ class TrainingController extends Controller
         $training = Training::findOrFail($request->id);
 
         $training->delete();
+        
+            //    =================== delete ===========
+
+            $user = User::find($training->employee); 
+            $typeoflog = 'training';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $training->id,
+                    'module_type' => 'training',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
+
+                
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $training->employee,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
 
         return response()->json([
             'status' => 'success',

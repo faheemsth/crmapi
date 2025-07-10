@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Commission;
 use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -74,17 +75,32 @@ class CommissionsController extends Controller
         $Commissions->created_by = Auth::user()->creatorId();
         $Commissions->save();
 
-        // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Commissions Created',
-                'message' => 'Employee Commissions record created successfully'
-            ]),
-            'module_id' => $Commissions->id,
-            'module_type' => 'Commissions',
-            'notification_type' => 'Commissions Created'
-        ]);
+         
+
+       //  ========== add ============
+                $user = User::find($Commissions->employee_id);
+                $typeoflog = 'commissions';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $Commissions->employee->name. ' '.$typeoflog.' created',
+                        'message' => $Commissions->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $Commissions->employee_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $Commissions->employee->name. ' '.$typeoflog.'  created',
+                        'message' => $Commissions->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $Commissions->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
 
         return response()->json([
             'status' => 'success',

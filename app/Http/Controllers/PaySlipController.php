@@ -32,7 +32,9 @@ class PaySlipController extends Controller
         )
         ->with([
             'employees',
-            'employee.salaryType' // Assuming `employee` is a relationship; corrected casing
+            'created_by:id,name',
+            'employee.salaryType',
+            'employee.user' // Assuming `employee` is a relationship; corrected casing
         ])
         ->leftJoin('employees', 'employees.id', '=', 'pay_slips.employee_id')
         ->leftJoin('users', 'users.id', '=', 'employees.user_id') // Corrected column relation
@@ -116,13 +118,22 @@ class PaySlipController extends Controller
         }
 
         $formattedMonthYear = $request->year . '-' . $request->month;
-
+        if($request->singleUserID){
+            $employeeID = User::findOrFail($request->singleUserID)->employee->id;
+        }else{
+            $employeeID = 0;
+        }
+        
+        
         // Check for existing payslips
-        $existingPayslips = $this->getExistingPayslips($formattedMonthYear);
+        $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID);
+
+      
 
         // Get eligible employees
-        $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips);
+        $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
 
+          
         if ($eligibleEmployees->isEmpty()) {
             return response()->json([
                 'status' => 'error',
@@ -164,6 +175,35 @@ class PaySlipController extends Controller
                 'message' => "Payslip not found.",
             ], 404);
         }
+
+         //    =================== delete ===========
+
+            $employee = Employee::find($payslip->employee_id);  
+            $typeoflog = 'payslip';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $employee->user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $payslip->id,
+                    'module_type' => 'payslip',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
+
+                
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $employee->user->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $employee->user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
 
         $payslip->delete();
         return response()->json([
@@ -232,11 +272,18 @@ class PaySlipController extends Controller
         return range(date('Y'), date('Y') - 9);
     }
 
-    private function getExistingPayslips($formattedMonthYear)
+    private function getExistingPayslips($formattedMonthYear, $singleUserID = 0)
     {
-        return PaySlip::where('salary_month', $formattedMonthYear)
-            ->where('created_by', Auth::id())
-            ->pluck('employee_id');
+            // If a single user ID is provided, filter by that user
+            if ($singleUserID != 0) {
+                
+                return PaySlip::where('salary_month', $formattedMonthYear) 
+                    ->where('employee_id', $singleUserID)
+                    ->pluck('employee_id');
+            } else {
+            return PaySlip::where('salary_month', $formattedMonthYear) 
+                ->pluck('employee_id');
+        }
     }
 
     // private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
@@ -248,7 +295,7 @@ class PaySlipController extends Controller
     //         ->get();
     // }
 
-    private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
+    private function getEligibleEmployees($formattedMonthYear, $existingPayslips,$singleUserID =0)
     {
     $excludedTypes = ['super admin', 'company', 'team', 'client'];
 
@@ -277,7 +324,10 @@ class PaySlipController extends Controller
 
     // Apply user type-specific filtering
     $user = \Auth::user();
-    if ($user->type == 'super admin') {
+
+    if ($singleUserID!= 0) {
+        $usersQuery->where('id', $singleUserID);
+    }elseif ($user->type == 'super admin') {
         // No additional filtering
     } elseif ($user->type == 'company') {
         $usersQuery->where('brand_id', $user->id);
@@ -288,21 +338,37 @@ class PaySlipController extends Controller
     // Get the filtered user IDs
     $userIds = $usersQuery->pluck('id');
 
-    // Fetch employees with conditions and related users
-    return Employee::where('company_doj', '<=', now()->endOfMonth())
-        ->whereNotIn('id', $existingPayslips)
-        ->whereNotNull('salary')
-        ->whereNotNull('salary_type')
+     
+
+
+     if ($singleUserID!= 0) {
+       
+         
+          // Fetch employees with conditions and related users
+    return Employee::whereNotNull('salary') 
         ->whereIn('user_id', $userIds)
         ->with('user') // Load related user data
         ->get();
 
+    
+    }else{
+           // Fetch employees with conditions and related users
+    return Employee::where('company_doj', '<=', now()->endOfMonth())
+        ->whereNotIn('id', $existingPayslips)
+        ->whereNotNull('salary') 
+        ->whereIn('user_id', $userIds)
+        ->with('user') // Load related user data
+        ->get();
+
+    
     }
+
+}
 
     private function generatePayslips($employees, $formattedMonthYear)
     {
         foreach ($employees as $employee) {
-            PaySlip::firstOrCreate([
+          $payslip =  PaySlip::firstOrCreate([
                 'employee_id' => $employee->id,
                 'salary_month' => $formattedMonthYear,
                 'created_by' => Auth::id(),
@@ -317,6 +383,32 @@ class PaySlipController extends Controller
                 'other_payment' => Employee::other_payment($employee->id),
                 'overtime' => Employee::overtime($employee->id),
             ]);
+
+                 //  ========== add ============
+                $user = User::find($employee->user_id);
+                $typeoflog = 'payslip';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $payslip->id,
+                    'module_type' => 'employee',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
         }
     }
 
@@ -358,7 +450,8 @@ class PaySlipController extends Controller
         }
 
         // Find the employee or return a 404 error if not found
-        $employee = Employee::where('id',$id)->first();
+        $employee = Employee::where('user_id',$id)->first();
+              $originalData = $employee->toArray();
         if (!$employee) {
             return response()->json([
                 'status' => 'error',
@@ -370,6 +463,61 @@ class PaySlipController extends Controller
         $employee->salary_type = $request->salary_type;
         $employee->salary = $request->salary;
         $employee->save();
+
+
+        
+     // ============ edit ============
+
+
+   
+
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($employee->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $employee->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        }
+        $user = User::find($employee->user_id);
+         $typeoflog = 'set salary';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $employee->user_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+             
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $user->name .  ' '.$typeoflog.' updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $employee->user_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
 
         // Return a success response
         return response()->json([
@@ -395,7 +543,7 @@ class PaySlipController extends Controller
                 ], 404);
             }
             // Retrieve the payslip based on employee ID
-            $payslip = PaySlip::where('employee_id', $userId)->first();
+            $payslip = PaySlip::where('employee_id', $userId)->get();
 
             if (!$payslip) {
                 return response()->json([
@@ -404,7 +552,7 @@ class PaySlipController extends Controller
             }
 
             // Retrieve the employee data
-            $employee = Employee::find($payslip->employee_id);
+            $employee = Employee::find($userId);
 
             if (!$employee) {
                 return response()->json([

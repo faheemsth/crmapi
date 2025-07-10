@@ -20,7 +20,7 @@ class User extends Authenticatable
 
 
 
-    protected $appends = ['profile'];
+    // protected $appends = ['profile']; 
 
     protected $fillable = [
         'name',
@@ -30,8 +30,7 @@ class User extends Authenticatable
         'plan',
         'plan_expire_date',
         'requested_plan',
-        'type',
-        'avatar',
+        'type', 
         'lang',
         'mode',
         'created_by',
@@ -83,6 +82,7 @@ class User extends Authenticatable
         'admin_action_status',
         'admin_action_reason',
         'admin_action_attachments',
+        'tag_ids',
     ];
 
     protected $hidden = [
@@ -93,10 +93,24 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
-
+     protected $with = ['designation'];
     public $settings;
 
+  public function getTagNamesAttribute()
+{
+    if (empty($this->tag_ids)) {
+        return '';
+    }
 
+    $ids = array_filter(array_map('intval', explode(',', $this->tag_ids)));
+    
+    if (empty($ids)) {
+        return '';
+    }
+
+    $tags = Tag::whereIn('id', $ids)->pluck('name')->toArray();
+    return implode(', ', $tags);
+}
     public function creatorId()
     {
         if ($this->type == 'team' || $this->type == 'company' || $this->type == 'super admin') {
@@ -109,6 +123,10 @@ class User extends Authenticatable
     public function manager()
     {
         return $this->hasOne('App\Models\User', 'id', 'project_manager_id');
+    }   
+     public function designation()
+    {
+        return $this->hasOne('App\Models\Designation', 'id', 'designation_id');
     }
     public function branch()
     {
@@ -234,15 +252,15 @@ class User extends Authenticatable
     //     return User::where('type', '=', 'company')->where('created_by', '=', $this->creatorId())->count();
     // }
 
-    public function getProfileAttribute()
-    {
+    // public function getProfileAttribute()
+    // {
 
-        if (!empty($this->avatar) && \Storage::exists($this->avatar)) {
-            return $this->attributes['avatar'] = asset(\Storage::url($this->avatar));
-        } else {
-            return $this->attributes['avatar'] = asset(\Storage::url('avatar.png'));
-        }
-    }
+    //     if (!empty($this->avatar) && \Storage::exists($this->avatar)) {
+    //         return $this->attributes['avatar'] = asset(\Storage::url($this->avatar));
+    //     } else {
+    //         return $this->attributes['avatar'] = asset(\Storage::url('avatar.png'));
+    //     }
+    // }
 
     public function authId()
     {
@@ -270,7 +288,10 @@ class User extends Authenticatable
         return $this->belongsToMany('App\Models\Lead', 'user_leads', 'user_id', 'lead_id');
     }
 
-
+    public function Tag_ids()
+    {
+        return $this->belongsToMany('App\Models\Tag', 'id', 'tag_ids');
+    }
     public function employee()
     {
         return $this->hasOne('App\Models\Employee', 'user_id', 'id');
@@ -370,6 +391,9 @@ class User extends Authenticatable
         ->whereColumn('client_deals.client_id', 'clients.id');
     }
 
-
+    public function EmployeeDocument()
+    {
+        return $this->hasOne('App\Models\EmployeeDocument', 'employee_id', 'id');
+    }
 
 }

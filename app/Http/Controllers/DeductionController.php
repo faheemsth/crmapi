@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Deduction;
 use App\Models\DeductionOption;
 use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -73,19 +74,33 @@ class DeductionController extends Controller
         $deduction->amount = $request->amount;
         $deduction->created_by = Auth::user()->creatorId();
         $deduction->save();
+        
 
         // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Deduction Created',
-                'message' => 'Employee deduction record created successfully'
-            ]),
-            'module_id' => $deduction->id,
-            'module_type' => 'deduction',
-            'notification_type' => 'Deduction Created'
-        ]);
+       //  ========== add ============
+                $user = User::find($deduction->employee_id);
+                $typeoflog = 'deduction';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' =>  $deduction->employee->name. ' '.$typeoflog.' created',
+                        'message' =>  $deduction->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $deduction->employee_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
 
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' =>  $deduction->employee->name. ' '.$typeoflog.'  created',
+                        'message' =>  $deduction->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $deduction->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
         return response()->json([
             'status' => 'success',
             'message' => 'Deduction successfully created.',

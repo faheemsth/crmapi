@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\Overtime;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -60,20 +61,33 @@ class OvertimeController extends Controller
         $overtime->number_of_days = $request->number_of_days;
         $overtime->hours = $request->hours;
         $overtime->rate = $request->rate;
-        $overtime->created_by = Auth::user()->creatorId();
+        $overtime->created_by = Auth::id();
         $overtime->save();
+        
+       //  ========== add ============
+                $user = User::find($overtime->employee_id);
+                $typeoflog = 'over time';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $overtime->employee->name. ' '.$typeoflog.' created',
+                        'message' => $overtime->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $overtime->employee_id,
+                    'module_type' => 'setsalary',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
 
-        // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Overtime Created',
-                'message' => 'Employee overtime record created successfully'
-            ]),
-            'module_id' => $overtime->id,
-            'module_type' => 'overtime',
-            'notification_type' => 'Overtime Created'
-        ]);
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $overtime->employee->name. ' '.$typeoflog.'  created',
+                        'message' => $overtime->employee->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $overtime->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
 
         return response()->json([
             'status' => 'success',

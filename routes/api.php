@@ -31,6 +31,8 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\PayslipTypeController;
 use App\Http\Controllers\TrainingTypeController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DesignationController;
+use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
 use App\Http\Controllers\IndicatorController;
@@ -49,6 +51,7 @@ use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\SetSalaryController;
+use App\Http\Controllers\TagController;
 use App\Http\Controllers\TerminationTypeController;
 use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
@@ -92,6 +95,11 @@ Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 // Protected routes of product and logout
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
+
+    Route::post('AttendanceSetting', [UserController::class, 'AttendanceSetting']);
+    Route::post('TargetSetting', [UserController::class, 'TargetSetting']);
+
+    Route::post('/getProfileData', [UserController::class, 'getProfileData']);
     Route::post('/updateUserStatus', [UserController::class, 'updateUserStatus']);
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
     Route::get('/agentRequestGet', [AgentController::class, 'agentRequestGet']);
@@ -162,7 +170,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // UserEmployeeFileUpdate
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
+    Route::post('/UserEmployeeFileDocument', [UserController::class, 'UserEmployeeFileDocument']);
     Route::post('/employeeFileAttachments', [UserController::class, 'employeeFileAttachments']);
+    Route::post('/employeeDocuments', [UserController::class, 'employeeDocuments']);
+    Route::post('/UserEmployeeFileDocumentDelete', [UserController::class, 'UserEmployeeFileDocumentDelete']);
+    Route::post('/EmployeeMetaUpdate', [UserController::class, 'storeOrUpdateMetas']);
+    Route::post('/getEmployeeMeta', [UserController::class, 'getEmployeeMeta']);
 
 
     // trainers
@@ -179,6 +192,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateTraining', [TrainingController::class, 'updateTraining']);
     Route::post('/deleteTraining', [TrainingController::class, 'deleteTraining']);
     Route::post('/TrainingDetail', [TrainingController::class, 'TrainingDetail']);
+    Route::post('/updateTrainingStatus', [TrainingController::class, 'updateTrainingStatus']);
 
     // Training
     Route::post('/getIndicators', [IndicatorController::class, 'getIndicators']);
@@ -208,6 +222,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/changeLeaveStatus', [LeaveController::class, 'changeLeaveStatus']);
     // Leaves
     Route::post('/getAttendances', [AttendanceEmployeeController::class, 'getAttendances']);
+    Route::post('/viewAttendance', [AttendanceEmployeeController::class, 'viewAttendance']);
     Route::post('/addAttendance', [AttendanceEmployeeController::class, 'addAttendance']);
     Route::post('/updateAttendance', [AttendanceEmployeeController::class, 'updateAttendance']);
     Route::post('/deleteAttendance', [AttendanceEmployeeController::class, 'deleteAttendance']);
@@ -271,6 +286,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
+    Route::post('/UpdateEmployee', [UserController::class, 'UpdateEmployee']);
+    Route::post('/TerminateEmployee', [UserController::class, 'TerminateEmployee']);
 
     // Hrm Internal Employee Note Create
     Route::post('/EmployeeNoteGet', [UserController::class, 'HrmInternalEmployeeNoteGet']);
@@ -490,6 +507,28 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updateInstituteCategory', [InstituteCategoryController::class, 'updateInstituteCategory']);
      Route::post('/deleteInstituteCategory', [InstituteCategoryController::class, 'deleteInstituteCategory']);
 
+     //   Institute Category
+     Route::post('/addTag', [TagController::class, 'addTag']);
+     Route::post('/getTagPluck', [TagController::class, 'getTagPluck']);
+     Route::get('/getTagsbytype', [TagController::class, 'getTags']);
+     Route::post('/updateTag', [TagController::class, 'updateTag']);
+     Route::post('/deleteTag', [TagController::class, 'deleteTag']);
+
+       //   Institute  
+     Route::post('/addDesignation', [DesignationController::class, 'addDesignation']);
+     Route::post('/getDesignationPluck', [DesignationController::class, 'getDesignationPluck']);
+     Route::get('/getDesignations', [DesignationController::class, 'getDesignations']);
+     Route::post('/updateDesignation', [DesignationController::class, 'updateDesignation']);
+     Route::post('/deleteDesignation', [DesignationController::class, 'deleteDesignation']);
+
+
+     //   Institute DocumentType
+     Route::post('/addDocumentType', [DocumentTypeController::class, 'addDocumentType']);
+     Route::post('/getDocumentTypePluck', [DocumentTypeController::class, 'getDocumentTypePluck']);
+     Route::get('/getDocumentTypes', [DocumentTypeController::class, 'getDocumentTypes']);
+     Route::post('/updateDocumentType', [DocumentTypeController::class, 'updateDocumentType']);
+     Route::post('/deleteDocumentType', [DocumentTypeController::class, 'deleteDocumentType']);
+
 
      //     University Rules
      Route::post('/getClients', [ClientController::class, 'getClients']);
@@ -556,6 +595,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getTags', [GeneralController::class, 'getTags']);
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
+    Route::post('/UpdateFilterSave', [GeneralController::class, 'UpdateFilterSave']);
     Route::post('/Country', [GeneralController::class, 'Country']);
     Route::post('/Country/by/code', [GeneralController::class, 'CountryByCode']);
     Route::post('/UniversityByCountryCode', [GeneralController::class, 'UniversityByCountryCode']);

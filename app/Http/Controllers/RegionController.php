@@ -43,6 +43,12 @@ class RegionController extends Controller
         // No need for query() here, just use the model's builder directly
         $query = Region::with('manager','brand');
 
+        if (\Auth::user()->type === 'company') {
+            $query->where('brands', \Auth::user()->id); 
+        } elseif (!in_array(\Auth::user()->type, ['super admin', 'Admin Team', 'HR'])) {
+            $query->whereIn('brands', array_keys(FiltersBrands()));
+        }
+
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where('regions.name', 'like', "%$search%");
@@ -88,7 +94,7 @@ class RegionController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'brand_id' => 'required|integer|exists:users,id',
-            'region_manager_id' => 'nullable|integer|exists:users,id'
+            'region_manager_id' => 'required|integer|exists:users,id'
         ]);
 
         if ($validator->fails()) {
@@ -106,6 +112,19 @@ class RegionController extends Controller
             'email' => $request->email,
             'region_manager_id' => $request->region_manager_id
         ]);
+
+        $typeoflog = 'region';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $region->name. ' '.$typeoflog.' created',
+                        'message' => $region->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $region->id,
+                    'module_type' => 'region',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
 
         return response()->json([
             'status' => 'success',
@@ -129,8 +148,10 @@ class RegionController extends Controller
         $validator = Validator::make($request->all(), [
             'id' => 'required|integer|exists:regions,id',
             'name' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
             'brand_id' => 'required|integer|exists:users,id',
-            'region_manager_id' => 'nullable|integer|exists:users,id'
+            'region_manager_id' => 'required|integer|exists:users,id',
+            'email' => 'required|email|unique:branches,email,' . $request->id,
         ]);
 
         if ($validator->fails()) {
@@ -141,6 +162,7 @@ class RegionController extends Controller
         }
 
         $region = Region::findOrFail($request->id);
+         $originalData = $region->toArray();
         $region->update([
             'name' => $request->name,
             'brands' => $request->brand_id,
@@ -149,6 +171,47 @@ class RegionController extends Controller
             'email' => $request->email,
             'region_manager_id' => $request->region_manager_id
         ]);
+
+
+        // ============ edit ============
+
+
+        
+
+
+           // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($region->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $region->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        } 
+         $typeoflog = 'region';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $region->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $region->id,
+                    'module_type' => 'region',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+       
+
 
         return response()->json([
             'status' => 'success',
@@ -181,6 +244,23 @@ class RegionController extends Controller
         }
 
         $region = Region::findOrFail($request->id);
+
+        
+        //    =================== delete ===========
+ 
+            $typeoflog = 'region';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $region->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $region->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $region->id,
+                    'module_type' => 'region',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
+            
+
         $region->delete();
 
         return response()->json([

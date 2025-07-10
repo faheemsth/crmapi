@@ -135,7 +135,7 @@ class BranchController extends Controller
             'name' => 'required|string|max:255',
             'brands' => 'required|integer|exists:users,id',
             'region_id' => 'required|integer|exists:regions,id',
-            'branch_manager_id' => 'nullable|integer|exists:users,id',
+            'branch_manager_id' => 'required|integer|exists:users,id',
             'email' => 'required|email|unique:branches,email,NULL,id,brands,' . $request->brands . ',region_id,' . $request->region_id,
             'full_number' => 'nullable|string|max:20',
             'longitude' => 'required|numeric',
@@ -170,6 +170,17 @@ class BranchController extends Controller
             'created_by' => \Auth::user()->creatorId(),
         ]);
 
+            $typeoflog = 'branch';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $branch->name. ' '.$typeoflog.' created',
+                        'message' => $branch->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $branch->id,
+                    'module_type' => 'branch',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
         return response()->json([
             'status' => 'success',
             'id' => $branch,
@@ -184,15 +195,15 @@ class BranchController extends Controller
             'name' => 'required|string|max:255',
             'brands' => 'required|integer|exists:users,id',
             'region_id' => 'required|integer|exists:regions,id',
-            'branch_manager_id' => 'nullable|integer|exists:users,id',
+            'branch_manager_id' => 'required|integer|exists:users,id',
             'email' => 'required|email|unique:branches,email,' . $request->id . ',id,brands,' . $request->brands . ',region_id,' . $request->region_id,
-            'full_number' => 'nullable|string|max:20',
-            'longitude' => 'nullable|numeric',
-            'latitude' => 'nullable|numeric',
-            'timezone' => 'nullable|string',
-            'google_link' => 'nullable|url',
-            'social_media_link' => 'nullable|url',
-            'shift_time' => 'nullable|string',
+            'full_number' => 'required|string|max:20',
+            'longitude' => 'required|numeric',
+            'latitude' => 'required|numeric',
+            'timezone' => 'required|string',
+            'google_link' => 'required|url',
+            'social_media_link' => 'required|url',
+            'shift_time' => 'required|string',
         ]);
 
         if ($validator->fails()) {
@@ -213,6 +224,8 @@ class BranchController extends Controller
         // Fetch the branch
         $branch = Branch::find($request->id);
 
+        $originalData = $branch->toArray();
+
         // Update branch details
         $branch->update([
             'name' => $request->name,
@@ -229,6 +242,39 @@ class BranchController extends Controller
             'shift_time' => $request->shift_time,
         ]);
 
+
+          // Log changed fields only
+        $changes = [];
+         $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+             if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+            if ($branch->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $branch->$field
+                ];
+                $updatedFields[] = $field;
+            }
+        } 
+         $typeoflog = 'branch';
+           
+        if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $branch->name .  ' '.$typeoflog.'  updated ',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $branch->id,
+                    'module_type' => 'branch',
+                    'notification_type' =>  ' '.$typeoflog.' Updated'
+                ]);
+            }
+
+       
         return response()->json([
             'status' => 'success',
             'branch' => $branch,
@@ -260,6 +306,20 @@ class BranchController extends Controller
 
         // Find and delete the branch
         $branch = Branch::find($request->id);
+
+
+        
+            $typeoflog = 'branch';
+                addLogActivity([
+                    'type' => 'warning',
+                    'note' => json_encode([
+                        'title' => $branch->name .  ' '.$typeoflog.'  deleted ',
+                        'message' => $branch->name .  ' '.$typeoflog.'  deleted ' 
+                    ]),
+                    'module_id' => $branch->id,
+                    'module_type' => 'branch',
+                    'notification_type' =>  ' '.$typeoflog.'  deleted'
+                ]);
         $branch->delete();
 
         return response()->json([
