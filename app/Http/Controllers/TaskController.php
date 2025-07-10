@@ -404,14 +404,35 @@ class TaskController extends Controller
                 });
             }
     
+            // Apply sorting
+            $status = $_GET['tasks_type'] ?? null;
+            $user = \Auth::user();
+            
+            if ($status === 'Quality' || $status === 'Compliance') {
+                $direction = $user->type === 'Product Coordinator' ? 'ASC' : 'DESC';
+                $finalQuery->orderBy('deal_tasks.due_date', $direction);
+            } else {
+                $direction = $user->branch_id == 262 ? 'ASC' : 'DESC';
+                $finalQuery->orderBy('deal_tasks.created_at', $direction);
+            }
+
             // Get total count
             $total_records = $finalQuery->count();
     
             // Apply sorting
-            if (\Auth::user()->branch_id == 262) {
-                $finalQuery->orderBy('deal_tasks.created_at', 'ASC');
-            } else {
-                $finalQuery->orderBy('deal_tasks.created_at', 'DESC');
+            if (!empty($_GET['tasks_type_status'])) {
+                $status = $_GET['tasks_type_status'];
+                if ($status == '1') {
+                    $finalQuery->where('deal_tasks.tasks_type_status', "1")
+                              ;
+                } elseif ($status == '2') {
+                    $finalQuery->where('deal_tasks.tasks_type_status', "2");
+                } else {
+                    $finalQuery->where('deal_tasks.tasks_type_status', "0");
+                }
+            } elseif (!isset($_GET['status'])) {
+                $finalQuery->where('deal_tasks.status', 0)
+                          ->where('deal_tasks.tasks_type_status', "0");
             }
     
             // Paginate results
