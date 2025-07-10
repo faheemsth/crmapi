@@ -1220,12 +1220,8 @@ class UserController extends Controller
         // dd($request->all(), $request->file());
 
         // Validation rules
-        $validator = \Validator::make($request->all(), [
-            'cv' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096', // Increased size limit to 4MB
-            'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
-            'avatar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        $validator = \Validator::make($request->all(), [ 
+            'avatar' => 'required|file|mimes:jpg,jpeg,png|max:4096',
             'id' => 'required|exists:users,id', // Ensure employee exists 
         ]);
 
@@ -1254,73 +1250,24 @@ class UserController extends Controller
         // Debugging output
         // dd($uploadedFiles);
 
-        // Retrieve or create the EmployeeDocument record
-        $employeeDocument = EmployeeDocument::firstOrNew(['employee_id' => $request->id]);
+        // Retrieve or create the EmployeeDocument record 
         $user = User::find($request->id);
-
-        $originalData = $employeeDocument->toArray();
-
+ 
 
 
-        if (!empty($uploadedFiles['profile_picture'])) {
-            $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
-        }
 
-        if (!empty($uploadedFiles['academic_documents'])) {
-            $employeeDocument->academic_documents = $uploadedFiles['academic_documents'];
-        }
-
-        if (!empty($uploadedFiles['id_card'])) {
-            $employeeDocument->id_card = $uploadedFiles['id_card'];
-        }
 
         if (!empty($uploadedFiles['avatar'])) {
             $user->avatar = $uploadedFiles['avatar'];
         }
-
-        if (!empty($uploadedFiles['cv'])) {
-            $employeeDocument->resume = $uploadedFiles['cv'];
-        }
-        $employeeDocument->created_by = \Auth::id();
         $user->save();
-
-
-
-        EmployeeMeta::updateOrCreate(
-            [
-                'user_id' => $request->id,
-                'meta_key' => 'passport_expiry_date',
-            ],
-            [
-                'meta_value' => $request->passport_expiry_date,
-                'created_by' => \Auth::id(),
-            ]
-        );
-
-        $employeeDocument->save();
-
-        // ============ edit ============
-
-
-
+ 
 
 
         // Log changed fields only
-        $changes = [];
-        $updatedFields = [];
-        foreach ($originalData as $field => $oldValue) {
-            if (in_array($field, ['created_at', 'updated_at'])) {
-                continue;
-            }
-            if ($employeeDocument->$field != $oldValue) {
-                $changes[$field] = [
-                    'old' => $oldValue,
-                    'new' => $employeeDocument->$field
-                ];
-                $updatedFields[] = $field;
-            }
-        }
-        $user = User::find($employeeDocument->employee_id);
+        $changes =['avatar'];
+        $updatedFields = ['avatar'];
+         
         $typeoflog = 'employee document';
 
         if (!empty($changes)) {
@@ -1356,7 +1303,7 @@ class UserController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Employee updated successfully',
-            'data' => $employeeDocument,
+            'data' => $user,
         ]);
     }
 
@@ -1453,17 +1400,7 @@ class UserController extends Controller
         $employeeDocument->issue_date = $request->issue_date; 
         $user->save();
 
-        // Update passport expiry
-        EmployeeMeta::updateOrCreate(
-            [
-                'user_id' => $request->id,
-                'meta_key' => 'passport_expiry_date',
-            ],
-            [
-                'meta_value' => $request->passport_expiry_date,
-                'created_by' => \Auth::id(),
-            ]
-        );
+      
 
         $employeeDocument->save();
 
