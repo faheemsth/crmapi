@@ -569,6 +569,7 @@ class UserController extends Controller
             'pay_slips' => $Employee,
             'EmergencyContact' => $EmergencyContact,
             'AdditionalAddress' => $AdditionalAddress,
+            'baseurl' =>  asset('/EmployeeDocument'),
         ];
         return response()->json([
             'status' => 'success',
