@@ -84,6 +84,7 @@ class LeadController extends Controller
             'stage_id' => 'nullable|array',
             'users' => 'nullable|array',
             'lead_assigned_user' => 'sometimes|nullable',
+            'created_by' => 'sometimes|nullable',
             'created_at_from' => 'nullable|date',
             'created_at_to' => 'nullable|date',
             'tag' => 'nullable|integer',
@@ -149,6 +150,9 @@ class LeadController extends Controller
 
         if ($request->filled('lead_assigned_user')) {
             $leadsQuery->where('leads.user_id', $request->lead_assigned_user);
+        }
+        if ($request->filled('created_by')) {
+            $leadsQuery->where('leads.created_by', $request->created_by);
         }
 
         if ($request->filled('created_at_to')) {
