@@ -109,6 +109,7 @@ class LeadController extends Controller
             'leads.email',
             'leads.branch_id',
             'leads.phone',
+            'leads.created_by',
             'leads.user_id',
             'leads.stage_id',
             'leads.tag_ids'
