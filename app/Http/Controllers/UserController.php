@@ -213,7 +213,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        $excludedTypes = ['company', 'team', 'client'];
+        $excludedTypes = ['company', 'team', 'client','Agent'];
 
         $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
             ->whereNotIn('type', $excludedTypes);
@@ -336,7 +336,7 @@ class UserController extends Controller
 
         // Paginate results
         $employees = $employeesQuery
-            ->orderByRaw('BINARY users.name ASC')
+            ->orderBy('users.name', 'ASC')
             ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
