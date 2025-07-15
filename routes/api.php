@@ -64,7 +64,10 @@ use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
 use App\Models\TaskFile;
 use App\Models\TrainingType;
-
+ 
+use App\Models\User;
+use App\Models\AttendanceEmployee;
+use Carbon\Carbon;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -75,6 +78,70 @@ use App\Models\TrainingType;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+ 
+
+Route::get('/AttendanceEmployeeCron', function () {
+    $today = Carbon::today()->toDateString();
+
+    $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+    // Get employees
+    $employees = User::select('id', 'name')
+        ->whereNotIn('type', $excludedTypes)
+        ->get();
+
+    // Existing attendance records
+    $attendance = AttendanceEmployee::where('date', $today)
+        ->pluck('employee_id')
+        ->toArray();
+
+    // Prepare absent records
+    $insertData = [];
+    $absentEmployeeNames = []; // to list who was marked absent
+
+    foreach ($employees as $employee) {
+        if (!in_array($employee->id, $attendance)) {
+            $insertData[] = [
+                'employee_id' => $employee->id,
+                'date' => $today,
+                'status' => 'Absent',
+                'clock_in' => '00:00:00',
+                'clock_out' => '00:00:00',
+                'early_leaving' => '00:00:00',
+                'overtime' => '00:00:00',
+                'total_rest' => '00:00:00',
+                'created_by' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            $absentEmployeeNames[] = $employee->name;
+        }
+    }
+
+    // Insert records
+    $insertedCount = 0;
+    if (!empty($insertData)) {
+        AttendanceEmployee::insert($insertData);
+        $insertedCount = count($insertData);
+    }
+
+    // Log file entry 
+
+    // Activity log
+    addLogActivity([
+        'type' => 'success',
+        'note' => json_encode([
+            'title' => 'Attendance marked absent for ' . $insertedCount . ' employees',
+            'message' => 'Absent employees: ' . implode(', ', $absentEmployeeNames)
+        ]),
+        'module_id' => 0, // or some relevant ID if you want
+        'module_type' => 'attendance',
+        'notification_type' => 'attendance_cron_run',
+    ],1);
+
+    return "Attendance marked for absent. Records inserted: {$insertedCount}";
+});
+
 
 // Public routes of authtication
 Route::controller(LoginRegisterController::class)->group(function () {

@@ -155,7 +155,7 @@ if (!function_exists('allPermittedCompanies')) {
 
 
 if (!function_exists('addLogActivity')) {
-    function addLogActivity($data = [])
+    function addLogActivity($data = [],$is_cron= 0)
     {
         $new_log = new LogActivity();
         $new_log->type = $data['type'];
@@ -164,7 +164,12 @@ if (!function_exists('addLogActivity')) {
         $new_log->note = $data['note'];
         $new_log->module_type = isset($data['module_type']) ? $data['module_type'] : '';
         $new_log->module_id = isset($data['module_id']) ? $data['module_id'] : 0;
-        $new_log->created_by = \Auth::user()->id;
+        if($is_cron==1){
+            $new_log->created_by = 0;
+        }else{
+            $new_log->created_by = \Auth::user()->id;
+            }
+        
         $new_log->save();
 
 
