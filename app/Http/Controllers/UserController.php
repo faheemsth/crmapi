@@ -336,7 +336,7 @@ class UserController extends Controller
 
         // Paginate results
         $employees = $employeesQuery
-            ->orderBy('users.name', 'ASC')
+            ->orderByRaw('BINARY users.name ASC')
             ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
