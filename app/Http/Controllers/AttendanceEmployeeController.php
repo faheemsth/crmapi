@@ -487,6 +487,8 @@ class AttendanceEmployeeController extends Controller
                 $map = [1 => 'Present', 2 => 'Absent', 3 => 'Early Leaving'];
                 $status = $map[$request->status] ?? 'Present';
                 $data = array_filter($data, fn($d) => $d['status'] === $status);
+            }else{
+               $data = array_filter($data, fn($d) => $d['status'] === 'Present'); 
             }
 
             // // Filter search
