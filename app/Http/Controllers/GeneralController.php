@@ -698,13 +698,15 @@ class GeneralController extends Controller
 
     // Fetch log activity records
     if( $request->type=='user'){
-            $logs = LogActivity::with('createdBy')->where('created_by', $request->id) 
+            $logs = LogActivity::with('createdBy:id,name')->where('created_by', $request->id) 
                 ->orderBy('created_at', 'desc')
+                ->limit(500)
                 ->get();
     }else{
-        $logs = LogActivity::with('createdBy')->where('module_id', $request->id)
+        $logs = LogActivity::with('createdBy:id,name')->where('module_id', $request->id)
                 ->where('module_type', $request->type)
                 ->orderBy('created_at', 'desc')
+                ->limit(500)
                 ->get();
     }
     

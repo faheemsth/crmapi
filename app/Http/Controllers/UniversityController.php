@@ -556,10 +556,10 @@ if ($request->filled('intake_months')) {
         $university = University::findOrFail($id);
 
         // related applications
-        $applications = DealApplication::where('university_id', $id)->get();
+        $applications = []; //DealApplication::where('university_id', $id)->get();
 
         // related admissions
-        $deals = Deal::where('university_id', $id)->get();
+        $deals = []; //Deal::where('university_id', $id)->get();
 
         $stages = Stage::pluck('name', 'id')->toArray();
         $organizations = User::where('type', 'organization')->pluck('name', 'id')->toArray();
