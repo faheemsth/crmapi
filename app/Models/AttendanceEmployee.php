@@ -24,8 +24,19 @@ class AttendanceEmployee extends Model
         return $this->hasOne('App\Models\Employee', 'user_id', 'employee_id');
     }
 
+      /**
+     * The user this attendance belongs to.
+     */
+    public function user()
+    {
+        return $this->hasOne(User::class, 'id', 'employee_id');
+    }
+
+    /**
+     * The employee record (if you have an Employee model).
+     */
     public function employee()
     {
-        return $this->hasOne('App\Models\Employee', 'id', 'employee_id');
+        return $this->hasOne(Employee::class, 'user_id', 'employee_id');
     }
 }
