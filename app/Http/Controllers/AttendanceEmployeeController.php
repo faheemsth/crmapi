@@ -345,186 +345,6 @@ class AttendanceEmployeeController extends Controller
     //     }
     // }
 
-public function getAttendances_old(Request $request)
-{
-    try {
-        if (!Auth::user()->can('manage attendance')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
-
-        // Validate input
-        $validator = Validator::make($request->all(), [
-            'perPage' => 'nullable|integer|min:1',
-            'page' => 'nullable|integer|min:1',
-            'search' => 'nullable|string',
-            'brand_id' => 'nullable|integer|exists:users,id',
-            'region_id' => 'nullable|integer|exists:regions,id',
-            'branch_id' => 'nullable|integer|exists:branches,id',
-            'type' => 'nullable|in:monthly,daily',
-            'month' => 'nullable|date_format:Y-m',
-            'date' => 'nullable|date_format:Y-m-d',
-            'download_csv' => 'nullable|boolean',
-            'status' => 'nullable|integer|in:1,2,3,4',
-            'tag_ids' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
-        $page = $request->input('page', 1);
-
-        $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
-
-        // Paginate employees
-        $employeeQuery = Employee::with(['user.branch'])
-                ->when($request->filled('brand_id'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('brand_id', $request->brand_id)))
-                ->when($request->filled('region_id'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('region_id', $request->region_id)))
-                ->when($request->filled('branch_id'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('branch_id', $request->branch_id)))
-                ->when($request->filled('emp_id'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('id', $request->emp_id)))
-                ->when(!empty($tagIds), function ($q) use ($tagIds) {
-                    $q->whereHas('user', function ($uq) use ($tagIds) {
-                        $uq->where(function($innerQuery) use ($tagIds) {
-                            foreach ($tagIds as $tagId) {
-                                $innerQuery->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
-                            }
-                        });
-                    });
-                })
-                ->when($request->filled('search'), function ($q) use ($request) {
-                    $q->whereHas('user', function ($uq) use ($request) {
-                        $uq->where('name', 'like', '%' . $request->search . '%');
-                    });
-                });
-
-        
-           
-
-        $employees = $employeeQuery->paginate($perPage, ['*'], 'page', $page);
-
-        
-
-        // Define date range
-        $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date) : now()->startOfMonth();
-        $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date) : now()->endOfMonth();
-
-        // Limit range to 31 days for performance
-        if ($endDate->diffInDays($startDate) > 31) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Date range too large. Limit to 31 days.'
-            ], 422);
-        }
-
-        $data = [];
-
-        foreach ($employees as $employee) {
-            $user = $employee->user;
-            if (!$user) continue;
-
-            $shiftSeconds = ($user->branch->shift_time ?? 0) * 3600;
-
-            $attendances = AttendanceEmployee::where('employee_id', $user->id)
-                ->whereBetween('date', [$startDate, $endDate])
-                ->get()
-                ->keyBy('date');
-
-            $current = $startDate->copy();
-            $today = Carbon::today(); // Get current date
-            while ($current <= $endDate) {
-                  if ($current > $today) {
-                        break;
-                    }
-                $date = $current->format('Y-m-d');
-                $attendance = $attendances[$date] ?? null;
-
-                $clockIn = $attendance?->clock_in ?? '00:00:00';
-                $clockOut = $attendance?->clock_out ?? '00:00:00';
-
-                $workedSeconds = ($attendance && $attendance->clock_in && $attendance->clock_out)
-                    ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
-                    : 0;
-
-                $data[] = [
-                    'employee_id' => $user->id,
-                    'employee_name' => $user->name,
-                    'brand_id' => $user->brand_id,
-                    'region_id' => $user->region_id,
-                    'branch_id' => $user->branch_id,
-                    'date' => $date,
-                    'clock_in' => $clockIn,
-                    'earlyCheckOutReason' => $attendance?->earlyCheckOutReason,
-                    'clock_out' => $clockOut,
-                    'worked_hours' => gmdate('H:i:s', $workedSeconds),
-                    'status' => $workedSeconds === 0 ? 'Absent' : ($workedSeconds < $shiftSeconds ? 'Early Leaving' : 'Present'),
-                    'late' => $attendance?->late ?? "00:00:00",
-                    'early_leaving' => $attendance?->early_leaving ?? "00:00:00",
-                    'overtime' => $attendance?->overtime ?? "00:00:00",
-                ];
-
-                $current->addDay();
-            }
-        }
-
-        // Sort by date desc
-        usort($data, fn($a, $b) => strcmp($b['date'], $a['date']));
-
-        // Filter status if required
-        if ($request->filled('status') && $request->status != 4) {
-            $map = [1 => 'Present', 2 => 'Absent', 3 => 'Early Leaving'];
-            $status = $map[$request->status] ?? 'Present';
-            $data = array_filter($data, fn($d) => $d['status'] === $status);
-        }
-
-        // // Filter search
-        // if ($request->filled('search')) {
-        //     $search = strtolower($request->search);
-        //     $data = array_filter($data, fn($d) => str_contains(strtolower($d['employee_name']), $search));
-        // }
-
-        // If CSV download
-        if ($request->input('download_csv')) {
-            $filename = 'Attendance_' . now()->timestamp . '.csv';
-            $headers = [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ];
-            return response()->stream(function () use ($data) {
-                $f = fopen('php://output', 'w');
-                fputcsv($f, ['ID', 'Employee', 'Date', 'Status', 'Clock In', 'Clock Out', 'Late', 'Early Leaving', 'Overtime']);
-                foreach ($data as $row) {
-                    fputcsv($f, array_values($row));
-                }
-                fclose($f);
-            }, 200, $headers);
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => array_values($data),
-            'current_page' => $page,
-            'last_page' => ceil(count($data) / $perPage),
-            'total_records' => count($data),
-            'per_page' => $perPage,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-        ], 500);
-    }
-}
 
 
 public function getAttendances(Request $request)
@@ -585,22 +405,22 @@ public function getAttendances(Request $request)
             ->with(['user.branch','user'])
             ->whereBetween('date', [$startDate, $endDate])
             ->when($request->filled('brand_id'), function ($q) use ($request) {
-                $q->whereHas('employee.user', function ($uq) use ($request) {
+                $q->whereHas('user', function ($uq) use ($request) {
                     $uq->where('brand_id', $request->brand_id);
                 });
             })
             ->when($request->filled('region_id'), function ($q) use ($request) {
-                $q->whereHas('employee.user', function ($uq) use ($request) {
+                $q->whereHas('user', function ($uq) use ($request) {
                     $uq->where('region_id', $request->region_id);
                 });
             })
             ->when($request->filled('branch_id'), function ($q) use ($request) {
-                $q->whereHas('employee.user', function ($uq) use ($request) {
+                $q->whereHas('user', function ($uq) use ($request) {
                     $uq->where('branch_id', $request->branch_id);
                 });
             })
             ->when(!empty($tagIds), function ($q) use ($tagIds) {
-                $q->whereHas('employee.user', function ($uq) use ($tagIds) {
+                $q->whereHas('user', function ($uq) use ($tagIds) {
                     $uq->where(function ($inner) use ($tagIds) {
                         foreach ($tagIds as $tagId) {
                             $inner->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
@@ -609,7 +429,7 @@ public function getAttendances(Request $request)
                 });
             })
             ->when($request->filled('search'), function ($q) use ($request) {
-                $q->whereHas('employee.user', function ($uq) use ($request) {
+                $q->whereHas('user', function ($uq) use ($request) {
                     $uq->where('name', 'like', '%' . $request->search . '%');
                 });
             });
@@ -617,13 +437,10 @@ public function getAttendances(Request $request)
         // Paginate attendance rows directly
         $attendances = $attendanceQuery->orderBy('date', 'desc')->paginate($perPage, ['*'], 'page', $page);
 
-      
-
         $data = [];
         foreach ($attendances as $attendance) {
-           
-             
-            $user = $attendance?->user;
+            $employee = $attendance->employee;
+            $user = $employee?->user;
             if (!$user) continue;
 
             $shiftSeconds = ($user->branch->shift_time ?? 0) * 3600;
