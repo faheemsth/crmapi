@@ -267,7 +267,7 @@ class UserController extends Controller
                     ->orWhere(DB::raw('(SELECT name FROM users AS brands WHERE brands.id = users.brand_id)'), 'like', "%$search%");
             });
         }
-           $employeesQuery->orderBy('users.name', 'ASC');
+
         // Apply user-specific restrictions
         if ($user->can('level 1') || $user->type === 'super admin') {
             // Level 1 permissions
@@ -336,7 +336,7 @@ class UserController extends Controller
 
         // Paginate results
         $employees = $employeesQuery
-            ->orderBy('users.name', 'ASC')
+            ->orderBy('users.name', 'DESC')
             ->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
