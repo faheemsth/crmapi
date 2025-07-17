@@ -194,7 +194,7 @@ class LeadController extends Controller
         // Apply Pagination........................
 
         if ($request->input('download_csv')) {
-            $leads = $leadsQuery->get();
+            $leads = $leadsQuery->where('is_converted', 0)->get();
 
             $headers = [
                 'Content-Type' => 'text/csv',
