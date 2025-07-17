@@ -194,7 +194,7 @@ class LeadController extends Controller
         // Apply Pagination........................
 
         if ($request->input('download_csv')) {
-            $leads = $leadsQuery->where('is_converted', 0)->get();
+            $download_csv = $leadsQuery->where('is_converted', 0)->get();
 
             $headers = [
                 'Content-Type' => 'text/csv',
@@ -203,18 +203,18 @@ class LeadController extends Controller
                 'Pragma' => 'no-cache',
             ];
 
-            $callback = function () use ($leads) {
+            $callback = function () use ($download_csv) {
                 $file = fopen('php://output', 'w');
                 fputcsv($file, ['ID', 'Name', 'Email', 'Brand', 'Branch', 'AssignTo']);
 
-                foreach ($leads as $lead) {
+                foreach ($download_csv as $download) {
                     fputcsv($file, [
-                        $lead->id,
-                        $lead->name,
-                        $lead->email,
-                        $lead?->brand?->name,
-                        $lead?->branch?->name,
-                        $lead?->assignto?->name,
+                        $download->id,
+                        $download->name,
+                        $download->email,
+                        $download?->brand?->name,
+                        $download?->branch?->name,
+                        $download?->assignto?->name,
                     ]);
                 }
 
