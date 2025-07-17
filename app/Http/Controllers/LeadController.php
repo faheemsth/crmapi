@@ -186,48 +186,32 @@ class LeadController extends Controller
             });
         }
 
-        // Apply Pagination
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
 
         if ($request->input('download_csv')) {
-            $employees = $leadsQuery->get(); // Fetch all records without pagination
+            $leads = $leadsQuery->get();
 
-
-
-            // Generate CSV
-            $csvFileName = 'leads_' . time() . '.csv';
             $headers = [
                 'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+                'Content-Disposition' => 'attachment; filename="leads_' . time() . '.csv"',
+                'Cache-Control' => 'no-store, no-cache',
+                'Pragma' => 'no-cache',
             ];
 
-            $callback = function () use ($employees) {
+            $callback = function () use ($leads) {
                 $file = fopen('php://output', 'w');
+                fputcsv($file, ['ID', 'Name', 'Email']);
 
-                // Add CSV headers
-                fputcsv($file, [
-                    'ID',
-                    'Name',
-                    'Email',
-                    'Phone',
-                    'Brand',
-                    'Branch',
-                    'Designation',
-                    'Status',
-                    'Last Login'
-                ]);
-
-                // Add rows
-                foreach ($employees as $employee) {
+                foreach ($leads as $lead) {
                     fputcsv($file, [
-                        $employee?->id,
-                        $employee?->name,
-                        $employee?->email,
-                        $employee?->phone,
-                        $employee?->brand?->name ?? '',
-                        $employee?->branch?->name ?? '',
-                        $employee?->type,
-                        $employee?->is_active == 1 ? 'Active' : 'Inactive',
-                        $employee?->last_login_at,
+                        $lead->id,
+                        $lead->name,
+                        $lead->email,
                     ]);
                 }
 
@@ -236,7 +220,12 @@ class LeadController extends Controller
 
             return response()->stream($callback, 200, $headers);
         }
-
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
         // Apply Pagination
         $leads = $leadsQuery
             ->orderBy('leads.created_at', 'desc')->where('is_converted', 0)
