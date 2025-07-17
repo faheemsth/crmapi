@@ -680,7 +680,7 @@ class GeneralController extends Controller
 
     }
 
-    public function getLogActivity(Request $request)
+    public function getLogActivity_old(Request $request)
 {
     // Validate input
     $validator = Validator::make($request->all(), [
@@ -715,6 +715,124 @@ class GeneralController extends Controller
         'status' => true,
         'message' => 'Log activities fetched successfully.',
         'data' => $logs
+    ]);
+}
+
+public function getLogActivity(Request $request)
+{
+    // Validate input
+    $validator = Validator::make($request->all(), [
+        'id' => 'required|integer',
+        'type' => 'required|string|max:100',
+        'perPage' => 'sometimes|integer|min:1|max:500',
+        'page' => 'sometimes|integer|min:1',
+        'date' => 'sometimes|string', // Accept as string to parse flexibly
+        'search' => 'sometimes|string|max:255',
+        'module_type' => 'sometimes|string|max:100',
+        'logtype' => 'sometimes|string|max:100',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => __('Validation Error.'),
+            'errors' => $validator->errors(),
+        ], 422);
+    }
+
+    // Determine pagination size
+    $num_results_on_page = env("RESULTS_ON_PAGE", 50);
+    if ($request->has('perPage')) {
+        $num_results_on_page = (int)$request->get('perPage');
+    }
+
+    // Base query
+    $query = LogActivity::with('createdBy:id,name')
+        ->orderBy('created_at', 'desc');
+
+    if ($request->type === 'user') {
+        $query->where('created_by', $request->id);
+    } else {
+        $query->where('module_id', $request->id) ;
+    }
+
+    // Apply start_date filter
+    if ($request->filled('date')) {
+        $rawDate = $request->date;
+
+        try {
+            $parsedDate = \Carbon\Carbon::parse($rawDate)->format('Y-m-d');
+            $query->whereDate('created_at', $parsedDate);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid start_date format. Please use a valid date.',
+                'errors' => [
+                    'start_date' => ['The start_date could not be parsed.']
+                ]
+            ], 422);
+        }
+    }
+
+    // module_type filter
+    if ($request->filled('module_type')) {
+        $query->where('module_type', $request->module_type);
+    }
+
+    // type filter
+    if ($request->filled('logtype')) {
+        $query->where('type', $request->logtype);
+    }
+
+    // search filter
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->where('note', 'like', '%' . $search . '%')
+              ->orWhereHas('createdBy', function ($subQuery) use ($search) {
+                  $subQuery->where('name', 'like', '%' . $search . '%');
+              });
+        });
+    }
+
+    // Total record count before pagination
+    $total_records = $query->count();
+
+    // Paginate
+    $logs = $query->paginate($num_results_on_page);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Log activities fetched successfully.',
+        'data' => $logs->items(),
+        'total_records' => $total_records,
+        'current_page' => $logs->currentPage(),
+        'last_page' => $logs->lastPage(),
+        'per_page' => $logs->perPage(),
+    ]);
+}
+
+public function getDistinctModuleTypes(Request $request)
+{
+   
+
+    // Base query
+    $query = LogActivity::query();
+
+    
+
+    // Get distinct module types
+    $distinctModuleTypes = $query
+        ->select('module_type')
+        ->distinct()
+        ->orderBy('module_type')
+        ->pluck('module_type')
+        ->toArray();
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Distinct module types fetched successfully.',
+        'data' => $distinctModuleTypes,
     ]);
 }
 
