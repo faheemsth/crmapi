@@ -205,13 +205,16 @@ class LeadController extends Controller
 
             $callback = function () use ($leads) {
                 $file = fopen('php://output', 'w');
-                fputcsv($file, ['ID', 'Name', 'Email']);
+                fputcsv($file, ['ID', 'Name', 'Email', 'Brand', 'Branch', 'AssignTo']);
 
                 foreach ($leads as $lead) {
                     fputcsv($file, [
                         $lead->id,
                         $lead->name,
                         $lead->email,
+                        $lead?->brand?->name,
+                        $lead?->branch?->name,
+                        $lead?->assignto?->name,
                     ]);
                 }
 
