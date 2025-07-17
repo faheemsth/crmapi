@@ -187,6 +187,56 @@ class LeadController extends Controller
         }
 
         // Apply Pagination
+
+        if ($request->input('download_csv')) {
+            $employees = $leadsQuery->get(); // Fetch all records without pagination
+
+
+
+            // Generate CSV
+            $csvFileName = 'leads_' . time() . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+            ];
+
+            $callback = function () use ($employees) {
+                $file = fopen('php://output', 'w');
+
+                // Add CSV headers
+                fputcsv($file, [
+                    'ID',
+                    'Name',
+                    'Email',
+                    'Phone',
+                    'Brand',
+                    'Branch',
+                    'Designation',
+                    'Status',
+                    'Last Login'
+                ]);
+
+                // Add rows
+                foreach ($employees as $employee) {
+                    fputcsv($file, [
+                        $employee?->id,
+                        $employee?->name,
+                        $employee?->email,
+                        $employee?->phone,
+                        $employee?->brand?->name ?? '',
+                        $employee?->branch?->name ?? '',
+                        $employee?->type,
+                        $employee?->is_active == 1 ? 'Active' : 'Inactive',
+                        $employee?->last_login_at,
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
         // Apply Pagination
         $leads = $leadsQuery
             ->orderBy('leads.created_at', 'desc')->where('is_converted', 0)
