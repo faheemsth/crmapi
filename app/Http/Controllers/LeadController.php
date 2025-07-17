@@ -2114,7 +2114,7 @@ class LeadController extends Controller
             ], 400);
         }
         $lead_id = $request->lead_id;
-        $notesQuery = \App\Models\LeadNote::where('lead_id', $lead_id);
+        $notesQuery = \App\Models\LeadNote::with('author')->where('lead_id', $lead_id);
         $userType = \Auth::user()->type;
         if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
             // No additional filtering needed
@@ -2135,7 +2135,7 @@ class LeadController extends Controller
                 return [
                     'id' => $discussion->id,
                     'text' => htmlspecialchars_decode($discussion->description),
-                    'author' => $discussion->name,
+                    'author' => $discussion?->author?->name,
                     'time' => $discussion->created_at->diffForHumans(),
                     'pinned' => false, // Default value as per the requirement
                     'timestamp' => $discussion->created_at->toISOString()
