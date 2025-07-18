@@ -336,7 +336,7 @@ class LeaveController extends Controller
         }
 
         // Find the Leave record
-        $leave = Leave::find($request->id);
+        $leave = Leave::with('User')->find($request->id);
 
 
 
