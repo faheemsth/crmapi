@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -346,7 +347,7 @@ class AttendanceEmployeeController extends Controller
     // }
 
 
-    public function getAttendances(Request $request)
+    public function getAttendances_withemployee(Request $request)
     {
         try {
             // Authorization
@@ -536,6 +537,468 @@ class AttendanceEmployeeController extends Controller
             ], 500);
         }
     }
+
+
+    
+public function getAttendances(Request $request)
+{
+    try {
+        // Authorization
+        if (!Auth::user()->can('manage attendance')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'search' => 'nullable|string',
+            'brand_id' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'type' => 'nullable|in:monthly,daily',
+            'month' => 'nullable|date_format:Y-m',
+            'date' => 'nullable|date_format:Y-m-d',
+            'download_csv' => 'nullable|boolean',
+            'status' => 'nullable|integer|in:1,2,3,4',
+            'tag_ids' => 'nullable|string',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
+        $page = $request->input('page', 1);
+
+        // Date range
+        $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date) : now()->startOfMonth();
+        $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date) : now()->endOfMonth();
+
+        if ($endDate->diffInDays($startDate) > 31) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Date range too large. Limit to 31 days.'
+            ], 422);
+        }
+
+        // Tag filter
+        $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+
+        // Query attendance records
+        $attendanceQuery = AttendanceEmployee::query()
+            ->with(['user.branch','user'])
+            ->whereBetween('date', [$startDate, $endDate])
+            ->when($request->filled('brand_id'), function ($q) use ($request) {
+                $q->whereHas('employee.user', function ($uq) use ($request) {
+                    $uq->where('brand_id', $request->brand_id);
+                });
+            })
+            ->when($request->filled('region_id'), function ($q) use ($request) {
+                $q->whereHas('employee.user', function ($uq) use ($request) {
+                    $uq->where('region_id', $request->region_id);
+                });
+            })
+            ->when($request->filled('branch_id'), function ($q) use ($request) {
+                $q->whereHas('employee.user', function ($uq) use ($request) {
+                    $uq->where('branch_id', $request->branch_id);
+                });
+            })
+            ->when(!empty($tagIds), function ($q) use ($tagIds) {
+                $q->whereHas('employee.user', function ($uq) use ($tagIds) {
+                    $uq->where(function ($inner) use ($tagIds) {
+                        foreach ($tagIds as $tagId) {
+                            $inner->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                        }
+                    });
+                });
+            })
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $q->whereHas('employee.user', function ($uq) use ($request) {
+                    $uq->where('name', 'like', '%' . $request->search . '%');
+                });
+            });
+
+        // Paginate attendance rows directly
+        $attendances = $attendanceQuery->orderBy('date', 'desc')->paginate($perPage, ['*'], 'page', $page);
+
+      
+
+        $data = [];
+        foreach ($attendances as $attendance) {
+           
+             
+            $user = $attendance?->user;
+            if (!$user) continue;
+
+            $shiftSeconds = ($user->branch->shift_time ?? 0) * 3600;
+
+            $clockIn = $attendance->clock_in ?? '00:00:00';
+            $clockOut = $attendance->clock_out ?? '00:00:00';
+
+            $workedSeconds = ($attendance->clock_in && $attendance->clock_out)
+                ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+                : 0;
+
+            $status = $workedSeconds === 0
+                ? 'Absent'
+                : ($workedSeconds < $shiftSeconds ? 'Early Leaving' : 'Present');
+
+            $data[] = [
+                'employee_id' => $user->id,
+                'employee_name' => $user->name,
+                'brand_id' => $user->brand_id,
+                'region_id' => $user->region_id,
+                'branch_id' => $user->branch_id,
+                'date' => $attendance->date,
+                'clock_in' => $clockIn,
+                'earlyCheckOutReason' => $attendance->earlyCheckOutReason,
+                'clock_out' => $clockOut,
+                'worked_hours' => gmdate('H:i:s', $workedSeconds),
+                'status' => $status,
+                'late' => $attendance->late ?? "00:00:00",
+                'early_leaving' => $attendance->early_leaving ?? "00:00:00",
+                'overtime' => $attendance->overtime ?? "00:00:00",
+            ];
+        }
+
+        // If CSV download
+        if ($request->input('download_csv')) {
+            $filename = 'Attendance_' . now()->timestamp . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+            return response()->stream(function () use ($data) {
+                $f = fopen('php://output', 'w');
+                fputcsv($f, ['Employee ID', 'Employee Name', 'Date', 'Status', 'Clock In', 'Clock Out', 'Late', 'Early Leaving', 'Overtime']);
+                foreach ($data as $row) {
+                    fputcsv($f, [
+                        $row['employee_id'],
+                        $row['employee_name'],
+                        $row['date'],
+                        $row['status'],
+                        $row['clock_in'],
+                        $row['clock_out'],
+                        $row['late'],
+                        $row['early_leaving'],
+                        $row['overtime'],
+                    ]);
+                }
+                fclose($f);
+            }, 200, $headers);
+        }
+
+        // No array_slice, because we used paginate()
+        return response()->json([
+            'status' => 'success',
+            'data' => $data,
+            'current_page' => $attendances->currentPage(),
+            'last_page' => $attendances->lastPage(),
+            'total_records' => $attendances->total(),
+            'per_page' => $attendances->perPage(),
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+public function getCombinedAttendances_fine_work(Request $request)
+{
+    try {
+        // Authorization
+        if (!Auth::user()->can('manage attendance')) {
+            return response()->json(['status' => 'error', 'message' => __('Permission denied.')], 403);
+        }
+
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'date' => 'required|date',
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'search' => 'nullable|string',
+            'brand_id' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'tag_ids' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+        }
+
+        $date = Carbon::parse($request->date)->format('Y-m-d');
+        $perPage = $request->input('perPage', 50);
+        $page = $request->input('page', 1);
+        $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+
+        $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+        // Fetch employees with filters
+        $employeesQuery = User::with(['branch', 'brand'])
+            ->whereNotIn('type', $excludedTypes)
+            ->when($request->filled('search'), fn($q) => $q->where('name', 'like', '%' . $request->search . '%'))
+            ->when($request->filled('brand_id'), fn($q) => $q->where('brand_id', $request->brand_id))
+            ->when($request->filled('region_id'), fn($q) => $q->where('region_id', $request->region_id))
+            ->when($request->filled('branch_id'), fn($q) => $q->where('branch_id', $request->branch_id))
+            ->when(!empty($tagIds), function ($q) use ($tagIds) {
+                $q->where(function ($sub) use ($tagIds) {
+                    foreach ($tagIds as $tagId) {
+                        $sub->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                    }
+                });
+            });
+
+        $allEmployees = $employeesQuery->get();
+        $employeeMap = $allEmployees->keyBy('id');
+
+        // Get attendance records for the date
+        $attendances = AttendanceEmployee::where('date', $date)->orderByDesc('id')->get()->keyBy('employee_id');
+
+        $records = [];
+
+        foreach ($allEmployees as $employee) {
+            $attendance = $attendances->get($employee->id);
+            $shiftSeconds = ($employee->branch->shift_time ?? 0) * 3600;
+
+            if ($attendance) {
+                $clockIn = $attendance->clock_in ?? '00:00:00';
+                $clockOut = $attendance->clock_out ?? '00:00:00';
+
+                $workedSeconds = ($attendance->clock_in && $attendance->clock_out)
+                    ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+                    : 0;
+
+                 
+
+                $status = 'Present'; // Force status to Present for marked records
+
+                if ($attendance->clock_out === '00:00:00') {
+                      $status = 'No Clock out'; // Force status to Present for marked records
+                }else if ($attendance->earlyCheckOutReason!== null) {
+                    $status = 'Early Checked Out'; // Force status to Present for marked records
+                }else{
+                    $status = 'Not Marked'; // Force status to Present for marked records
+                }
+
+                $records[] = [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'brand_id' => $employee->brand_id,
+                    'region_id' => $employee->region_id,
+                    'branch_id' => $employee->branch_id,
+                    'branch_name' => optional($employee->branch)->name,
+                    'date' => $date,
+                    'clock_in' => $clockIn,
+                    'clock_out' => $clockOut,
+                    'earlyCheckOutReason' => $attendance->earlyCheckOutReason,
+                    'worked_hours' => gmdate('H:i:s', $workedSeconds),
+                    'status' => $status,
+                    'late' => $attendance->late ?? "00:00:00",
+                    'early_leaving' => $attendance->early_leaving ?? "00:00:00",
+                    'overtime' => $attendance->overtime ?? "00:00:00",
+                    '_sort' => 1, // Marked
+                    '_attendance_id' => $attendance->id,
+                ];
+            } else {
+                $records[] = [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'brand_id' => $employee->brand_id,
+                    'region_id' => $employee->region_id,
+                    'branch_id' => $employee->branch_id,
+                    'branch_name' => optional($employee->branch)->name,
+                    'date' => $date,
+                    'clock_in' => null,
+                    'clock_out' => null,
+                    'earlyCheckOutReason' => null,
+                    'worked_hours' => '00:00:00',
+                    'status' => 'Not Marked',
+                    'late' => '00:00:00',
+                    'early_leaving' => '00:00:00',
+                    'overtime' => '00:00:00',
+                    '_sort' => 2, // Unmarked
+                    '_attendance_id' => 0,
+                ];
+            }
+        }
+
+        // Sort: 1) Marked first, 2) by attendance ID DESC (latest on top), 3) unmarked at bottom
+        usort($records, function ($a, $b) {
+            if ($a['_sort'] === $b['_sort']) {
+                return $b['_attendance_id'] <=> $a['_attendance_id'];
+            }
+            return $a['_sort'] <=> $b['_sort'];
+        });
+
+        // Paginate
+        $total = count($records);
+        $paginated = array_slice($records, ($page - 1) * $perPage, $perPage);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $paginated,
+            'current_page' => $page,
+            'per_page' => $perPage,
+            'total_records' => $total,
+            'total_pages' => ceil($total / $perPage),
+            'date' => $date,
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
+
+public function getCombinedAttendances(Request $request)
+{
+    try {
+        if (!Auth::user()->can('manage attendance')) {
+            return response()->json(['status' => 'error', 'message' => __('Permission denied.')], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'date' => 'required|date',
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'search' => 'nullable|string',
+            'brand_id' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'tag_ids' => 'nullable|string',
+            'status' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+        }
+
+        $date = Carbon::parse($request->date)->format('Y-m-d');
+        $perPage = $request->input('perPage', 50);
+        $page = $request->input('page', 1);
+        $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+        $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+        $employeesQuery = DB::table('users')
+            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+            ->leftJoin('users as brand', 'users.id', '=', 'users.brand_id')
+            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+                $join->on('attendances.employee_id', '=', 'users.id')
+                     ->where('attendances.date', '=', $date);
+            })
+            ->select([
+                'users.id as employee_id',
+                'users.name as employee_name',
+                'brand.name as brand_name',
+                'users.brand_id',
+                'users.region_id',
+                'users.branch_id',
+                'branches.name as branch_name',
+                'regions.name as region_name',
+                'attendances.clock_in',
+                'attendances.clock_out',
+                'attendances.earlyCheckOutReason',
+                'attendances.late',
+                'attendances.early_leaving',
+                'attendances.overtime',
+                'attendances.id as attendance_id',
+                DB::raw("
+                    CASE
+                        WHEN attendances.id IS NULL THEN 'Not Marked'
+                        WHEN attendances.clock_in IS NOT NULL AND (attendances.clock_out IS NULL OR attendances.clock_out = '00:00:00') THEN 'No Clock Out'
+                        WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Checked Out'
+                        WHEN attendances.status = 'Absent' THEN 'Absent' 
+                        ELSE 'Present'
+                    END as status
+                ")
+            ])
+            ->whereNotIn('users.type', $excludedTypes)
+            ->when($request->filled('search'), fn($q) =>
+                $q->where('users.name', 'like', '%' . $request->search . '%'))
+            ->when($request->filled('brand_id'), fn($q) =>
+                $q->where('users.brand_id', $request->brand_id))
+            ->when($request->filled('region_id'), fn($q) =>
+                $q->where('users.region_id', $request->region_id))
+            ->when($request->filled('branch_id'), fn($q) =>
+                $q->where('users.branch_id', $request->branch_id))
+            ->when(!empty($tagIds), function ($q) use ($tagIds) {
+                $q->where(function ($sub) use ($tagIds) {
+                    foreach ($tagIds as $tagId) {
+                        $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+                    }
+                });
+            })
+            ->when($request->filled('status'), function ($q) use ($request) {
+                $q->having('status', '=', $request->status);
+            });
+
+        // Get total before pagination
+        $total = $employeesQuery->count();
+
+        // Sort by latest marked first, unmarked last
+        $employeesQuery->orderByRaw("
+            CASE WHEN attendances.id IS NULL THEN 2 ELSE 1 END ASC,
+            attendances.id DESC
+        ");
+
+        // Pagination
+        $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
+            $clockIn = $row->clock_in ?? '00:00:00';
+            $clockOut = $row->clock_out ?? '00:00:00';
+            $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+                ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+                : 0;
+
+            return [
+                'employee_id' => $row->employee_id,
+                'employee_name' => $row->employee_name,
+                'brand_id' => $row->brand_id,
+                'region_id' => $row->region_id,
+                'branch_id' => $row->branch_id,
+                'branch_name' => $row->branch_name,
+                'brand_name' => $row->brand_name,
+                'region_name' => $row->region_name,
+                'date' => $date,
+                'clock_in' => $clockIn,
+                'clock_out' => $clockOut,
+                'earlyCheckOutReason' => $row->earlyCheckOutReason,
+                'worked_hours' => gmdate('H:i:s', $workedSeconds),
+                'status' => $row->status,
+                'late' => $row->late ?? '00:00:00',
+                'early_leaving' => $row->early_leaving ?? '00:00:00',
+                'overtime' => $row->overtime ?? '00:00:00',
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $records,
+            'current_page' => $page,
+            'per_page' => $perPage,
+            'total_records' => $total,
+            'total_pages' => ceil($total / $perPage),
+            'date' => $date,
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
+
 
 
 
