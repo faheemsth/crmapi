@@ -186,7 +186,49 @@ class LeadController extends Controller
             });
         }
 
-        // Apply Pagination
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+
+        if ($request->input('download_csv')) {
+            $download_csv = $leadsQuery->where('is_converted', 0)->get();
+
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="leads_' . time() . '.csv"',
+                'Cache-Control' => 'no-store, no-cache',
+                'Pragma' => 'no-cache',
+            ];
+
+            $callback = function () use ($download_csv) {
+                $file = fopen('php://output', 'w');
+                fputcsv($file, ['ID', 'Name', 'Email', 'Brand', 'Branch', 'AssignTo']);
+
+                foreach ($download_csv as $download) {
+                    fputcsv($file, [
+                        $download->id,
+                        $download->name,
+                        $download->email,
+                        $download?->brand?->name,
+                        $download?->branch?->name,
+                        $download?->assignto?->name,
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
+        // Apply Pagination........................
         // Apply Pagination
         $leads = $leadsQuery
             ->orderBy('leads.created_at', 'desc')->where('is_converted', 0)
@@ -2114,7 +2156,7 @@ class LeadController extends Controller
             ], 400);
         }
         $lead_id = $request->lead_id;
-        $notesQuery = \App\Models\LeadNote::where('lead_id', $lead_id);
+        $notesQuery = \App\Models\LeadNote::with('author')->where('lead_id', $lead_id);
         $userType = \Auth::user()->type;
         if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
             // No additional filtering needed
@@ -2135,7 +2177,7 @@ class LeadController extends Controller
                 return [
                     'id' => $discussion->id,
                     'text' => htmlspecialchars_decode($discussion->description),
-                    'author' => $discussion->name,
+                    'author' => $discussion?->author?->name,
                     'time' => $discussion->created_at->diffForHumans(),
                     'pinned' => false, // Default value as per the requirement
                     'timestamp' => $discussion->created_at->toISOString()

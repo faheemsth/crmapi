@@ -77,6 +77,7 @@ class LoginRegisterController extends Controller
         $data['user'] = $userArray;
         $data['roles'] = $user->getRoleNames(); // Get user roles
         $data['permissions'] = $user->getAllPermissions()->pluck('name'); // Get user permissions
+        $data['encrptID'] =  encryptData($user->id);
 
         return response()->json([
             'status' => 'success',
