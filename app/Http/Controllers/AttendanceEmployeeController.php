@@ -988,11 +988,11 @@ public function getCombinedAttendances(Request $request)
         return response()->json([
             'status' => 'success',
             'data' => $records,
-            'current_page' => $page,
-            'per_page' => $perPage,
-            'total_records' => $total,
-            'total_pages' => ceil($total / $perPage),
             'date' => $date,
+            'current_page' => $page,
+            'last_page' => ceil($total / $perPage),
+            'total_records' => $total,
+            'perPage' => (int) $perPage,
         ]);
     } catch (\Exception $e) {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
