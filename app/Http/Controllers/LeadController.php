@@ -193,36 +193,37 @@ class LeadController extends Controller
         // Apply Pagination........................
         // Apply Pagination........................
 
-        if ($request->input('download_csv')) {
-            $download_csv = $leadsQuery->where('is_converted', 0)->get();
+if ($request->boolean('download_csv')) {
+    $leads = $leadsQuery->where('is_converted', 0)->get();
 
-            $headers = [
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="leads_' . time() . '.csv"',
-                'Cache-Control' => 'no-store, no-cache',
-                'Pragma' => 'no-cache',
-            ];
+    $headers = [
+        'Content-Type' => 'text/csv',
+        'Content-Disposition' => 'attachment; filename="leads_' . now()->format('Ymd_His') . '.csv"',
+        'Cache-Control' => 'no-store, no-cache',
+        'Pragma' => 'no-cache',
+    ];
 
-            $callback = function () use ($download_csv) {
-                $file = fopen('php://output', 'w');
-                fputcsv($file, ['ID', 'Name', 'Email', 'Brand', 'Branch', 'AssignTo']);
+    $callback = function () use ($leads) {
+        $file = fopen('php://output', 'w');
+        fputcsv($file, ['ID', 'Name', 'Email', 'Brand', 'Branch', 'AssignTo']);
 
-                foreach ($download_csv as $download) {
-                    fputcsv($file, [
-                        $download->id,
-                        $download->name,
-                        $download->email,
-                        $download?->brand?->name,
-                        $download?->branch?->name,
-                        $download?->assignto?->name,
-                    ]);
-                }
-
-                fclose($file);
-            };
-
-            return response()->stream($callback, 200, $headers);
+        foreach ($leads as $lead) {
+            fputcsv($file, [
+                $lead->id,
+                $lead->name,
+                $lead->email,
+                optional($lead->brand)->name,
+                optional($lead->branch)->name,
+                optional($lead->assignto)->name,
+            ]);
         }
+
+        fclose($file);
+    };
+
+    return response()->stream($callback, 200, $headers);
+}
+
         // Apply Pagination........................
         // Apply Pagination........................
         // Apply Pagination........................
