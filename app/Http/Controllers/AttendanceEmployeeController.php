@@ -919,11 +919,9 @@ public function getCombinedAttendances(Request $request)
                 'attendances.id as attendance_id',
                 DB::raw("
                     CASE
-                        WHEN attendances.id IS NULL THEN 'Not Marked'
-                        WHEN attendances.clock_in IS NOT NULL AND (attendances.clock_out IS NULL OR attendances.clock_out = '00:00:00') THEN 'No Clock Out'
-                        WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Checked Out'
-                        WHEN attendances.status = 'Absent' THEN 'Absent' 
-                        ELSE 'Present'
+                        WHEN attendances.id IS NULL THEN 'Not Marked' 
+                        WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
+                        ELSE attendances.status
                     END as status
                 ")
             ])
