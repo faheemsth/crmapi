@@ -157,7 +157,7 @@ class BranchController extends Controller
         $start = \Carbon\Carbon::parse($request->start_time);
         $end = \Carbon\Carbon::parse($request->end_time);
         if ($end->lt($start)) $end->addDay();
-        $decimalHours = $start->floatDiffInHours($end); // e.g., 8.5
+        $decimalHours = round($start->floatDiffInHours($end), 2);
         // Create a new branch
         $branch = Branch::create([
             'name' => $request->name,
@@ -238,7 +238,7 @@ class BranchController extends Controller
         $start = \Carbon\Carbon::parse($request->start_time);
         $end = \Carbon\Carbon::parse($request->end_time);
         if ($end->lt($start)) $end->addDay();
-        $decimalHours = $start->floatDiffInHours($end); // e.g., 8.5
+        $decimalHours = round($start->floatDiffInHours($end), 2);
 
         // Update branch details
         $branch->update([
