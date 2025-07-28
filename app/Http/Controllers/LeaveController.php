@@ -414,21 +414,26 @@ class LeaveController extends Controller
         $leave->status = $request->status;
 
         // If status is 'Approval', calculate total leave days and update status to 'Approved'
-        if ($request->status == 'Approval') {
-
-        $attendanceRecords = \App\Models\AttendanceEmployee::whereBetween('date', [$leave->start_date, $leave->end_date])
-        ->where('employee_id', $leave->employee_id)
-        ->get();
-
-        foreach ($attendanceRecords as $leaveData) {
-            $leaveData->status = 'Leave';
-            $leaveData->save();
-        }
-
+        if ($request->status === 'Approval') {
             $startDate = new \DateTime($leave->start_date);
             $endDate = new \DateTime($leave->end_date);
-            $leave->total_leave_days = $startDate->diff($endDate)->days;
+            $endDate->modify('+1 day');
+            $interval = new \DateInterval('P1D');
+            $dateRange = new \DatePeriod($startDate, $interval, $endDate);
+            foreach ($dateRange as $date) {
+                $formattedDate = $date->format('Y-m-d');
+                // Find or create attendance record for each day
+                $attendance = \App\Models\AttendanceEmployee::firstOrNew([
+                    'employee_id' => $leave->employee_id,
+                    'date' => $formattedDate,
+                ]);
+                $attendance->status = 'Leave';
+                $attendance->save();
+            }
+            // Calculate total leave days
+            $leave->total_leave_days = (new \DateTime($leave->start_date))->diff(new \DateTime($leave->end_date))->days + 1;
             $leave->status = 'Approved';
+            $leave->save();
         }
 
         $leave->save();
