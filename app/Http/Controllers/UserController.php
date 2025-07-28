@@ -1167,7 +1167,8 @@ class UserController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $user
+                'data' => $user,
+                'baseurl' =>  asset('/'),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
