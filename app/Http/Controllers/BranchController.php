@@ -155,6 +155,12 @@ class BranchController extends Controller
             ], 422);
         }
 
+        $shiftDuration = \Carbon\Carbon::parse($request->start_time)
+            ->diff(\Carbon\Carbon::parse($request->end_time)->greaterThan(\Carbon\Carbon::parse($request->start_time)) 
+                ? \Carbon\Carbon::parse($request->end_time) 
+                : \Carbon\Carbon::parse($request->end_time)->addDay())
+            ->format('%H:%I');
+
         // Create a new branch
         $branch = Branch::create([
             'name' => $request->name,
@@ -170,7 +176,7 @@ class BranchController extends Controller
             'social_media_link' => $request->social_media_link,
             'phone' => $request->full_number,
             'email' => $request->email,
-            'shift_time' => $request->shift_time,
+            'shift_time' => $shiftDuration,
             'created_by' => \Auth::user()->creatorId(),
         ]);
 
@@ -231,7 +237,11 @@ class BranchController extends Controller
         $branch = Branch::find($request->id);
 
         $originalData = $branch->toArray();
-
+        $shiftDuration = \Carbon\Carbon::parse($request->start_time)
+            ->diff(\Carbon\Carbon::parse($request->end_time)->greaterThan(\Carbon\Carbon::parse($request->start_time)) 
+                ? \Carbon\Carbon::parse($request->end_time) 
+                : \Carbon\Carbon::parse($request->end_time)->addDay())
+            ->format('%H:%I');
         // Update branch details
         $branch->update([
             'name' => $request->name,
@@ -247,7 +257,7 @@ class BranchController extends Controller
             'email' => $request->email,
             'end_time' => $request->end_time,
             'start_time' => $request->start_time,
-            'shift_time' => $request->shift_time,
+            'shift_time' => $shiftDuration,
         ]);
 
 
