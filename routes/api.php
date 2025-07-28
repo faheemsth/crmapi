@@ -80,6 +80,9 @@ use Carbon\Carbon;
 */
  
 
+
+    Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
+
 Route::get('/AttendanceEmployeeCron', function () {
     $today = Carbon::today()->toDateString();
 
