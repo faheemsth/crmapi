@@ -900,9 +900,12 @@ class UserController extends Controller
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
                 $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                $image->storeAs('public/brands', $imageName); // Save to storage/app/public/brands
-                $request->file($imageName)->move(public_path('EmployeeDocument'), $imageName);
-                $user->avatar = 'brands/' . $imageName;
+
+                // Move uploaded file to public/EmployeeDocument
+                $image->move(public_path('EmployeeDocument'), $imageName);
+
+                // Save the relative path to database (if needed)
+                $user->avatar = 'EmployeeDocument/' . $imageName;
                 $user->save();
             }
 
@@ -1020,9 +1023,12 @@ class UserController extends Controller
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
                 $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                $image->storeAs('public/brands', $imageName); // Save to storage/app/public/brands
-                $request->file($imageName)->move(public_path('EmployeeDocument'), $imageName);
-                $user->avatar = 'brands/' . $imageName;
+
+                // Move uploaded file to public/EmployeeDocument
+                $image->move(public_path('EmployeeDocument'), $imageName);
+
+                // Save the relative path to database (if needed)
+                $user->avatar = 'EmployeeDocument/' . $imageName;
                 $user->save();
             }
 
