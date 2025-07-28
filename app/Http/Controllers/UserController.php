@@ -901,7 +901,7 @@ class UserController extends Controller
                 $image = $request->file('image');
                 $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
                 $image->storeAs('public/brands', $imageName); // Save to storage/app/public/brands
-                $user->image = 'brands/' . $imageName;
+                $user->avatar = 'brands/' . $imageName;
                 $user->save();
             }
 
