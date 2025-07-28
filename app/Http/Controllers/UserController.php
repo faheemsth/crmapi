@@ -901,6 +901,7 @@ class UserController extends Controller
                 $image = $request->file('image');
                 $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
                 $image->storeAs('public/brands', $imageName); // Save to storage/app/public/brands
+                $request->file($imageName)->move(public_path('EmployeeDocument'), $imageName);
                 $user->avatar = 'brands/' . $imageName;
                 $user->save();
             }
@@ -1016,7 +1017,14 @@ class UserController extends Controller
 
 
 
-
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $image->storeAs('public/brands', $imageName); // Save to storage/app/public/brands
+                $request->file($imageName)->move(public_path('EmployeeDocument'), $imageName);
+                $user->avatar = 'brands/' . $imageName;
+                $user->save();
+            }
 
             // Log changed fields only
             $changes = [];
