@@ -140,6 +140,8 @@ class BranchController extends Controller
             'full_number' => 'nullable|string|max:20',
             'longitude' => 'required|numeric',
             'latitude' => 'required|numeric',
+            'end_time' => 'required|string',
+            'start_time' => 'required|string',
             'timezone' => 'required|string',
             'google_link' => 'nullable|url',
             'social_media_link' => 'nullable|url',
@@ -152,7 +154,10 @@ class BranchController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
+        $start = \Carbon\Carbon::parse($request->start_time);
+        $end = \Carbon\Carbon::parse($request->end_time);
+        if ($end->lt($start)) $end->addDay();
+        $decimalHours = round($start->floatDiffInHours($end), 2);
         // Create a new branch
         $branch = Branch::create([
             'name' => $request->name,
@@ -162,11 +167,13 @@ class BranchController extends Controller
             'longitude' => $request->longitude,
             'latitude' => $request->latitude,
             'timezone' => $request->timezone,
+            'end_time' => $request->end_time,
+            'start_time' => $request->start_time,
             'google_link' => $request->google_link,
             'social_media_link' => $request->social_media_link,
             'phone' => $request->full_number,
             'email' => $request->email,
-            'shift_time' => $request->shift_time,
+            'shift_time' => $decimalHours,
             'created_by' => \Auth::user()->creatorId(),
         ]);
 
@@ -201,6 +208,8 @@ class BranchController extends Controller
             'longitude' => 'required|numeric',
             'latitude' => 'required|numeric',
             'timezone' => 'required|string',
+            'end_time' => 'required|string',
+            'start_time' => 'required|string',
             'google_link' => 'required|url',
             'social_media_link' => 'required|url',
             'shift_time' => 'required|string',
@@ -226,6 +235,11 @@ class BranchController extends Controller
 
         $originalData = $branch->toArray();
 
+        $start = \Carbon\Carbon::parse($request->start_time);
+        $end = \Carbon\Carbon::parse($request->end_time);
+        if ($end->lt($start)) $end->addDay();
+        $decimalHours = round($start->floatDiffInHours($end), 2);
+
         // Update branch details
         $branch->update([
             'name' => $request->name,
@@ -239,7 +253,9 @@ class BranchController extends Controller
             'social_media_link' => $request->social_media_link,
             'phone' => $request->full_number,
             'email' => $request->email,
-            'shift_time' => $request->shift_time,
+            'end_time' => $request->end_time,
+            'start_time' => $request->start_time,
+            'shift_time' => $decimalHours,
         ]);
 
 

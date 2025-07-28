@@ -816,7 +816,7 @@ class UserController extends Controller
             // Prepare API response
             return response()->json([
                 'status' => 'success',
-
+                'baseurl' =>  asset('/'),
                 'data' => $users->items(),
                 'total_records' => $total_records,
                 'current_page' => $users->currentPage(),
@@ -853,6 +853,7 @@ class UserController extends Controller
             'drive_link' => 'required|url',
             'domain_link' => 'nullable|url',
             'project_director' => 'nullable|integer|exists:users,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         $request->role =    'company';
@@ -895,6 +896,18 @@ class UserController extends Controller
             $user->userDefaultDataRegister($user->id);
             $user->userWarehouseRegister($user->id);
             $user->userDefaultBankAccount($user->id);
+
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+
+                // Move uploaded file to public/EmployeeDocument
+                $image->move(public_path('EmployeeDocument'), $imageName);
+
+                // Save the relative path to database (if needed)
+                $user->avatar = 'EmployeeDocument/' . $imageName;
+                $user->save();
+            }
 
             // Utility Configurations
             Utility::chartOfAccountTypeData($user->id);
@@ -1007,7 +1020,17 @@ class UserController extends Controller
 
 
 
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
 
+                // Move uploaded file to public/EmployeeDocument
+                $image->move(public_path('EmployeeDocument'), $imageName);
+
+                // Save the relative path to database (if needed)
+                $user->avatar = 'EmployeeDocument/' . $imageName;
+                $user->save();
+            }
 
             // Log changed fields only
             $changes = [];
@@ -1144,7 +1167,8 @@ class UserController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $user
+                'data' => $user,
+                'baseurl' =>  asset('/'),
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

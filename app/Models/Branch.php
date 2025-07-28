@@ -24,6 +24,8 @@ class Branch extends Model
         "latitude",
         "timezone",
         "shift_time",
+        "end_time",
+        "start_time"
     ];
 
     public function manager()
