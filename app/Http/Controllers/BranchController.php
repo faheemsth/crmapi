@@ -154,13 +154,10 @@ class BranchController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
-        $shiftDuration = \Carbon\Carbon::parse($request->start_time)
-            ->diff(\Carbon\Carbon::parse($request->end_time)->greaterThan(\Carbon\Carbon::parse($request->start_time)) 
-                ? \Carbon\Carbon::parse($request->end_time) 
-                : \Carbon\Carbon::parse($request->end_time)->addDay())
-            ->format('%H:%I');
-
+        $start = \Carbon\Carbon::parse($request->start_time);
+        $end = \Carbon\Carbon::parse($request->end_time);
+        if ($end->lt($start)) $end->addDay();
+        $decimalHours = $start->floatDiffInHours($end); // e.g., 8.5
         // Create a new branch
         $branch = Branch::create([
             'name' => $request->name,
@@ -176,7 +173,7 @@ class BranchController extends Controller
             'social_media_link' => $request->social_media_link,
             'phone' => $request->full_number,
             'email' => $request->email,
-            'shift_time' => $shiftDuration,
+            'shift_time' => $decimalHours,
             'created_by' => \Auth::user()->creatorId(),
         ]);
 
@@ -237,11 +234,12 @@ class BranchController extends Controller
         $branch = Branch::find($request->id);
 
         $originalData = $branch->toArray();
-        $shiftDuration = \Carbon\Carbon::parse($request->start_time)
-            ->diff(\Carbon\Carbon::parse($request->end_time)->greaterThan(\Carbon\Carbon::parse($request->start_time)) 
-                ? \Carbon\Carbon::parse($request->end_time) 
-                : \Carbon\Carbon::parse($request->end_time)->addDay())
-            ->format('%H:%I');
+
+        $start = \Carbon\Carbon::parse($request->start_time);
+        $end = \Carbon\Carbon::parse($request->end_time);
+        if ($end->lt($start)) $end->addDay();
+        $decimalHours = $start->floatDiffInHours($end); // e.g., 8.5
+
         // Update branch details
         $branch->update([
             'name' => $request->name,
@@ -257,7 +255,7 @@ class BranchController extends Controller
             'email' => $request->email,
             'end_time' => $request->end_time,
             'start_time' => $request->start_time,
-            'shift_time' => $shiftDuration,
+            'shift_time' => $decimalHours,
         ]);
 
 
