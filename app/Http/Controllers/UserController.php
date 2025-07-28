@@ -853,6 +853,7 @@ class UserController extends Controller
             'drive_link' => 'required|url',
             'domain_link' => 'nullable|url',
             'project_director' => 'nullable|integer|exists:users,id',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         $request->role =    'company';
@@ -895,6 +896,14 @@ class UserController extends Controller
             $user->userDefaultDataRegister($user->id);
             $user->userWarehouseRegister($user->id);
             $user->userDefaultBankAccount($user->id);
+
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $image->storeAs('public/brands', $imageName); // Save to storage/app/public/brands
+                $user->image = 'brands/' . $imageName;
+                $user->save();
+            }
 
             // Utility Configurations
             Utility::chartOfAccountTypeData($user->id);
