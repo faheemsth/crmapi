@@ -816,7 +816,7 @@ class UserController extends Controller
             // Prepare API response
             return response()->json([
                 'status' => 'success',
-
+                'baseurl' =>  asset('/'),
                 'data' => $users->items(),
                 'total_records' => $total_records,
                 'current_page' => $users->currentPage(),
