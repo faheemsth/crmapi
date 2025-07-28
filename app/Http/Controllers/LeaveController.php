@@ -424,8 +424,16 @@ class LeaveController extends Controller
                 $formattedDate = $date->format('Y-m-d');
                 // Find or create attendance record for each day
                 $attendance = \App\Models\AttendanceEmployee::firstOrNew([
-                    'employee_id' => $leave->employee_id,
-                    'date' => $formattedDate,
+                'employee_id' => $leave->employee_id,
+                'date' => $formattedDate,
+                'clock_in' => '00:00:00',
+                'clock_out' => '00:00:00',
+                'early_leaving' => '00:00:00',
+                'overtime' => '00:00:00',
+                'total_rest' => '00:00:00',
+                'created_by' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
                 ]);
                 $attendance->status = 'Leave';
                 $attendance->save();
