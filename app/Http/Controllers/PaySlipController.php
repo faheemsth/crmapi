@@ -27,6 +27,7 @@ class PaySlipController extends Controller
         $jobsQuery = PaySlip::select(
             'pay_slips.*',
             'brand.name as brandname',   // Renamed for better readability
+            'brand.avatar as avatar',   // Renamed for better readability
             'regions.name as regionname', // Renamed for better readability
             'branches.name as branchname' // Renamed for better readability
         )
@@ -84,6 +85,7 @@ class PaySlipController extends Controller
             return response()->json([
                 'status' => 'success',
                 'data' => $payslips->items(),
+                'baseurl' => asset('/'),
                 'current_page' => $payslips->currentPage(),
                 'last_page' => $payslips->lastPage(),
                 'total_records' => $payslips->total(),
