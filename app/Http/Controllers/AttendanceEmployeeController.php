@@ -966,6 +966,7 @@ public function getCombinedAttendances(Request $request)
 
             return [
                 'employee_id' => $row->employee_id,
+                'attendance_id' => $row->attendance_id,
                 'employee_name' => $row->employee_name,
                 'brand_id' => $row->brand_id,
                 'region_id' => $row->region_id,
@@ -1328,10 +1329,9 @@ public function getCronAttendances(Request $request)
         // Validate input
         $validator = Validator::make($request->all(), [
             'attendance_id' => 'required|exists:attendance_employees,id',
-            'employee_id'   => 'nullable|integer|exists:employees,id',
-            'date'          => 'nullable|date',
-            'clock_in'      => 'nullable|date_format:H:i',
-            'clock_out'     => 'nullable|date_format:H:i|after:clock_in',
+            'status'   => 'required|string', 
+            'clock_in'      => 'required|date_format:H:i',
+            'clock_out'     => 'required|date_format:H:i|after:clock_in',
         ]);
 
         if ($validator->fails()) {
@@ -1352,8 +1352,7 @@ public function getCronAttendances(Request $request)
         }
 
         // Preserve existing values if not provided
-        $attendance->employee_id = $request->employee_id ?? $attendance->employee_id;
-        $attendance->date = $request->date ?? $attendance->date;
+        $attendance->status = $request->status ?? $attendance->status; 
         $attendance->clock_in = $request->clock_in ? $request->clock_in . ':00' : $attendance->clock_in;
         $attendance->clock_out = $request->clock_out ? $request->clock_out . ':00' : $attendance->clock_out;
 
