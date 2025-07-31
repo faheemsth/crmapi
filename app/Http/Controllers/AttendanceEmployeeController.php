@@ -1290,6 +1290,7 @@ public function getCronAttendances(Request $request)
                 'attendances.id as attendance_id'
             ])
             ->whereNotIn('users.type', $excludedTypes)
+            ->where('users.is_attendance_required', 1)
             ->where(function ($query) {
                 $query->whereNull('attendances.id')                            // Not marked
                       ->orWhere('attendances.clock_out', '=', '00:00:00')      // Marked but no clock out
@@ -1300,6 +1301,8 @@ public function getCronAttendances(Request $request)
             $total = $employeesQuery->count();
 
             $employees = $employeesQuery->get();
+
+            
 
             // Template string
             $absentTemplate = <<<HTML
