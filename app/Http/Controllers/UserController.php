@@ -2736,7 +2736,7 @@ class UserController extends Controller
 
         // Validation rules
         $validator = \Validator::make($request->all(), [ 
-            'avatar' => 'required|file|mimes:jpg,jpeg,png|max:4096',
+            'avatar' => 'nullable|file|mimes:jpg,jpeg,png|max:4096',
             'id' => 'required|exists:users,id', // Ensure employee exists
             'project_director_id' => 'required|exists:users,id', // Ensure employee exists
             'project_manager_id' => 'required|exists:users,id', // Ensure employee exists
