@@ -1095,7 +1095,7 @@ public function getCombinedAttendances(Request $request)
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-            ->leftJoin('users as brand', 'users.id', '=', 'users.brand_id')
+            ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
             ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
                 $join->on('attendances.employee_id', '=', 'users.id')
                      ->where('attendances.date', '=', $date);
