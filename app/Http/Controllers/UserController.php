@@ -2298,6 +2298,7 @@ class UserController extends Controller
                 'id' => 'required|exists:users,id', // Ensure user ID exists
                 'isloginrestrickted' => 'required|boolean',
                 'isloginanywhere' => 'required|boolean',
+                'is_attendance_required' => 'required|boolean',
                 'longitude' => 'nullable|numeric',
                 'latitude' => 'nullable|numeric',
             ]
@@ -2317,6 +2318,7 @@ class UserController extends Controller
             $originalData = $user->toArray();
 
             // Update user settings
+            $user->is_attendance_required = $request->is_attendance_required;
             $user->isloginrestrickted = $request->isloginrestrickted;
             $user->isloginanywhere = $request->isloginanywhere;
             $user->longitude = $request->longitude;
