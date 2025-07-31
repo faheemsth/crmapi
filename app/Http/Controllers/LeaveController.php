@@ -387,18 +387,19 @@ class LeaveController extends Controller
 
     public function changeLeaveStatus(Request $request)
     {
-        // Validate input
-        $validator = Validator::make($request->all(), [
+       $validator = Validator::make($request->all(), [
             'leave_id' => 'required|exists:leaves,id',
-            'status'   => 'required|string|in:Pending,Approval,Rejected,Approved'
+            'status'   => 'required|string|in:Pending,Approved,Rejected,Approval',
+            'reason'   => 'required_if:status,Rejected|string|nullable',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors(),
             ], 422);
         }
+
 
         // Fetch Leave Record
         $leave = Leave::where('id', $request->leave_id)->first();
@@ -412,6 +413,10 @@ class LeaveController extends Controller
 
         // Update Status
         $leave->status = $request->status;
+        if ($request->status === 'Rejected') {
+                $leave->remark = $request->reason; // Assuming 'remark' stores rejection reason
+            }
+        $leave->updated_by = \Auth::user()->id;
 
         // If status is 'Approval', calculate total leave days and update status to 'Approved'
         if ($request->status === 'Approval') {
@@ -431,7 +436,7 @@ class LeaveController extends Controller
                 'early_leaving' => '00:00:00',
                 'overtime' => '00:00:00',
                 'total_rest' => '00:00:00',
-                'created_by' => 0,
+                'created_by' => \Auth::user()->id,
                 'created_at' => now(),
                 'updated_at' => now(),
                 ]);
@@ -446,46 +451,132 @@ class LeaveController extends Controller
 
         $leave->save();
 
-        // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Leave Status Updated',
-                'message' => "Leave status changed to {$leave->status}"
-            ]),
-            'module_id' => $leave->id,
-            'module_type' => 'leave',
-            'notification_type' => 'Leave Status Updated'
-        ]);
+        // // Log Activity
+        // addLogActivity([
+        //     'type' => 'info',
+        //     'note' => json_encode([
+        //         'title' => 'Leave Status Updated',
+        //         'message' => "Leave status changed to {$leave->status}"
+        //     ]),
+        //     'module_id' => $leave->id,
+        //     'module_type' => 'leave',
+        //     'notification_type' => 'Leave Status Updated'
+        // ]);
+
+            addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $leave->user->name. '  status changed to '.$leave->status,
+                        'message' => $leave->user->name. ' status changed to '.$leave->status,
+                    ]),
+                    'module_id' => $leave->id,
+                    'module_type' => 'leave',
+                    'notification_type' => 'leave created',
+                ]);
+            addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $leave->user->name. '  status changed to '.$leave->status,
+                        'message' => $leave->user->name. ' status changed to '.$leave->status,
+                    ]),
+                    'module_id' => $leave->employee_id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => 'leave created',
+                ]);
+
 
         // Send Email if enabled
-        $settings = Utility::settings();
-        if (!empty($leave->employee_id) && isset($settings['leave_status']) && $settings['leave_status'] == 1) {
-            $employee = Employee::where('id', $leave->employee_id)->first();
+ 
+    $employee = User::where('id', $leave->employee_id)->first();
 
-            if ($employee) {
-                $actionArr = [
-                    'leave_name' => $employee->name ?? '',
-                    'leave_status' => $leave->status,
-                    'leave_reason' => $leave->leave_reason,
-                    'leave_start_date' => $leave->start_date,
-                    'leave_end_date' => $leave->end_date,
-                    'total_leave_days' => $leave->total_leave_days
-                ];
+    $leave = Leave::with(['leaveType','User','branch','brand','region'])->where('id', $request->leave_id)->first();
 
-                $emailResponse = Utility::sendEmailTemplate('leave_action_sent', [$employee->id => $employee->email], $actionArr);
+    if ($employee) {
+        // Get related details
+        $project_manager_detail = User::where('id', $leave->brand->project_manager_id)->first();
+        $branch_manager_detail = User::where('id', $leave->branch->branch_manager_id)->first();
+        $brand_detail = User::where('id', $leave->brand_id)->first();
+        
+        // Prepare CC list
+        $ccList = [];
+        if (!empty($project_manager_detail?->email)) {
+            $ccList[] = $project_manager_detail->email;
+        }
+        if (!empty($branch_manager_detail?->email)) {
+            $ccList[] = $branch_manager_detail->email;
+        }
+        $ccList[] = 'scorp-erp_attendance@convosoft.com'; // Mandatory CC
 
-                if (!$emailResponse['is_success'] && !empty($emailResponse['error'])) {
-                    return response()->json([
-                        'status' => 'success',
-                        'message' => 'Leave status successfully updated, but email failed to send.',
-                        'email_error' => $emailResponse['error'],
-                        'data' => $leave
-                    ], 200);
-                }
-            }
+       $leaveDaysCount = $leave->getApprovedLeaveDaysCount();
+        $approvedDays = isset($leaveDaysCount[$leave->leaveType->id]) 
+            ? $leaveDaysCount[$leave->leaveType->id] 
+            : 0;
+        $remainingLeaveBalance = $leave->leaveType->days - $approvedDays;
+
+        if ($leave->status === 'Approved') {
+            // Approved leave template - exactly matching the PDF
+            $content = "<h1>Leave Request Approved for {$employee->name} on {$leave->start_date} to {$leave->end_date}</h1>
+            <p>Dear {$employee->name},</p>
+            <p>We are pleased to inform you that your leave request for the following date(s) has been approved:</p>
+            <ul>
+                <li>Leave Date(s): {$leave->start_date} to {$leave->end_date}</li>
+                <li>Leave Type: {$leave->leaveType->title}</li>
+                <li>Total Days: {$leave->total_leave_days}</li>
+            </ul>
+            <p>Please ensure that you complete any handover of ongoing tasks to your project team before your leave begins. If there are any last-minute updates or urgent matters, kindly coordinate with your Project Manager, {$project_manager_detail->name} , to ensure continuity.</p>
+            <p>Your leave balance after this approval is: {$remainingLeaveBalance} ( {$leave->leaveType->title}) days.</p>
+            <p>Enjoy your well-deserved time off. If your plans change or you need to extend your leave, please submit a new leave request at least 3 days in advance.</p>
+            <p>Regards,</p>
+            <p>{$brand_detail->name}  – HR Department, SCORP</p>
+            <p>hr@scorp.co</p>";
+
+            $subject = "Leave Request Approved for {$employee->name} on {$leave->start_date} to {$leave->end_date}";
+
+        } else if ($leave->status === 'Rejected') {
+            // Rejected leave template - exactly matching the PDF
+            $content = "<h1>Leave Request Declined for {$employee->name} on {$leave->start_date} to {$leave->end_date}</h1>
+            <p>Dear {$employee->name},</p>
+            <p>We have reviewed your leave request for the following date(s):</p>
+            <ul>
+                <li>Requested Date(s): {$leave->start_date} to {$leave->end_date}</li>
+                <li>Leave Type:  {$leave->leaveType->title}</li>
+                <li>Comments:  {$request->reason}</li>
+            </ul>
+            <p>Unfortunately, we are unable to approve your request due to some reason. You currently have {$remainingLeaveBalance}  ( {$leave->leaveType->title})  days of leave available.</p>
+            <p>Please coordinate with your Project Manager, {$project_manager_detail->name}, to discuss alternative dates or solutions. You may submit a revised leave request once the matter is resolved.</p>
+            <p>If you have any questions or need further clarification, feel free to reach out to the HR Department.</p>
+            <p>Regards,</p>
+            <p>{$brand_detail->name } – HR Department, SCORP</p>
+            <p>hr@scorp.co</p>";
+
+            $subject = "Leave Request Declined for {$employee->name} on {$leave->start_date} to {$leave->end_date}";
         }
 
+        // Insert email into queue
+       // Insert email into queue
+                if (isset($content)) {
+                    $emailQueue = new \App\Models\EmailSendingQueue();
+                    $emailQueue->to = $employee->email;
+                    $emailQueue->cc = implode(',', $ccList);
+                    $emailQueue->subject = $subject;
+                    $emailQueue->brand_id = $employee->brand_id;
+                    $emailQueue->from_email = 'hr@scorp.co';
+                    $emailQueue->branch_id = $employee->branch_id;
+                    $emailQueue->region_id = $employee->region_id;
+                    $emailQueue->is_send = '0';
+                    $emailQueue->sender_id = auth()->id(); // Current user ID
+                    $emailQueue->created_by = auth()->id(); // Current user ID
+                    $emailQueue->priority = 1;
+                    $emailQueue->content = $content;
+                    $emailQueue->related_type = 'employee';
+                    $emailQueue->related_id = $employee->id;
+                    $emailQueue->created_at = now();
+                    $emailQueue->updated_at = now();
+                    $emailQueue->save();
+                }
+    }
+ 
+        
         return response()->json([
             'status' => 'success',
             'message' => 'Leave status successfully updated.',

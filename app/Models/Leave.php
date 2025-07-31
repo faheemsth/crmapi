@@ -52,5 +52,19 @@ class Leave extends Model
     {
         return $this->hasOne('App\Models\User', 'id', 'created_by');
     }
+    public function updated_by()
+    {
+        return $this->hasOne('App\Models\User', 'id', 'updated_by');
+    }
+
+    public function getApprovedLeaveDaysCount()
+    {
+        return Leave::where('status', 'Approved')
+            ->where('employee_id', $this->employee_id)
+            ->selectRaw('leave_type_id, SUM(CAST(total_leave_days AS SIGNED)) as total_days')
+            ->groupBy('leave_type_id')
+            ->pluck('total_days', 'leave_type_id')
+            ->toArray();
+    }
 
 }
