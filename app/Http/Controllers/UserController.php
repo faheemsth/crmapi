@@ -2737,7 +2737,10 @@ class UserController extends Controller
         // Validation rules
         $validator = \Validator::make($request->all(), [ 
             'avatar' => 'required|file|mimes:jpg,jpeg,png|max:4096',
-            'id' => 'required|exists:users,id', // Ensure employee exists 
+            'id' => 'required|exists:users,id', // Ensure employee exists
+            'project_director_id' => 'required|exists:users,id', // Ensure employee exists
+            'project_manager_id' => 'required|exists:users,id', // Ensure employee exists
+             
         ]);
 
         if ($validator->fails()) {
@@ -2765,6 +2768,8 @@ class UserController extends Controller
             $user->avatar = 'EmployeeDocument/'.$uploadedFiles['avatar'];
         }
         $user->save();
+        $user->update(['project_director_id' => $request->project_director_id]);
+        $user->update(['project_manager_id' => $request->project_manager_id]);
 
         $changes =['avatar'];
         $updatedFields = ['avatar'];
