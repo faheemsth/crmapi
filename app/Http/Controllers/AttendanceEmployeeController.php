@@ -866,6 +866,202 @@ public function getCombinedAttendances_fine_work(Request $request)
 }
 
 
+// public function getCombinedAttendances(Request $request)
+// {
+//     try {
+//         if (!Auth::user()->can('manage attendance')) {
+//             return response()->json(['status' => 'error', 'message' => __('Permission denied.')], 403);
+//         }
+
+//         $validator = Validator::make($request->all(), [
+//             'date' => 'required|date',
+//             'perPage' => 'nullable|integer|min:1',
+//             'page' => 'nullable|integer|min:1',
+//             'search' => 'nullable|string',
+//             'brand_id' => 'nullable|integer|exists:users,id',
+//             'region_id' => 'nullable|integer|exists:regions,id',
+//             'branch_id' => 'nullable|integer|exists:branches,id',
+//             'tag_ids' => 'nullable|string',
+//             'status' => 'nullable|string',
+//             'download_csv' => 'nullable|boolean',
+//         ]);
+
+//         if ($validator->fails()) {
+//             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+//         }
+
+//         $date = Carbon::parse($request->date)->format('Y-m-d');
+//         $perPage = $request->input('perPage', 50);
+//         $page = $request->input('page', 1);
+//         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+//         $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+//         $employeesQuery = DB::table('users')
+//             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+//             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+//             ->leftJoin('users as brand', 'users.id', '=', 'users.brand_id')
+//             ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+//                 $join->on('attendances.employee_id', '=', 'users.id')
+//                      ->where('attendances.date', '=', $date);
+//             })
+//             ->select([
+//                 'users.id as employee_id',
+//                 'users.name as employee_name',
+//                 'brand.name as brand_name',
+//                 'users.brand_id',
+//                 'users.region_id',
+//                 'users.branch_id',
+//                 'branches.name as branch_name',
+//                 'regions.name as region_name',
+//                 'attendances.clock_in',
+//                 'attendances.clock_out',
+//                 'attendances.earlyCheckOutReason',
+//                 'attendances.late',
+//                 'attendances.early_leaving',
+//                 'attendances.overtime',
+//                 'attendances.id as attendance_id',
+//                 DB::raw("
+//                     CASE
+//                         WHEN attendances.id IS NULL THEN 'Not Marked' 
+//                         WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
+//                         ELSE attendances.status
+//                     END as status
+//                 ")
+//             ])
+//             ->whereNotIn('users.type', $excludedTypes)
+//             ->when($request->filled('search'), fn($q) =>
+//                 $q->where('users.name', 'like', '%' . $request->search . '%'))
+//             ->when($request->filled('brand_id'), fn($q) =>
+//                 $q->where('users.brand_id', $request->brand_id))
+//             ->when($request->filled('region_id'), fn($q) =>
+//                 $q->where('users.region_id', $request->region_id))
+//             ->when($request->filled('branch_id'), fn($q) =>
+//                 $q->where('users.branch_id', $request->branch_id))
+//             ->when(!empty($tagIds), function ($q) use ($tagIds) {
+//                 $q->where(function ($sub) use ($tagIds) {
+//                     foreach ($tagIds as $tagId) {
+//                         $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+//                     }
+//                 });
+//             })
+//             ->when($request->filled('status'), function ($q) use ($request) {
+//                 $q->having('status', '=', $request->status);
+//             });
+
+//         // Get total before pagination
+//         $total = $employeesQuery->count();
+
+//         // Sort by latest marked first, unmarked last
+//         $employeesQuery->orderByRaw("
+//             CASE WHEN attendances.id IS NULL THEN 2 ELSE 1 END ASC,
+//             attendances.id DESC
+//         ");
+
+//         // If CSV download requested, get all records without pagination
+//         if ($request->input('download_csv')) {
+//             $records = $employeesQuery->get()->map(function ($row) use ($date) {
+//                 $clockIn = $row->clock_in ?? '00:00:00';
+//                 $clockOut = $row->clock_out ?? '00:00:00';
+//                 $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+//                     ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+//                     : 0;
+
+//                 return [
+//                     'employee_id' => $row->employee_id,
+//                     'employee_name' => $row->employee_name,
+//                     'brand_name' => $row->brand_name,
+//                     'region_name' => $row->region_name,
+//                     'branch_name' => $row->branch_name,
+//                     'date' => $date,
+//                     'clock_in' => $clockIn,
+//                     'clock_out' => $clockOut,
+//                     'earlyCheckOutReason' => $row->earlyCheckOutReason,
+//                     'worked_hours' => gmdate('H:i:s', $workedSeconds),
+//                     'status' => $row->status,
+//                     'late' => $row->late ?? '00:00:00',
+//                     'early_leaving' => $row->early_leaving ?? '00:00:00',
+//                     'overtime' => $row->overtime ?? '00:00:00',
+//                 ];
+//             });
+
+//             $filename = 'Attendance_' . $date . '_' . now()->timestamp . '.csv';
+//             $headers = [
+//                 'Content-Type' => 'text/csv',
+//                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+//             ];
+
+//             return response()->stream(function () use ($records) {
+//                 $f = fopen('php://output', 'w');
+//                 // Write CSV headers
+//                 fputcsv($f, [
+//                     'Employee ID', 
+//                     'Employee Name', 
+//                     'Brand', 
+//                     'Region', 
+//                     'Branch', 
+//                     'Date', 
+//                     'Clock In', 
+//                     'Clock Out', 
+//                     'Early Checkout Reason',
+//                     'Worked Hours', 
+//                     'Status', 
+//                     'Late', 
+//                     'Early Leaving', 
+//                     'Overtime'
+//                 ]);
+                
+//                 // Write data rows
+//                 foreach ($records as $row) {
+//                     fputcsv($f, array_values($row));
+//                 }
+//                 fclose($f);
+//             }, 200, $headers);
+//         }
+
+//         // Regular paginated response
+//         $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
+//             $clockIn = $row->clock_in ?? '00:00:00';
+//             $clockOut = $row->clock_out ?? '00:00:00';
+//             $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+//                 ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+//                 : 0;
+
+//             return [
+//                 'employee_id' => $row->employee_id,
+//                 'attendance_id' => $row->attendance_id,
+//                 'employee_name' => $row->employee_name,
+//                 'brand_id' => $row->brand_id,
+//                 'region_id' => $row->region_id,
+//                 'branch_id' => $row->branch_id,
+//                 'branch_name' => $row->branch_name,
+//                 'brand_name' => $row->brand_name,
+//                 'region_name' => $row->region_name,
+//                 'date' => $date,
+//                 'clock_in' => $clockIn,
+//                 'clock_out' => $clockOut,
+//                 'earlyCheckOutReason' => $row->earlyCheckOutReason,
+//                 'worked_hours' => gmdate('H:i:s', $workedSeconds),
+//                 'status' => $row->status,
+//                 'late' => $row->late ?? '00:00:00',
+//                 'early_leaving' => $row->early_leaving ?? '00:00:00',
+//                 'overtime' => $row->overtime ?? '00:00:00',
+//             ];
+//         });
+
+//         return response()->json([
+//             'status' => 'success',
+//             'data' => $records,
+//             'date' => $date,
+//             'current_page' => $page,
+//             'last_page' => ceil($total / $perPage),
+//             'total_records' => $total,
+//             'perPage' => (int) $perPage,
+//         ]);
+//     } catch (\Exception $e) {
+//         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+//     }
+// }
+
 public function getCombinedAttendances(Request $request)
 {
     try {
@@ -883,6 +1079,7 @@ public function getCombinedAttendances(Request $request)
             'branch_id' => 'nullable|integer|exists:branches,id',
             'tag_ids' => 'nullable|string',
             'status' => 'nullable|string',
+            'download_csv' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -956,7 +1153,68 @@ public function getCombinedAttendances(Request $request)
             attendances.id DESC
         ");
 
-        // Pagination
+        // If CSV download requested, get all records without pagination
+        if ($request->input('download_csv')) {
+            $records = $employeesQuery->get()->map(function ($row) use ($date) {
+                $clockIn = $row->clock_in ?? '00:00:00';
+                $clockOut = $row->clock_out ?? '00:00:00';
+                $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+                    ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+                    : 0;
+
+                return [
+                    'employee_id' => $row->employee_id,
+                    'employee_name' => $row->employee_name,
+                    'brand_name' => $row->brand_name,
+                    'region_name' => $row->region_name,
+                    'branch_name' => $row->branch_name,
+                    'date' => $date,
+                    'clock_in' => $clockIn,
+                    'clock_out' => $clockOut,
+                    'earlyCheckOutReason' => $row->earlyCheckOutReason,
+                    'worked_hours' => gmdate('H:i:s', $workedSeconds),
+                    'status' => $row->status,
+                    'late' => $row->late ?? '00:00:00',
+                    'early_leaving' => $row->early_leaving ?? '00:00:00',
+                    'overtime' => $row->overtime ?? '00:00:00',
+                ];
+            });
+
+            $filename = 'Attendance_' . $date . '_' . now()->timestamp . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            return response()->stream(function () use ($records) {
+                $f = fopen('php://output', 'w');
+                // Write CSV headers
+                fputcsv($f, [
+                    'Employee ID', 
+                    'Employee Name', 
+                    'Brand', 
+                    'Region', 
+                    'Branch', 
+                    'Date', 
+                    'Clock In', 
+                    'Clock Out', 
+                    'Early Checkout Reason',
+                    'Worked Hours', 
+                    'Status', 
+                    'Late', 
+                    'Early Leaving', 
+                    'Overtime'
+                ]);
+                
+                // Write data rows
+                foreach ($records as $row) {
+                    fputcsv($f, array_values($row));
+                }
+                fclose($f);
+            }, 200, $headers);
+        }
+
+        // Regular paginated response
         $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
             $clockIn = $row->clock_in ?? '00:00:00';
             $clockOut = $row->clock_out ?? '00:00:00';
