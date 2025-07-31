@@ -2738,8 +2738,8 @@ class UserController extends Controller
         $validator = \Validator::make($request->all(), [ 
             'avatar' => 'nullable|file|mimes:jpg,jpeg,png|max:4096',
             'id' => 'required|exists:users,id', // Ensure employee exists
-            'project_director_id' => 'required|exists:users,id', // Ensure employee exists
-            'project_manager_id' => 'required|exists:users,id', // Ensure employee exists
+            'project_director_id' => 'nullable|exists:users,id', // Ensure employee exists
+            'project_manager_id' => 'nullable|exists:users,id', // Ensure employee exists
              
         ]);
 
