@@ -2724,4 +2724,92 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    public function BrandAttachments(Request $request)
+    {
+        if (!\Auth::user()->can('edit employee')) {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ]);
+        }
+
+        // Validation rules
+        $validator = \Validator::make($request->all(), [ 
+            'avatar' => 'nullable|file|mimes:jpg,jpeg,png|max:4096',
+            'id' => 'required|exists:users,id', // Ensure employee exists
+            'project_director_id' => 'nullable|exists:users,id', // Ensure employee exists
+            'project_manager_id' => 'nullable|exists:users,id', // Ensure employee exists
+             
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ]);
+        }
+        $files = ['cv', 'academic_documents', 'id_card', 'avatar'];
+        $uploadedFiles = [];
+
+        foreach ($files as $fileType) {
+            if ($request->hasFile($fileType)) {
+                // Generate unique file name
+                $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
+                $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
+                $uploadedFiles[$fileType] = $filename; // ✅ Correct assignment
+            } else {
+                $uploadedFiles[$fileType] = null;
+            }
+        } 
+        $user = User::find($request->id);
+
+        if (!empty($uploadedFiles['avatar'])) {
+            $user->avatar = 'EmployeeDocument/'.$uploadedFiles['avatar'];
+        }
+        $user->save();
+        $user->update(['project_director_id' => $request->project_director_id]);
+        $user->update(['project_manager_id' => $request->project_manager_id]);
+
+        $changes =['avatar'];
+        $updatedFields = ['avatar'];
+         
+        $typeoflog = 'Brand Profile';
+
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name .  ' ' . $typeoflog . '  updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'brand',
+                'notification_type' =>  ' ' . $typeoflog . ' Updated'
+            ]);
+        }
+
+
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name .  ' ' . $typeoflog . ' updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'brand',
+                'notification_type' =>  ' ' . $typeoflog . ' Updated'
+            ]);
+        }
+
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Brand updated successfully',
+            'data' => $user,
+        ]);
+    }
 }
