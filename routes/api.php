@@ -64,7 +64,7 @@ use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
 use App\Models\TaskFile;
 use App\Models\TrainingType;
- 
+use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\AttendanceEmployee;
 use Carbon\Carbon;
@@ -78,11 +78,37 @@ use Carbon\Carbon;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
- 
+Route::get('/proxy-image', function (Request $request) {
+    $url = $request->query('url');
+
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return response('Invalid URL', 400);
+    }
+
+    try {
+        $response = Http::withOptions(['verify' => false]) // disable SSL verify if needed
+            ->withHeaders([
+                'Accept' => 'image/*',
+            ])
+            ->get($url);
+
+        if ($response->successful()) {
+            return response($response->body(), 200)
+                ->header('Content-Type', $response->header('Content-Type') ?? 'image/png')
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        }
+
+        return response('Image fetch failed', $response->status());
+    } catch (\Exception $e) {
+        return response('Proxy error: ' . $e->getMessage(), 500);
+    }
+});
 
 
     Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
-    Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']);
+    Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']); 
 
 Route::get('/AttendanceEmployeeCron', function () {
     $today = Carbon::today()->toDateString();
