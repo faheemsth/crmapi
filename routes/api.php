@@ -78,21 +78,28 @@ use Carbon\Carbon;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-Route::get('/proxy-image', function () {
-    $url = request('url');
+Route::get('/proxy-image', function (\Illuminate\Http\Request $request) {
+    $url = $request->query('url');
+
+    // validate URL
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return response('Invalid URL', 400);
+    }
 
     try {
-        $image = Http::get($url);
+        $response = Http::withHeaders([
+            'Accept' => 'image/png,image/*,*/*;q=0.8',
+        ])->get($url);
 
-        if ($image->ok()) {
-            return response($image->body())
-                ->header('Content-Type', 'image/png')
+        if ($response->successful()) {
+            return response($response->body(), 200)
+                ->header('Content-Type', $response->header('Content-Type', 'image/png'))
                 ->header('Access-Control-Allow-Origin', '*');
-        } else {
-            return response('Image not found', 404);
         }
+
+        return response('Image fetch failed', 500);
     } catch (\Exception $e) {
-        return response('Error fetching image: ' . $e->getMessage(), 500);
+        return response('Exception occurred: ' . $e->getMessage(), 500);
     }
 });
 
