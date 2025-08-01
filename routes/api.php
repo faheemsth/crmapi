@@ -78,28 +78,31 @@ use Carbon\Carbon;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-Route::get('/proxy-image', function (\Illuminate\Http\Request $request) {
+Route::get('/proxy-image', function (Request $request) {
     $url = $request->query('url');
 
-    // validate URL
     if (!filter_var($url, FILTER_VALIDATE_URL)) {
         return response('Invalid URL', 400);
     }
 
     try {
-        $response = Http::withHeaders([
-            'Accept' => 'image/png,image/*,*/*;q=0.8',
-        ])->get($url);
+        $response = Http::withOptions(['verify' => false]) // disable SSL verify if needed
+            ->withHeaders([
+                'Accept' => 'image/*',
+            ])
+            ->get($url);
 
         if ($response->successful()) {
             return response($response->body(), 200)
-                ->header('Content-Type', $response->header('Content-Type', 'image/png'))
-                ->header('Access-Control-Allow-Origin', '*');
+                ->header('Content-Type', $response->header('Content-Type') ?? 'image/png')
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         }
 
-        return response('Image fetch failed', 500);
+        return response('Image fetch failed', $response->status());
     } catch (\Exception $e) {
-        return response('Exception occurred: ' . $e->getMessage(), 500);
+        return response('Proxy error: ' . $e->getMessage(), 500);
     }
 });
 
