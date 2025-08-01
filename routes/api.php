@@ -64,7 +64,7 @@ use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
 use App\Models\TaskFile;
 use App\Models\TrainingType;
- 
+use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\AttendanceEmployee;
 use Carbon\Carbon;
@@ -78,10 +78,26 @@ use Carbon\Carbon;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
- 
+Route::get('/proxy-image', function () {
+    $url = request('url');
+
+    try {
+        $image = Http::get($url);
+
+        if ($image->ok()) {
+            return response($image->body())
+                ->header('Content-Type', 'image/png')
+                ->header('Access-Control-Allow-Origin', '*');
+        } else {
+            return response('Image not found', 404);
+        }
+    } catch (\Exception $e) {
+        return response('Error fetching image: ' . $e->getMessage(), 500);
+    }
+});
 
 
-    Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
+Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
 
 Route::get('/AttendanceEmployeeCron', function () {
     $today = Carbon::today()->toDateString();
