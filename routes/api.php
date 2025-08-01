@@ -82,6 +82,7 @@ use Carbon\Carbon;
 
 
     Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
+    Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']);
 
 Route::get('/AttendanceEmployeeCron', function () {
     $today = Carbon::today()->toDateString();
