@@ -1070,7 +1070,7 @@ public function getCombinedAttendances(Request $request)
         }
 
         $validator = Validator::make($request->all(), [
-            'date' => 'nullable|date',
+            'date' => 'required|date',
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
