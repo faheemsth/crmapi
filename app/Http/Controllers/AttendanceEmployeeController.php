@@ -877,7 +877,7 @@ public function getCombinedAttendances_fine_work(Request $request)
 
 
 
-public function getAttendances_withemployee(Request $request)
+public function getemplyee_monthly_attandance(Request $request)
 {
     try {
         // Authorization
