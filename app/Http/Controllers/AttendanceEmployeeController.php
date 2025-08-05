@@ -1185,7 +1185,7 @@ public function getemplyee_monthly_attandance(Request $request)
         }
 
         // Base query for employees with attendance data
-        $employeeQuery = DB::table('users')
+        $employeeQuery = DB::table('users')->where('users.id', $request->emp_id)
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
