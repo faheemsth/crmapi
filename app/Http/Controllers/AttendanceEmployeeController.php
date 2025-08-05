@@ -434,7 +434,9 @@ class AttendanceEmployeeController extends Controller
 
                 // Preload all attendances for this employee in the date range
                 $attendances = AttendanceEmployee::where('employee_id', $user->id)
-                    ->whereBetween('date', [$startDate, $endDate])
+                    ->when(!empty($startDate) || !empty($endDate), function($query) use ($startDate, $endDate) {
+                        $query->whereBetween('date', [$startDate, $endDate]);
+                    })
                     ->get()
                     ->keyBy('date');
 
