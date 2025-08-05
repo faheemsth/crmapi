@@ -899,7 +899,7 @@ public function getCombinedAttendances_fine_work(Request $request)
 //         $employeesQuery = DB::table('users')
 //             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
 //             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-//             ->leftJoin('users as brand', 'users.id', '=', 'users.brand_id')
+//             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
 //             ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
 //                 $join->on('attendances.employee_id', '=', 'users.id')
 //                      ->where('attendances.date', '=', $date);
@@ -931,6 +931,8 @@ public function getCombinedAttendances_fine_work(Request $request)
 //             ->whereNotIn('users.type', $excludedTypes)
 //             ->when($request->filled('search'), fn($q) =>
 //                 $q->where('users.name', 'like', '%' . $request->search . '%'))
+//             ->when($request->filled('emp_id'), fn($q) =>
+//                 $q->where('users.id', $request->emp_id))
 //             ->when($request->filled('brand_id'), fn($q) =>
 //                 $q->where('users.brand_id', $request->brand_id))
 //             ->when($request->filled('region_id'), fn($q) =>
@@ -1215,6 +1217,13 @@ public function getCombinedAttendances(Request $request)
                 fclose($f);
             }, 200, $headers);
         }
+        $endDate = $request->filled('end_date') 
+            ? Carbon::parse($request->end_date)->format('Y-m-d') 
+            : Carbon::now()->format('Y-m-d');
+
+        $startDate = $request->filled('start_date') 
+            ? Carbon::parse($request->start_date)->format('Y-m-d') 
+            : Carbon::now()->subDays(30)->format('Y-m-d');
 
         // Regular paginated response
         $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
@@ -1244,7 +1253,14 @@ public function getCombinedAttendances(Request $request)
                 'early_leaving' => $row->early_leaving ?? '00:00:00',
                 'overtime' => $row->overtime ?? '00:00:00',
             ];
-        });
+        })
+        ->filter(function ($record) use ($startDate, $endDate) {
+            if (!empty($record['date'])) {
+                return $record['date'] >= $startDate && $record['date'] <= $endDate;
+            }
+            return true; // if no date, keep the record
+        })
+        ->values(); // reindex
 
         return response()->json([
             'status' => 'success',
