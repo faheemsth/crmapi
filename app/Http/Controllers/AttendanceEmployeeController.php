@@ -950,7 +950,10 @@ public function getemplyee_monthly_attandance(Request $request)
         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
 
         // Paginate Employees
+        
         $employeeQuery = Employee::with(['user.branch'])
+            ->when($request->filled('emp_id'), fn($q) =>
+                $q->whereHas('user', fn($uq) => $uq->where('id', $request->emp_id)))
             ->when($request->filled('brand_id'), fn($q) =>
                 $q->whereHas('user', fn($uq) => $uq->where('brand_id', $request->brand_id)))
             ->when($request->filled('region_id'), fn($q) =>
