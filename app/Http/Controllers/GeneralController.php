@@ -57,6 +57,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
 class GeneralController extends Controller
 {
 
@@ -1063,5 +1066,66 @@ public function GetBranchByType()
             'status' => 'success',
             'data' => $stages
         ]);
+    }
+
+    public function convertToBase64(Request $request)
+    {
+        // Validate the input
+        $validator = Validator::make($request->all(), [
+            'image_url' => 'required|url'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid URL provided',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $imageUrl = $request->input('image_url');
+        
+        try {
+            // Fetch the image with timeout and proper headers
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'Accept' => 'image/*'
+                ])
+                ->get($imageUrl);
+            
+            if ($response->successful()) {
+                $mimeType = $this->detectMimeType($response->body());
+                
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'base64' => 'data:' . $mimeType . ';base64,' . base64_encode($response->body()),
+                        'mime_type' => $mimeType,
+                        'size' => strlen($response->body())
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch image. Server responded with status: ' . $response->status()
+            ], 400);
+            
+        } catch (\Exception $e) {
+            Log::error("Image conversion error: " . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => "Image conversion error: " . $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * Detect MIME type from binary data
+     */
+    private function detectMimeType($binaryData)
+    {
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        return $finfo->buffer($binaryData);
     }
 }
