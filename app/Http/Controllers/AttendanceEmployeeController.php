@@ -1127,6 +1127,8 @@ public function getCombinedAttendances(Request $request)
             ->whereNotIn('users.type', $excludedTypes)
             ->when($request->filled('search'), fn($q) =>
                 $q->where('users.name', 'like', '%' . $request->search . '%'))
+            ->when($request->filled('emp_id'), fn($q) =>
+                $q->where('users.id', $request->emp_id))
             ->when($request->filled('brand_id'), fn($q) =>
                 $q->where('users.brand_id', $request->brand_id))
             ->when($request->filled('region_id'), fn($q) =>
