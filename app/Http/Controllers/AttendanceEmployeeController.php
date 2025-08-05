@@ -1184,11 +1184,18 @@ public function getemplyee_monthly_attandance(Request $request)
             ], 422);
         }
 
-        // Base query for employees
+        // Base query for employees with attendance data
         $employeeQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+            ->leftJoin('attendance_employees as attendances', function($join) use ($startDate, $endDate) {
+                $join->on('attendances.employee_id', '=', 'users.id')
+                     ->whereBetween('attendances.date', [
+                         $startDate->format('Y-m-d'),
+                         $endDate->format('Y-m-d')
+                     ]);
+            })
             ->select([
                 'users.id as employee_id',
                 'users.name as employee_name',
@@ -1198,7 +1205,23 @@ public function getemplyee_monthly_attandance(Request $request)
                 'users.branch_id',
                 'branches.name as branch_name',
                 'regions.name as region_name',
-            ]);
+                'attendances.date',
+                'attendances.clock_in',
+                'attendances.clock_out',
+                'attendances.earlyCheckOutReason',
+                'attendances.late',
+                'attendances.early_leaving',
+                'attendances.overtime',
+                'attendances.id as attendance_id',
+                DB::raw("
+                    CASE
+                        WHEN attendances.id IS NULL THEN 'Not Marked' 
+                        WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
+                        ELSE attendances.status
+                    END as status
+                ")
+            ])
+            ->distinct();
 
         // Apply filters
         if ($request->filled('emp_id')) {
@@ -1222,68 +1245,37 @@ public function getemplyee_monthly_attandance(Request $request)
         }
 
         $employees = $employeeQuery->paginate($perPage, ['*'], 'page', $page);
+
+        // Process the results
         $data = [];
+        foreach ($employees as $record) {
+            $clockIn = $record->clock_in ?? '00:00:00';
+            $clockOut = $record->clock_out ?? '00:00:00';
+            
+            $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+                ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+                : 0;
 
-        foreach ($employees as $employee) {
-            // Get shift time from branch
-            $shiftTime = DB::table('branches')
-                ->where('id', $employee->branch_id)
-                ->value('shift_time') ?? 0;
-            $shiftSeconds = $shiftTime * 3600;
-
-            // Get attendances for this employee in date range
-            $attendances = DB::table('attendances')
-                ->where('employee_id', $employee->employee_id)
-                ->whereBetween('date', [
-                    $startDate->format('Y-m-d'),
-                    $endDate->format('Y-m-d')
-                ])
-                ->get()
-                ->keyBy('date');
-
-            $current = $startDate->copy();
-            while ($current <= $endDate) {
-                $dateStr = $current->format('Y-m-d');
-                $attendance = $attendances->get($dateStr);
-
-                $clockIn = $attendance->clock_in ?? '00:00:00';
-                $clockOut = $attendance->clock_out ?? '00:00:00';
-                
-                $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
-                    ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
-                    : 0;
-
-                $status = 'Not Marked';
-                if ($attendance) {
-                    $status = $attendance->status;
-                    if ($attendance->earlyCheckOutReason) {
-                        $status = 'Early Clock Out';
-                    }
-                }
-
-                $data[] = [
-                    'employee_id' => $employee->employee_id,
-                    'employee_name' => $employee->employee_name,
-                    'brand_id' => $employee->brand_id,
-                    'region_id' => $employee->region_id,
-                    'branch_id' => $employee->branch_id,
-                    'branch_name' => $employee->branch_name,
-                    'brand_name' => $employee->brand_name,
-                    'region_name' => $employee->region_name,
-                    'date' => $dateStr,
-                    'clock_in' => $clockIn,
-                    'clock_out' => $clockOut,
-                    'earlyCheckOutReason' => $attendance->earlyCheckOutReason ?? null,
-                    'worked_hours' => gmdate('H:i:s', $workedSeconds),
-                    'status' => $status,
-                    'late' => $attendance->late ?? "00:00:00",
-                    'early_leaving' => $attendance->early_leaving ?? "00:00:00",
-                    'overtime' => $attendance->overtime ?? "00:00:00",
-                    'attendance_id' => $attendance->id ?? 0,
-                ];
-
-                $current->addDay();
-            }
+            $data[] = [
+                'employee_id' => $record->employee_id,
+                'employee_name' => $record->employee_name,
+                'brand_id' => $record->brand_id,
+                'region_id' => $record->region_id,
+                'branch_id' => $record->branch_id,
+                'branch_name' => $record->branch_name,
+                'brand_name' => $record->brand_name,
+                'region_name' => $record->region_name,
+                'date' => $record->date ?? $startDate->format('Y-m-d'), // Fallback to start date if null
+                'clock_in' => $clockIn,
+                'clock_out' => $clockOut,
+                'earlyCheckOutReason' => $record->earlyCheckOutReason ?? null,
+                'worked_hours' => gmdate('H:i:s', $workedSeconds),
+                'status' => $record->status,
+                'late' => $record->late ?? "00:00:00",
+                'early_leaving' => $record->early_leaving ?? "00:00:00",
+                'overtime' => $record->overtime ?? "00:00:00",
+                'attendance_id' => $record->attendance_id ?? 0,
+            ];
         }
 
         // Sort by date descending
