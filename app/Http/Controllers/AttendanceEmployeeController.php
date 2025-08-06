@@ -1512,6 +1512,7 @@ public function getCombinedAttendances(Request $request)
                 'employee_id' => $row->employee_id,
                 'attendance_id' => $row->attendance_id,
                 'employee_name' => $row->employee_name,
+                'timezone' => $row->timezone,
                 'brand_id' => $row->brand_id,
                 'region_id' => $row->region_id,
                 'branch_id' => $row->branch_id,
