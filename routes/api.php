@@ -35,6 +35,7 @@ use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\IndicatorController;
 use App\Http\Controllers\InstituteCategoryController;
 use App\Http\Controllers\InstituteController;
@@ -414,6 +415,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/addBranch', [BranchController::class, 'addBranch']);
     Route::post('/updateBranch', [BranchController::class, 'updateBranch']);
     Route::post('/deleteBranch', [BranchController::class, 'deleteBranch']);
+    // holiday
+    Route::post('/HolidayDetail', [HolidayController::class, 'HolidayDetail']);
+    Route::post('/getHolidays', [HolidayController::class, 'getHolidays']);
+    Route::post('/addHoliday', [HolidayController::class, 'addHoliday']);
+    Route::post('/updateHoliday', [HolidayController::class, 'updateHoliday']);
+    Route::post('/deleteHoliday', [HolidayController::class, 'deleteHoliday']);
 
     // Training type
     Route::post('/addTrainingType', [TrainingTypeController::class, 'addTrainingType']);

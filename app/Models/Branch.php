@@ -25,6 +25,7 @@ class Branch extends Model
         "timezone",
         "shift_time",
         "end_time",
+        "is_sat_off",
         "start_time"
     ];
 

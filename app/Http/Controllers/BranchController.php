@@ -213,6 +213,7 @@ class BranchController extends Controller
             'google_link' => 'required|url',
             'social_media_link' => 'required|url',
             'shift_time' => 'required|string',
+           'is_sat_off' => 'required|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -255,6 +256,7 @@ class BranchController extends Controller
             'email' => $request->email,
             'end_time' => $request->end_time,
             'start_time' => $request->start_time,
+            'is_sat_off' => $request->is_sat_off,
             'shift_time' => $decimalHours,
         ]);
 
