@@ -321,6 +321,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/changeLeaveStatus', [LeaveController::class, 'changeLeaveStatus']);
     // Leaves
     Route::post('/getAttendances', [AttendanceEmployeeController::class, 'getCombinedAttendances']);
+
+    Route::post('/getemplyee_monthly_attandance', [AttendanceEmployeeController::class, 'getemplyee_monthly_attandance']);
+    
     Route::post('/viewAttendance', [AttendanceEmployeeController::class, 'viewAttendance']);
     Route::post('/addAttendance', [AttendanceEmployeeController::class, 'addAttendance']);
     Route::post('/updateAttendance', [AttendanceEmployeeController::class, 'updateAttendance']);

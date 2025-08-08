@@ -347,200 +347,6 @@ class AttendanceEmployeeController extends Controller
     //         ], 500);
     //     }
     // }
-
-
-    public function getAttendances_withemployee(Request $request)
-    {
-        try {
-            // Authorization
-            if (!Auth::user()->can('manage attendance')) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => __('Permission denied.')
-                ], 403);
-            }
-
-            // Validation
-            $validator = Validator::make($request->all(), [
-                'perPage' => 'nullable|integer|min:1',
-                'page' => 'nullable|integer|min:1',
-                'search' => 'nullable|string',
-                'brand_id' => 'nullable|integer|exists:users,id',
-                'region_id' => 'nullable|integer|exists:regions,id',
-                'branch_id' => 'nullable|integer|exists:branches,id',
-                'type' => 'nullable|in:monthly,daily',
-                'month' => 'nullable|date_format:Y-m',
-                'date' => 'nullable|date_format:Y-m-d',
-                'download_csv' => 'nullable|boolean',
-                'status' => 'nullable|integer|in:1,2,3,4',
-                'tag_ids' => 'nullable|string',
-                'start_date' => 'nullable|date',
-                'end_date' => 'nullable|date',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
-            $page = $request->input('page', 1);
-
-            // Date range
-            $startDate = $request->filled('start_date') ? Carbon::parse($request->start_date) : now()->startOfMonth();
-            $endDate = $request->filled('end_date') ? Carbon::parse($request->end_date) : now()->endOfMonth();
-
-            if ($endDate->diffInDays($startDate) > 31) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Date range too large. Limit to 31 days.'
-                ], 422);
-            }
-
-            $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
-
-            // Paginate Employees
-            $employeeQuery = Employee::with(['user.branch'])
-                ->when($request->filled('brand_id'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('brand_id', $request->brand_id)))
-                ->when($request->filled('region_id'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('region_id', $request->region_id)))
-                ->when($request->filled('branch_id'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('branch_id', $request->branch_id)))
-                ->when($request->filled('search'), fn($q) =>
-                    $q->whereHas('user', fn($uq) => $uq->where('name', 'like', '%' . $request->search . '%')))
-                ->when(!empty($tagIds), function ($q) use ($tagIds) {
-                    $q->whereHas('user', function ($uq) use ($tagIds) {
-                        $uq->where(function ($inner) use ($tagIds) {
-                            foreach ($tagIds as $tagId) {
-                                $inner->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
-                            }
-                        });
-                    });
-                });
-
-            $employees = $employeeQuery->paginate($perPage, ['*'], 'page', $page);
-
-            $data = [];
-            $today = Carbon::today();
-
-            foreach ($employees as $employee) {
-                $user = $employee->user;
-                if (!$user) continue;
-
-                $shiftSeconds = ($user->branch->shift_time ?? 0) * 3600;
-
-                // Preload all attendances for this employee in the date range
-                $attendances = AttendanceEmployee::where('employee_id', $user->id)
-                    ->whereBetween('date', [$startDate, $endDate])
-                    ->get()
-                    ->keyBy('date');
-
-                $current = $startDate->copy();
-                while ($current <= $endDate) {
-                    if ($current > $today) break;
-
-                    $dateStr = $current->format('Y-m-d');
-                    $attendance = $attendances->get($dateStr);
-
-                    $clockIn = $attendance?->clock_in ?? '00:00:00';
-                    $clockOut = $attendance?->clock_out ?? '00:00:00';
-                    $workedSeconds = ($attendance && $attendance->clock_in && $attendance->clock_out)
-                        ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
-                        : 0;
-
-                    $status = $workedSeconds === 0
-                        ? 'Absent'
-                        : ($workedSeconds < $shiftSeconds ? 'Early Leaving' : 'Present');
-
-                    $data[] = [
-                        'employee_id' => $user->id,
-                        'employee_name' => $user->name,
-                        'brand_id' => $user->brand_id,
-                        'region_id' => $user->region_id,
-                        'branch_id' => $user->branch_id,
-                        'date' => $dateStr,
-                        'clock_in' => $clockIn,
-                        'clock_out' => $clockOut,
-                        'worked_hours' => gmdate('H:i:s', $workedSeconds),
-                        'status' => $status,
-                        'late' => $attendance?->late ?? "00:00:00",
-                        'early_leaving' => $attendance?->early_leaving ?? "00:00:00",
-                        'overtime' => $attendance?->overtime ?? "00:00:00",
-                        'attendance_id' => $attendance?->id ?? 0, // IMPORTANT: needed for sorting
-                    ];
-
-                    $current->addDay();
-                }
-            }
-
-            // Sort: date desc, attendance id desc, absent last
-            usort($data, function ($a, $b) {
-                // 1. Absent always last
-                $aAbsent = $a['attendance_id'] === 0;
-                $bAbsent = $b['attendance_id'] === 0;
-
-                if ($aAbsent && !$bAbsent) return 1;
-                if (!$aAbsent && $bAbsent) return -1;
-
-                // 2. Attendance ID descending
-                return $b['attendance_id'] <=> $a['attendance_id'];
-            });
-
-            // Filter status if requested
-            if ($request->filled('status') && $request->status != 4) {
-                $statusMap = [1 => 'Present', 2 => 'Absent', 3 => 'Early Leaving'];
-                $filterStatus = $statusMap[$request->status] ?? 'Present';
-                $data = array_filter($data, fn($d) => $d['status'] === $filterStatus);
-            }
-
-            // If CSV download
-            if ($request->input('download_csv')) {
-                $filename = 'Attendance_' . now()->timestamp . '.csv';
-                $headers = [
-                    'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                ];
-                return response()->stream(function () use ($data) {
-                    $f = fopen('php://output', 'w');
-                    fputcsv($f, ['Employee ID', 'Employee Name', 'Date', 'Status', 'Clock In', 'Clock Out', 'Late', 'Early Leaving', 'Overtime']);
-                    foreach ($data as $row) {
-                        fputcsv($f, [
-                            $row['employee_id'],
-                            $row['employee_name'],
-                            $row['date'],
-                            $row['status'],
-                            $row['clock_in'],
-                            $row['clock_out'],
-                            $row['late'],
-                            $row['early_leaving'],
-                            $row['overtime'],
-                        ]);
-                    }
-                    fclose($f);
-                }, 200, $headers);
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'data' => array_values($data),
-                'current_page' => $employees->currentPage(),
-                'last_page' => $employees->lastPage(),
-                'total_records' => count($data),
-                'per_page' => $employees->perPage(),
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-
     
 public function getAttendances(Request $request)
 {
@@ -1062,6 +868,482 @@ public function getCombinedAttendances_fine_work(Request $request)
 //     }
 // }
 
+
+
+
+
+
+
+
+
+
+// public function getemplyee_monthly_attandance(Request $request)
+// {
+//     try {
+//         // Authorization
+//         if (!Auth::user()->can('manage attendance')) {
+//             return response()->json([
+//                 'status' => 'error',
+//                 'message' => __('Permission denied.')
+//             ], 403);
+//         }
+
+//         // Validation
+//         $validator = Validator::make($request->all(), [
+//             'perPage' => 'nullable|integer|min:1',
+//             'page' => 'nullable|integer|min:1',
+//             'search' => 'nullable|string',
+//             'brand_id' => 'nullable|integer|exists:users,id',
+//             'region_id' => 'nullable|integer|exists:regions,id',
+//             'branch_id' => 'nullable|integer|exists:branches,id',
+//             'type' => 'nullable|in:monthly,daily',
+//             'month' => 'nullable|date_format:Y-m',
+//             'date' => 'nullable|date_format:Y-m-d',
+//             'download_csv' => 'nullable|boolean',
+//             'status' => 'nullable|integer|in:1,2,3,4',
+//             'tag_ids' => 'nullable|string',
+//             'start_date' => 'nullable|date',
+//             'end_date' => 'nullable|date',
+//         ]);
+
+//         if ($validator->fails()) {
+//             return response()->json([
+//                 'status' => 'error',
+//                 'errors' => $validator->errors()
+//             ], 422);
+//         }
+
+//         $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
+//         $page = $request->input('page', 1);
+//         $today = Carbon::today();
+
+//         // Improved Date range handling - never go beyond today
+//         $startDate = $request->filled('start_date') 
+//             ? Carbon::parse($request->start_date)->startOfDay()
+//             : $today->copy()->subMonths(3)->startOfMonth(); // Default to last 3 months
+
+//         $endDate = $request->filled('end_date')
+//             ? Carbon::parse($request->end_date)->endOfDay()
+//             : $today->copy()->endOfMonth();
+
+//         // Ensure we don't show future dates
+//         if ($endDate > $today) {
+//             $endDate = $today;
+//         }
+
+//         // Validate date range order
+//         if ($startDate->gt($endDate)) {
+//             return response()->json([
+//                 'status' => 'error',
+//                 'message' => 'Start date must be before end date'
+//             ], 422);
+//         }
+
+//         // Limit date range to 31 days if not downloading CSV
+//         if (!$request->input('download_csv') && $endDate->diffInDays($startDate) > 31) {
+//             return response()->json([
+//                 'status' => 'error',
+//                 'message' => 'Date range too large. Limit to 31 days for non-CSV requests.'
+//             ], 422);
+//         }
+
+//         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+
+//         // Paginate Employees
+        
+//                 $employeeQuery = DB::table('users')
+//             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+//             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+//             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+
+//             ->select([
+//                 'users.id as employee_id',
+//                 'users.name as employee_name',
+//                 'brand.name as brand_name',
+//                 'users.brand_id',
+//                 'users.region_id',
+//                 'users.branch_id',
+//                 'branches.name as branch_name',
+//                 'regions.name as region_name',
+//                 'attendances.clock_in',
+//                 'attendances.clock_out',
+//                 'attendances.earlyCheckOutReason',
+//                 'attendances.late',
+//                 'attendances.early_leaving',
+//                 'attendances.overtime',
+//                 'attendances.id as attendance_id',
+//                 DB::raw("
+//                     CASE
+//                         WHEN attendances.id IS NULL THEN 'Not Marked' 
+//                         WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
+//                         ELSE attendances.status
+//                     END as status
+//                 ")
+//             ])
+//             ->when($request->filled('emp_id'), fn($q) =>
+//                 $q->whereHas('user', fn($uq) => $uq->where('id', $request->emp_id)))
+//             ->when($request->filled('brand_id'), fn($q) =>
+//                 $q->whereHas('user', fn($uq) => $uq->where('brand_id', $request->brand_id)))
+//             ->when($request->filled('region_id'), fn($q) =>
+//                 $q->whereHas('user', fn($uq) => $uq->where('region_id', $request->region_id)))
+//             ->when($request->filled('branch_id'), fn($q) =>
+//                 $q->whereHas('user', fn($uq) => $uq->where('branch_id', $request->branch_id)))
+//             ->when($request->filled('search'), fn($q) =>
+//                 $q->whereHas('user', fn($uq) => $uq->where('name', 'like', '%' . $request->search . '%')))
+//             ->when(!empty($tagIds), function ($q) use ($tagIds) {
+//                 $q->whereHas('user', function ($uq) use ($tagIds) {
+//                     $uq->where(function ($inner) use ($tagIds) {
+//                         foreach ($tagIds as $tagId) {
+//                             $inner->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+//                         }
+//                     });
+//                 });
+//             });
+
+//         $employees = $employeeQuery->paginate($perPage, ['*'], 'page', $page);
+
+//         $data = [];
+
+//         foreach ($employees as $employee) {
+//             $user = $employee->user;
+//             if (!$user) continue;
+
+//             $shiftSeconds = ($user->branch->shift_time ?? 0) * 3600;
+
+//             // Preload all attendances for this employee in the date range
+//             $attendances = AttendanceEmployee::where('employee_id', $user->id)
+//                 ->whereBetween('date', [
+//                     $startDate->format('Y-m-d'),
+//                     $endDate->format('Y-m-d')
+//                 ])
+//                 ->get()
+//                 ->keyBy('date');
+
+//             $current = $startDate->copy();
+//             while ($current <= $endDate) {
+//                 $dateStr = $current->format('Y-m-d');
+//                 $attendance = $attendances->get($dateStr);
+
+//                 $clockIn = $attendance->clock_in ?? '00:00:00';
+//                 $clockOut = $attendance->clock_out ?? '00:00:00';
+//                 $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+//                     ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+//                     : 0;
+
+//                 $data[] = [
+//                     'employee_id' => $user->id,
+//                     'employee_name' => $user->name,
+//                     'brand_id' => $user->brand_id,
+//                     'region_id' => $user->region_id,
+//                     'branch_id' => $user->branch_id,
+//                     'branch_name' => $user->branch->name ?? null,
+//                     'brand_name' => $user->brand->name ?? null,
+//                     'region_name' => $user->region->name ?? null,
+//                     'date' => $dateStr,
+//                     'clock_in' => $clockIn,
+//                     'clock_out' => $clockOut,
+//                     'earlyCheckOutReason' => $attendance?->earlyCheckOutReason ?? null,
+//                     'worked_hours' => gmdate('H:i:s', $workedSeconds),
+//                     'status' => $attendance->status,
+//                     'late' => $attendance?->late ?? "00:00:00",
+//                     'early_leaving' => $attendance?->early_leaving ?? "00:00:00",
+//                     'overtime' => $attendance?->overtime ?? "00:00:00",
+//                     'attendance_id' => $attendance?->id ?? 0,
+//                 ];
+
+//                 $current->addDay();
+//             }
+//         }
+
+//         // Sort: date desc, attendance id desc, absent last
+//         usort($data, function ($a, $b) {
+//             // 1. Date descending
+//             $dateCompare = strtotime($b['date']) <=> strtotime($a['date']);
+//             if ($dateCompare !== 0) return $dateCompare;
+            
+//             // 2. Absent always last
+//             $aAbsent = $a['attendance_id'] === 0;
+//             $bAbsent = $b['attendance_id'] === 0;
+
+//             if ($aAbsent && !$bAbsent) return 1;
+//             if (!$aAbsent && $bAbsent) return -1;
+
+//             // 3. Attendance ID descending
+//             return $b['attendance_id'] <=> $a['attendance_id'];
+//         });
+
+//         // Filter status if requested
+//         if ($request->filled('status') && $request->status != 4) {
+//             $statusMap = [1 => 'Present', 2 => 'Absent', 3 => 'Early Leaving'];
+//             $filterStatus = $statusMap[$request->status] ?? 'Present';
+//             $data = array_filter($data, fn($d) => $d['status'] === $filterStatus);
+//         }
+
+//         // If CSV download
+//         if ($request->input('download_csv')) {
+//             $filename = 'Attendance_' . now()->timestamp . '.csv';
+//             $headers = [
+//                 'Content-Type' => 'text/csv',
+//                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+//             ];
+//             return response()->stream(function () use ($data) {
+//                 $f = fopen('php://output', 'w');
+//                 fputcsv($f, ['Employee ID', 'Employee Name', 'Date', 'Status', 'Clock In', 'Clock Out', 'Late', 'Early Leaving', 'Overtime']);
+//                 foreach ($data as $row) {
+//                     fputcsv($f, [
+//                         $row['employee_id'],
+//                         $row['employee_name'],
+//                         $row['date'],
+//                         $row['status'],
+//                         $row['clock_in'],
+//                         $row['clock_out'],
+//                         $row['late'],
+//                         $row['early_leaving'],
+//                         $row['overtime'],
+//                     ]);
+//                 }
+//                 fclose($f);
+//             }, 200, $headers);
+//         }
+
+//         return response()->json([
+//             'status' => 'success',
+//             'data' => array_values($data),
+//             'date_range' => [
+//                 'start' => $startDate->format('Y-m-d'),
+//                 'end' => $endDate->format('Y-m-d')
+//             ],
+//             'current_page' => $employees->currentPage(),
+//             'last_page' => $employees->lastPage(),
+//             'total_records' => count($data),
+//             'perPage' => $employees->perPage(),
+//         ], 200);
+
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'status' => 'error',
+//             'message' => $e->getMessage(),
+//         ], 500);
+//     }
+// }
+public function getemplyee_monthly_attandance(Request $request)
+{
+    try {
+        // Authorization
+        if (!Auth::user()->can('manage attendance')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        // Validation
+        $validator = Validator::make($request->all(), [
+            'emp_id' => 'nullable|integer|exists:users,id',
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'search' => 'nullable|string',
+            'brand_id' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'download_csv' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
+        $page = $request->input('page', 1);
+        $today = Carbon::today();
+
+        // Date range handling
+        $startDate = $request->filled('start_date') 
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : $today->copy()->subMonths(3)->startOfMonth();
+
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : $today->copy()->endOfMonth();
+
+        // Ensure we don't show future dates
+        if ($endDate > $today) {
+            $endDate = $today;
+        }
+
+        // Validate date range order
+        if ($startDate->gt($endDate)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Start date must be before end date'
+            ], 422);
+        }
+
+        // Base query for employees with attendance data
+        $employeeQuery = DB::table('users')->where('users.id', $request->emp_id)
+            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+            ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+            ->leftJoin('attendance_employees as attendances', function($join) use ($startDate, $endDate) {
+                $join->on('attendances.employee_id', '=', 'users.id')
+                     ->whereBetween('attendances.date', [
+                         $startDate->format('Y-m-d'),
+                         $endDate->format('Y-m-d')
+                     ]);
+            })
+            ->select([
+                'users.id as employee_id',
+                'users.name as employee_name',
+                'brand.name as brand_name',
+                'users.brand_id',
+                'users.region_id',
+                'users.branch_id',
+                'branches.name as branch_name',
+                'regions.name as region_name',
+                'attendances.date',
+                'attendances.clock_in',
+                'attendances.clock_out',
+                'attendances.earlyCheckOutReason',
+                'attendances.late',
+                'attendances.early_leaving',
+                'attendances.overtime',
+                'attendances.id as attendance_id',
+                DB::raw("
+                    CASE
+                        WHEN attendances.id IS NULL THEN 'Not Marked' 
+                        WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
+                        ELSE attendances.status
+                    END as status
+                ")
+            ])
+            ->distinct();
+
+        // Apply filters
+        if ($request->filled('emp_id')) {
+            $employeeQuery->where('users.id', $request->emp_id);
+        }
+
+        if ($request->filled('brand_id')) {
+            $employeeQuery->where('users.brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('region_id')) {
+            $employeeQuery->where('users.region_id', $request->region_id);
+        }
+
+        if ($request->filled('branch_id')) {
+            $employeeQuery->where('users.branch_id', $request->branch_id);
+        }
+
+        if ($request->filled('search')) {
+            $employeeQuery->where('users.name', 'like', '%' . $request->search . '%');
+        }
+
+        $employees = $employeeQuery->paginate($perPage, ['*'], 'page', $page);
+
+        // Process the results
+        $data = [];
+        foreach ($employees as $record) {
+            $clockIn = $record->clock_in ?? '00:00:00';
+            $clockOut = $record->clock_out ?? '00:00:00';
+            
+            $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+                ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
+                : 0;
+
+            $data[] = [
+                'employee_id' => $record->employee_id,
+                'employee_name' => $record->employee_name,
+                'brand_id' => $record->brand_id,
+                'region_id' => $record->region_id,
+                'branch_id' => $record->branch_id,
+                'branch_name' => $record->branch_name,
+                'brand_name' => $record->brand_name,
+                'region_name' => $record->region_name,
+                'date' => $record->date ?? $startDate->format('Y-m-d'), // Fallback to start date if null
+                'clock_in' => $clockIn,
+                'clock_out' => $clockOut,
+                'earlyCheckOutReason' => $record->earlyCheckOutReason ?? null,
+                'worked_hours' => gmdate('H:i:s', $workedSeconds),
+                'status' => $record->status,
+                'late' => $record->late ?? "00:00:00",
+                'early_leaving' => $record->early_leaving ?? "00:00:00",
+                'overtime' => $record->overtime ?? "00:00:00",
+                'attendance_id' => $record->attendance_id ?? 0,
+            ];
+        }
+
+        // Sort by date descending
+        usort($data, function ($a, $b) {
+            return strtotime($b['date']) <=> strtotime($a['date']);
+        });
+
+        // If CSV download
+        if ($request->input('download_csv')) {
+            $filename = 'Attendance_' . now()->timestamp . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+            
+            return response()->stream(function () use ($data) {
+                $f = fopen('php://output', 'w');
+                fputcsv($f, ['Employee ID', 'Employee Name', 'Date', 'Status', 'Clock In', 'Clock Out', 'Late', 'Early Leaving', 'Overtime']);
+                foreach ($data as $row) {
+                    fputcsv($f, [
+                        $row['employee_id'],
+                        $row['employee_name'],
+                        $row['date'],
+                        $row['status'],
+                        $row['clock_in'],
+                        $row['clock_out'],
+                        $row['late'],
+                        $row['early_leaving'],
+                        $row['overtime'],
+                    ]);
+                }
+                fclose($f);
+            }, 200, $headers);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => array_values($data),
+            'date_range' => [
+                'start' => $startDate->format('Y-m-d'),
+                'end' => $endDate->format('Y-m-d')
+            ],
+            'current_page' => $employees->currentPage(),
+            'last_page' => $employees->lastPage(),
+            'total_records' => count($data),
+            'perPage' => $employees->perPage(),
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 public function getCombinedAttendances(Request $request)
 {
     try {
@@ -1108,6 +1390,7 @@ public function getCombinedAttendances(Request $request)
                 'users.region_id',
                 'users.branch_id',
                 'branches.name as branch_name',
+                'branches.timezone as timezone',
                 'regions.name as region_name',
                 'attendances.clock_in',
                 'attendances.clock_out',
@@ -1128,6 +1411,8 @@ public function getCombinedAttendances(Request $request)
             ->where('users.is_attendance_required', 1)
             ->when($request->filled('search'), fn($q) =>
                 $q->where('users.name', 'like', '%' . $request->search . '%'))
+            ->when($request->filled('emp_id'), fn($q) =>
+                $q->where('users.id', $request->emp_id))
             ->when($request->filled('brand_id'), fn($q) =>
                 $q->where('users.brand_id', $request->brand_id))
             ->when($request->filled('region_id'), fn($q) =>
@@ -1169,6 +1454,7 @@ public function getCombinedAttendances(Request $request)
                     'brand_name' => $row->brand_name,
                     'region_name' => $row->region_name,
                     'branch_name' => $row->branch_name,
+                    'timezone' => $row->timezone,
                     'date' => $date,
                     'clock_in' => $clockIn,
                     'clock_out' => $clockOut,
@@ -1227,6 +1513,7 @@ public function getCombinedAttendances(Request $request)
                 'employee_id' => $row->employee_id,
                 'attendance_id' => $row->attendance_id,
                 'employee_name' => $row->employee_name,
+                'timezone' => $row->timezone,
                 'brand_id' => $row->brand_id,
                 'region_id' => $row->region_id,
                 'branch_id' => $row->branch_id,
