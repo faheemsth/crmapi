@@ -1775,7 +1775,10 @@ public function getCombinedAttendances(Request $request)
 
         public function getCronAttendances(Request $request)
 {
+
+
     try {
+    
 
        // new attendance date handling
 
@@ -1784,7 +1787,7 @@ public function getCombinedAttendances(Request $request)
         }
 
         $date = Carbon::parse($request->date)->format('Y-m-d');
-
+        
          
         $dayOfWeek = Carbon::parse($date)->dayOfWeek; // 0 (Sunday) to 6 (Saturday)
 
@@ -1794,11 +1797,15 @@ public function getCombinedAttendances(Request $request)
         ->where('end_date', '>=', $date)
         ->exists();
 
+ 
         $branchespluck = Branch::all()->keyBy('id');
-        $userspluck = User::all()->keyBy('id');
+         $excludedTypes = ['team', 'client', 'Agent'];
+        $userspluck = User::whereNotIn('type', $excludedTypes)->get()->keyBy('id');
+ 
         $regionspluck = Region::all()->keyBy('id');
 
         $excludedTypes = ['company', 'team', 'client', 'Agent'];
+        
 
         $employeesQuery = DB::table('users')
                     ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
@@ -1828,6 +1835,8 @@ public function getCombinedAttendances(Request $request)
 
         $total = $employeesQuery->count();
         $employees = $employeesQuery->get();
+        
+      
 
        
 
