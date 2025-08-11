@@ -1777,7 +1777,7 @@ public function getCombinedAttendances(Request $request)
 {
     try {
 
-       
+       // new attendance date handling
 
         if(!$request->date){
             $request->date = Carbon::now()->format('Y-m-d');
