@@ -40,33 +40,62 @@ class RegionController extends Controller
         $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
         $page = $request->input('page', 1);
 
-        // No need for query() here, just use the model's builder directly
-        $query = Region::with('manager','brand');
+        $query = Region::with('manager', 'brand');
 
-        if (\Auth::user()->type === 'company') {
-            $query->where('brands', \Auth::user()->id); 
-        } elseif (!in_array(\Auth::user()->type, ['super admin', 'Admin Team', 'HR'])) {
-            $query->whereIn('brands', array_keys(FiltersBrands()));
+        // Permission-based filtering
+        $user = Auth::user();
+        if ($user->type === 'company') {
+            $query->where('brand_id', $user->id);
+        } elseif (!in_array($user->type, ['super admin', 'Admin Team', 'HR'])) {
+            $query->whereIn('brand_id', array_keys(FiltersBrands()));
         }
 
+        // Search filter
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where('regions.name', 'like', "%$search%");
         }
 
-        $user = Auth::user();
-        if ($user->type === 'company') {
-            $query->where('brands', $user->id);
+        // Brand filter
+        if ($request->filled('brand_id')) {
+            $query->where('brand_id', $request->brand_id);
         }
 
-        if ($request->filled('brand_id')) {
-            $query->where('brands', $request->brand_id);
-        }
+        // Region filter
         if ($request->filled('region_id')) {
             $query->where('id', $request->region_id);
         }
 
+        // Total records before pagination
         $totalRecords = $query->count();
+
+        // CSV Download
+        if ($request->input('download_csv')) {
+            $data = $query->get()->toArray();
+            $filename = 'Attendance_' . now()->timestamp . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+            return response()->stream(function () use ($data) {
+                $f = fopen('php://output', 'w');
+                fputcsv($f, ['ID', 'Name', 'Email', 'Brand', 'Phone', 'Location', 'Region Manager']);
+                foreach ($data as $row) {
+                    fputcsv($f, [
+                        $row['id'],
+                        $row['name'],
+                        $row['email'] ?? '',
+                        isset($row['brand']['name']) ? $row['brand']['name'] : '',
+                        $row['phone'] ?? '',
+                        $row['location'] ?? '',
+                        isset($row['manager']['name']) ? $row['manager']['name'] : '',
+                    ]);
+                }
+                fclose($f);
+            }, 200, $headers);
+        }
+
+        // Pagination
         $regions = $query->orderBy('name', 'ASC')->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
