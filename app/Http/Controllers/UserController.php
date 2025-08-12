@@ -816,20 +816,16 @@ class UserController extends Controller
                 ];
                 return response()->stream(function () use ($data) {
                     $f = fopen('php://output', 'w');
-                    fputcsv($f, ['Employee ID', 'Employee Name', 'Date', 'Status', 'Clock In', 'Clock Out', 'Late', 'Early Leaving', 'Overtime']);
-                    foreach ($data as $row) {
-                        fputcsv($f, [
-                            $row['employee_id'],
-                            $row['employee_name'],
-                            $row['date'],
-                            $row['status'],
-                            $row['clock_in'],
-                            $row['clock_out'],
-                            $row['late'],
-                            $row['early_leaving'],
-                            $row['overtime'],
-                        ]);
-                    }
+                fputcsv($f, ['ID', 'Name', 'Website Link', 'Project Director', 'Email']);
+                foreach ($data as $row) {
+                    fputcsv($f, [
+                        $row['id'],
+                        $row['name'],
+                        $row['website_link'],
+                        $row['project_director'],
+                        $row['email'],
+                    ]);
+                }
                     fclose($f);
                 }, 200, $headers);
             } 
