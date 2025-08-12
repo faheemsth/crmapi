@@ -747,15 +747,25 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
 
-        $InternalEmployeeNotes = InternalEmployeeNotes::with('created_by')->with('lead_assigned_user')->where('lead_assigned_user', $request->id)
-            ->orderBy('id', 'desc')
-            ->get();
+        // Build query
+        $employeesQuery = InternalEmployeeNotes::with(['created_by', 'lead_assigned_user'])
+            ->where('lead_assigned_user', $request->id)
+            ->orderBy('id', 'desc');
+
+        // Paginate
+        $employees = $employeesQuery->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
-            'status' => 'success',
-            'data' => $InternalEmployeeNotes,
-        ]);
+            'status'        => 'success',
+            'data'          => $employees->items(),
+            'current_page'  => $employees->currentPage(),
+            'last_page'     => $employees->lastPage(),
+            'total_records' => $employees->total(),
+            'perPage'       => $employees->perPage()
+        ], 200);
     }
 
 
