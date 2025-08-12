@@ -42,7 +42,7 @@ class BranchController extends Controller
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
-            'brand' => 'nullable|integer',
+            'brand_id' => 'nullable|integer',
             'region_id' => 'nullable|integer',
             'branch_id' => 'nullable|integer',
         ]);
@@ -63,15 +63,13 @@ class BranchController extends Controller
             ], 403);
         }
 
-        // Pagination settings
         $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
         $page = $request->input('page', 1);
 
-        // Base query
         $branchQuery = Branch::select(['branches.*'])
             ->with(['region', 'brand', 'manager']);
 
-        // Apply search filter
+        // Search filter
         if ($request->filled('search')) {
             $search = $request->input('search');
             $branchQuery->where(function ($query) use ($search) {
@@ -86,27 +84,57 @@ class BranchController extends Controller
             });
         }
 
-        // Apply user role filters
+        // Role-based restrictions
         if ($user->type === 'company') {
-            $branchQuery->where('brands', $user->id);
+            $branchQuery->where('brand_id', $user->id);
         } elseif (!in_array($user->type, ['super admin', 'Admin Team', 'HR'])) {
             $brandIds = array_keys(FiltersBrands());
-            $branchQuery->whereIn('brands', $brandIds);
+            $branchQuery->whereIn('brand_id', $brandIds);
         }
 
         if ($user->type === 'Region Manager') {
             $branchQuery->where('region_id', $user->region_id);
         }
 
-        // Apply additional filters
+        // Additional filters
         if ($request->filled('brand_id')) {
-            $branchQuery->where('brands', $request->brand_id);
+            $branchQuery->where('brand_id', $request->brand_id);
         }
         if ($request->filled('region_id')) {
             $branchQuery->where('region_id', $request->region_id);
         }
+        if ($request->filled('branch_id')) {
+            $branchQuery->where('id', $request->branch_id);
+        }
 
-        // Fetch results
+        // CSV download
+        if ($request->input('download_csv')) {
+            $data = $branchQuery->get()->toArray();
+            $filename = 'Attendance_' . now()->timestamp . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+            return response()->stream(function () use ($data) {
+                $f = fopen('php://output', 'w');
+                fputcsv($f, ['ID', 'Name', 'Email', 'Brand', 'Region', 'Phone', 'Location', 'Branch Manager']);
+                foreach ($data as $row) {
+                    fputcsv($f, [
+                        $row['id'],
+                        $row['name'],
+                        $row['email'] ?? '',
+                        isset($row['brand']['name']) ? $row['brand']['name'] : '',
+                        isset($row['region']['name']) ? $row['region']['name'] : '',
+                        $row['phone'] ?? '',
+                        $row['location'] ?? '',
+                        isset($row['manager']['name']) ? $row['manager']['name'] : '',
+                    ]);
+                }
+                fclose($f);
+            }, 200, $headers);
+        }
+
+        // Pagination
         $totalRecords = $branchQuery->count();
         $branches = $branchQuery->orderBy('name', 'ASC')->paginate($perPage, ['*'], 'page', $page);
 
