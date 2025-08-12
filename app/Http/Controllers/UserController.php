@@ -807,6 +807,33 @@ class UserController extends Controller
                 $user_query->where('users.project_director_id', $request->get('director'));
             }
 
+            $data = $user_query->get()->toArray();
+            if ($request->input('download_csv')) {
+                $filename = 'Attendance_' . now()->timestamp . '.csv';
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                ];
+                return response()->stream(function () use ($data) {
+                    $f = fopen('php://output', 'w');
+                    fputcsv($f, ['Employee ID', 'Employee Name', 'Date', 'Status', 'Clock In', 'Clock Out', 'Late', 'Early Leaving', 'Overtime']);
+                    foreach ($data as $row) {
+                        fputcsv($f, [
+                            $row['employee_id'],
+                            $row['employee_name'],
+                            $row['date'],
+                            $row['status'],
+                            $row['clock_in'],
+                            $row['clock_out'],
+                            $row['late'],
+                            $row['early_leaving'],
+                            $row['overtime'],
+                        ]);
+                    }
+                    fclose($f);
+                }, 200, $headers);
+            } 
+
             $total_records = $user_query->count();
             $users = $user_query->orderBy('users.name', 'ASC')
                 ->paginate($num_results_on_page);
