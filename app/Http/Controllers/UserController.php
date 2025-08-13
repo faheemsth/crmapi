@@ -747,7 +747,7 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
-        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 10));
         $page = $request->input('page', 1);
 
         // Build query
