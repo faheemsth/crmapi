@@ -1158,7 +1158,7 @@ public function getemplyee_monthly_attandance(Request $request)
             ], 422);
         }
 
-        $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
+        $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 10));
         $page = $request->input('page', 1);
         $today = Carbon::today();
 
