@@ -62,6 +62,7 @@ use App\Http\Controllers\UniversityMetaController;
 use App\Http\Controllers\UniversityRankController;
 use App\Http\Controllers\UniversityRuleController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserReassignController;
 use App\Models\InterviewSchedule;
 use App\Models\JobCategory;
 use App\Models\TaskFile;
@@ -725,4 +726,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/DealTagPluck', [GeneralController::class, 'DealTagPluck']);
     Route::post('/DealStagPluck', [GeneralController::class, 'DealStagPluck']);
     Route::post('/ApplicationStagPluck', [GeneralController::class, 'ApplicationStagPluck']);
+
+    // User Reassign
+    
+    Route::post('/reassignUserData', [UserReassignController::class, 'reassignUserData']);
+    
 });

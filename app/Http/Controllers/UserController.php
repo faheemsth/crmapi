@@ -747,15 +747,25 @@ class UserController extends Controller
 
     public function HrmInternalEmployeeNoteGet(Request $request)
     {
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 10));
+        $page = $request->input('page', 1);
 
-        $InternalEmployeeNotes = InternalEmployeeNotes::with('created_by')->with('lead_assigned_user')->where('lead_assigned_user', $request->id)
-            ->orderBy('id', 'desc')
-            ->get();
+        // Build query
+        $employeesQuery = InternalEmployeeNotes::with(['created_by', 'lead_assigned_user'])
+            ->where('lead_assigned_user', $request->id)
+            ->orderBy('id', 'desc');
+
+        // Paginate
+        $employees = $employeesQuery->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
-            'status' => 'success',
-            'data' => $InternalEmployeeNotes,
-        ]);
+            'status'        => 'success',
+            'data'          => $employees->items(),
+            'current_page'  => $employees->currentPage(),
+            'last_page'     => $employees->lastPage(),
+            'total_records' => $employees->total(),
+            'perPage'       => $employees->perPage()
+        ], 200);
     }
 
 
@@ -806,6 +816,29 @@ class UserController extends Controller
             if ($request->filled('director')) {
                 $user_query->where('users.project_director_id', $request->get('director'));
             }
+
+            $data = $user_query->get()->toArray();
+            if ($request->input('download_csv')) {
+                $filename = 'Attendance_' . now()->timestamp . '.csv';
+                $headers = [
+                    'Content-Type' => 'text/csv',
+                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                ];
+                return response()->stream(function () use ($data) {
+                    $f = fopen('php://output', 'w');
+                fputcsv($f, ['ID', 'Name', 'Website Link', 'Project Director', 'Email']);
+                foreach ($data as $row) {
+                    fputcsv($f, [
+                        $row['id'],
+                        $row['name'],
+                        $row['website_link'],
+                        $row['project_director'],
+                        $row['email'],
+                    ]);
+                }
+                    fclose($f);
+                }, 200, $headers);
+            } 
 
             $total_records = $user_query->count();
             $users = $user_query->orderBy('users.name', 'ASC')

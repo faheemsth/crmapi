@@ -419,7 +419,7 @@ class LeaveController extends Controller
         $leave->updated_by = \Auth::user()->id;
 
         // If status is 'Approval', calculate total leave days and update status to 'Approved'
-        if ($request->status === 'Approval') {
+        if ($request->status === 'Approved') {
             $startDate = new \DateTime($leave->start_date);
             $endDate = new \DateTime($leave->end_date);
             $endDate->modify('+1 day');
