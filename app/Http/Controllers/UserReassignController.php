@@ -30,7 +30,7 @@ public function reassignUserData(Request $request)
         return response()->json([
             'status'  => 'error',
             'message' => $validator->errors()->first()
-        ], 422);
+        ], 200);
     }
 
     $params = $validator->validated();
@@ -44,7 +44,7 @@ public function reassignUserData(Request $request)
             return response()->json([
                 'status'  => 'error',
                 'message' => "Invalid update option: {$option}"
-            ], 422);
+            ], 200);
         }
     }
 
