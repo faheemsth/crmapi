@@ -17,8 +17,8 @@ public function reassignUserData(Request $request)
         'newUserId'   => 'required|integer|exists:users,id',
         'oldBranchId' => 'required|integer|exists:branches,id',
         'newBranchId' => 'required|integer|exists:branches,id',
-        'oldBrandId'  => 'required|integer|exists:brand,id',
-        'newBrandId'  => 'required|integer|exists:brand,id',
+        'oldBrandId'  => 'required|integer|exists:users,id',
+        'newBrandId'  => 'required|integer|exists:users,id',
         'oldRegionId' => 'required|integer|exists:regions,id',
         'newRegionId' => 'required|integer|exists:regions,id',
         'updateall'   => 'required|string'
