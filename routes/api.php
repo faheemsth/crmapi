@@ -50,6 +50,7 @@ use App\Http\Controllers\LoanController;
 use App\Http\Controllers\ModuleTypeController;
 use App\Http\Controllers\MoiAcceptedController;
 use App\Http\Controllers\PerformanceTypeController;
+use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PermissionTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\ReportsController;
@@ -644,6 +645,14 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getPermissionTypes', [PermissionTypeController::class, 'getPermissionTypes']);
      Route::post('/updatePermissionType', [PermissionTypeController::class, 'updatePermissionType']);
      Route::post('/deletePermissionType', [PermissionTypeController::class, 'deletePermissionType']);
+
+        //   PermissionType  
+     Route::post('/addPermission', [PermissionController::class, 'addPermission']);
+     Route::post('/getPermissionPluck', [PermissionController::class, 'getPermissionPluck']);
+     Route::get('/getPermissions', [PermissionController::class, 'getPermissions']);
+     Route::post('/updatePermission', [PermissionController::class, 'updatePermission']);
+     Route::post('/deletePermission', [PermissionController::class, 'deletePermission']);
+     Route::post('/allPermissions', [PermissionController::class, 'allPermissions']);
 
 
      //   Institute DocumentType

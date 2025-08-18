@@ -15,4 +15,8 @@ class PermissionType extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+    public function permissions()
+    {
+        return $this->hasMany(Permission::class);
+    }
 }

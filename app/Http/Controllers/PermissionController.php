@@ -2,17 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Permission;
-use App\Models\ModuleType;
-use App\Models\PermissionType;
+use App\Models\Permission; 
 use Illuminate\Http\Request;
+use App\Models\ModuleType;
 
 class PermissionController extends Controller
 {
+    public function allPermissions()
+{
+    $modules = ModuleType::with([
+        'permissions.permissionType'
+    ])->get();
+
+    $result = $modules->map(function ($module) {
+        return [
+            'moduleTypeName' => $module->name,
+            'permissionTypes' => $module->permissions
+                ->groupBy('permissionType.name')
+                ->map(function ($permissions, $permissionTypeName) {
+                    return [
+                        'name' => $permissionTypeName,
+                        'permissions' => $permissions->map(function ($permission) {
+                            return [
+                                'id' => $permission->id,
+                                'name' => $permission->name,
+                            ];
+                        })->values()
+                    ];
+                })->values()
+        ];
+    });
+
+    return response()->json($result);
+}
     public function getPermissionPluck(Request $request)
     {
-        $permissions = Permission::with(['moduleType', 'permissionType'])
-                        ->pluck('name', 'id')
+        $permissions = Permission::pluck('name', 'id')
                         ->toArray();
 
         return response()->json([
@@ -23,8 +48,7 @@ class PermissionController extends Controller
 
     public function getPermissions()
     {
-        $permissions = Permission::with([
-                            'created_by:id,name',
+        $permissions = Permission::with([ 
                             'moduleType:id,name',
                             'permissionType:id,name'
                         ])->get();
@@ -37,14 +61,19 @@ class PermissionController extends Controller
 
     public function addPermission(Request $request)
     {
-        $validator = \Validator::make(
-            $request->all(),
-            [
-                'name' => 'required|string',
-                'moduleTypeID' => 'required|exists:module_types,id',
-                'permissionTypeID' => 'required|exists:permission_types,id'
-            ]
-        );
+      $validator = \Validator::make(
+    $request->all(),
+    [
+        'name' => 'required|string|unique:permissions,name',
+        'module_type_id' => 'required|exists:module_types,id',
+        'permission_type_id' => 'required|exists:permission_types,id'
+    ],
+    [
+        'name.unique' => 'The permission name already exists.',
+        'module_type_id.exists' => 'The selected module type is invalid.',
+        'permission_type_id.exists' => 'The selected permission type is invalid.'
+    ]
+);
 
         if ($validator->fails()) {
             return response()->json([
@@ -54,10 +83,10 @@ class PermissionController extends Controller
         }
 
         $permission = Permission::create([
+            'guard_name' => 'web',
             'name' => $request->name,
-            'module_type_id' => $request->moduleTypeID,
-            'permission_type_id' => $request->permissionTypeID,
-            'created_by' => \Auth::id()
+            'module_type_id' => $request->module_type_id,
+            'permission_type_id' => $request->permission_type_id
         ]);
 
         addLogActivity([
@@ -85,8 +114,8 @@ class PermissionController extends Controller
             [
                 'id' => 'required|exists:permissions,id',
               //  'name' => 'required|string',
-                'moduleTypeID' => 'required|exists:module_types,id',
-                'permissionTypeID' => 'required|exists:permission_types,id'
+                'module_type_id' => 'required|exists:module_types,id',
+                'module_type_id' => 'required|exists:permission_types,id'
             ]
         );
 
@@ -110,9 +139,9 @@ class PermissionController extends Controller
 
         $permission->update([
          //   'name' => $request->name,
-            'module_type_id' => $request->moduleTypeID,
-            'permission_type_id' => $request->permissionTypeID,
-            'created_by' => \Auth::id()
+           
+            'module_type_id' => $request->module_type_id,
+            'permission_type_id' => $request->module_type_id
         ]);
 
         $changes = [];
