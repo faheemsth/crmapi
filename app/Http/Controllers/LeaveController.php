@@ -188,16 +188,16 @@ class LeaveController extends Controller
             'module_type' => 'leave',
             'notification_type' => 'leave created',
         ]);
-    addLogActivity([
-            'type' => 'success',
-              'note' => json_encode([
-                'title' => $leave->user->name. ' leave  created',
-                'message' => $leave->user->name. 'leave  created'
-            ]),
-              'module_id' => $leave->employee_id,
-            'module_type' => 'employeeprofile',
-            'notification_type' => 'leave created',
-        ]);
+        addLogActivity([
+                'type' => 'success',
+                'note' => json_encode([
+                    'title' => $leave->user->name. ' leave  created',
+                    'message' => $leave->user->name. 'leave  created'
+                ]),
+                'module_id' => $leave->employee_id,
+                'module_type' => 'employeeprofile',
+                'notification_type' => 'leave created',
+            ]);
 
         return response()->json([
             'status' => 'success',

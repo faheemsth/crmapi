@@ -47,6 +47,7 @@ use App\Http\Controllers\LoanOptionController;
 use App\Http\Controllers\OtherPaymentController;
 use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\LoanController;
+use App\Http\Controllers\ModuleTypeController;
 use App\Http\Controllers\MoiAcceptedController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\RegionController;
@@ -622,12 +623,19 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updateTag', [TagController::class, 'updateTag']);
      Route::post('/deleteTag', [TagController::class, 'deleteTag']);
 
-       //   Institute  
+       //   Designation  
      Route::post('/addDesignation', [DesignationController::class, 'addDesignation']);
      Route::post('/getDesignationPluck', [DesignationController::class, 'getDesignationPluck']);
      Route::get('/getDesignations', [DesignationController::class, 'getDesignations']);
      Route::post('/updateDesignation', [DesignationController::class, 'updateDesignation']);
      Route::post('/deleteDesignation', [DesignationController::class, 'deleteDesignation']);
+
+           //   Moduletype  
+     Route::post('/addModuleType', [ModuleTypeController::class, 'addModuleType']);
+     Route::post('/getModuleTypePluck', [ModuleTypeController::class, 'getModuleTypePluck']);
+     Route::get('/getModuleTypes', [ModuleTypeController::class, 'getModuleTypes']);
+     Route::post('/updateModuleType', [ModuleTypeController::class, 'updateModuleType']);
+     Route::post('/deleteModuleType', [ModuleTypeController::class, 'deleteModuleType']);
 
 
      //   Institute DocumentType
