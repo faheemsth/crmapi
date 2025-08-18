@@ -11,7 +11,7 @@ class UserReassignController extends Controller
 {
 public function reassignUserData(Request $request)
 {
-    // First validate that `updateall` is a string and not empty
+    // First validate that `update_all` is a string and not empty
     $validator = Validator::make($request->all(), [
         'oldUserId'   => 'required|integer|exists:users,id',
         'newUserId'   => 'required|integer|exists:users,id',
@@ -21,7 +21,7 @@ public function reassignUserData(Request $request)
         'newBrandId'  => 'required|integer|exists:users,id',
         'oldRegionId' => 'required|integer|exists:regions,id',
         'newRegionId' => 'required|integer|exists:regions,id',
-        'updateall'   => 'required|string'
+        'update_all'   => 'required|string'
     ], [
         'exists' => 'The selected :attribute does not exist in the database.'
     ]);
@@ -37,7 +37,7 @@ public function reassignUserData(Request $request)
 
     // Convert to array and validate choices
     $allowed = ['all update', 'deal_tasks', 'leads', 'deals'];
-    $selected = array_map('trim', explode(',', $params['updateall']));
+    $selected = array_map('trim', explode(',', $params['update_all']));
 
     foreach ($selected as $option) {
         if (!in_array($option, $allowed)) {
