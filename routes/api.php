@@ -33,6 +33,7 @@ use App\Http\Controllers\TrainingTypeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DocumentTypeController;
+use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\GoalTrackingController;
 use App\Http\Controllers\GoalTypeController;
 use App\Http\Controllers\HolidayController;
@@ -654,6 +655,13 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updatePermission', [PermissionController::class, 'updatePermission']);
      Route::post('/deletePermission', [PermissionController::class, 'deletePermission']);
      Route::post('/allPermissions', [PermissionController::class, 'allPermissions']);
+        //    EmailT emplate  
+     Route::post('/addEmailTemplate', [EmailTemplateController::class, 'addEmailTemplate']);
+     Route::post('/getEmailTemplatePluck', [EmailTemplateController::class, 'getEmailTemplatePluck']);
+     Route::get('/getEmailTemplates', [EmailTemplateController::class, 'getEmailTemplates']);
+     Route::post('/updateEmailTemplate', [EmailTemplateController::class, 'updateEmailTemplate']);
+     Route::post('/deleteEmailTemplate', [EmailTemplateController::class, 'deleteEmailTemplate']); 
+
         //    Role  
      Route::post('/getRoleDetail', [RoleController::class, 'getRoleDetail']);
      Route::post('/addRole', [RoleController::class, 'addRole']);

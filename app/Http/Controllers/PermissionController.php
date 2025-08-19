@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Permission; 
 use Illuminate\Http\Request;
 use App\Models\ModuleType;
+use Spatie\Permission\Models\Role;
 
 class PermissionController extends Controller
 {
@@ -89,6 +90,9 @@ class PermissionController extends Controller
             'permission_type_id' => $request->permission_type_id
         ]);
 
+                $r          = Role::where('id', '=', 1)->firstOrFail();
+                
+                $r->givePermissionTo($permission);
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([

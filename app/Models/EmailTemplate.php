@@ -16,4 +16,8 @@ class EmailTemplate extends Model
     {
         return $this->hasOne('App\Models\UserEmailTemplate', 'template_id', 'id')->where('user_id', '=', \Auth::user()->id);
     }
+      public function created_by()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }
