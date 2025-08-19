@@ -141,7 +141,7 @@ class PermissionController extends Controller
          //   'name' => $request->name,
            
             'module_type_id' => $request->module_type_id,
-            'permission_type_id' => $request->module_type_id
+            'permission_type_id' => $request->permission_type_id
         ]);
 
         $changes = [];
