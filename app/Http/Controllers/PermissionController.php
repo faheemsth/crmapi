@@ -115,7 +115,7 @@ class PermissionController extends Controller
                 'id' => 'required|exists:permissions,id',
               //  'name' => 'required|string',
                 'module_type_id' => 'required|exists:module_types,id',
-                'module_type_id' => 'required|exists:permission_types,id'
+                'permission_type_id' => 'required|exists:permission_types,id'
             ]
         );
 
