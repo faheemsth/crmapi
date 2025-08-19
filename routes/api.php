@@ -54,6 +54,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PermissionTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TerminationTypeController;
@@ -653,6 +654,11 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updatePermission', [PermissionController::class, 'updatePermission']);
      Route::post('/deletePermission', [PermissionController::class, 'deletePermission']);
      Route::post('/allPermissions', [PermissionController::class, 'allPermissions']);
+        //    Role  
+     Route::post('/getRoleDetail', [RoleController::class, 'getRoleDetail']);
+     Route::post('/addRole', [RoleController::class, 'addRole']);
+     Route::post('/updateRole', [RoleController::class, 'updateRole']);
+     Route::post('/getRoles', [RoleController::class, 'getRoles']);
 
 
      //   Institute DocumentType
