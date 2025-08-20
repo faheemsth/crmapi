@@ -1143,4 +1143,18 @@ public function GetBranchByType()
             'data' => $tags
         ]);
     }
+   public function getemailTagstype(Request $request)
+{
+    $tags = DB::table('email_tags')
+        ->where('type', '!=', 'universal')
+        ->distinct()
+        ->pluck('type'); // returns a flat array like ["employee", "leave", "attendance"]
+
+    return response()->json([
+        'success' => true,
+        'data' => $tags
+    ]);
+}
+
+
 }

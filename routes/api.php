@@ -757,6 +757,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/DealStagPluck', [GeneralController::class, 'DealStagPluck']);
     Route::post('/ApplicationStagPluck', [GeneralController::class, 'ApplicationStagPluck']);
     Route::post('/getemailTags', [GeneralController::class, 'getemailTags']);
+    Route::post('/getemailTagstype', [GeneralController::class, 'getemailTagstype']);
 
     // User Reassign
     
