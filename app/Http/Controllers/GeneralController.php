@@ -1128,4 +1128,19 @@ public function GetBranchByType()
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         return $finfo->buffer($binaryData);
     }
+
+     public function getemailTags(Request $request)
+    {
+        $type = $request->type;
+
+        $tags = DB::table('email_tags')
+            ->where('type', 'universal')
+            ->orWhere('type', $type)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $tags
+        ]);
+    }
 }
