@@ -1343,8 +1343,7 @@ public function getemplyee_monthly_attandance(Request $request)
 
 
 
-
-public function getCombinedAttendances(Request $request)
+ public function getCombinedAttendances(Request $request)
 {
     try {
         if (!Auth::user()->can('manage attendance')) {
@@ -1425,9 +1424,6 @@ public function getCombinedAttendances(Request $request)
                         $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
                     }
                 });
-            })
-            ->when($request->filled('status'), function ($q) use ($request) {
-                $q->having('status', '=', $request->status);
             });
 
         // Get total before pagination
@@ -1438,6 +1434,11 @@ public function getCombinedAttendances(Request $request)
             CASE WHEN attendances.id IS NULL THEN 2 ELSE 1 END ASC,
             attendances.id DESC
         ");
+
+        // Apply status filter after ordering
+        if ($request->filled('status')) {
+            $employeesQuery->having('status', '=', $request->status);
+        }
 
         // If CSV download requested, get all records without pagination
         if ($request->input('download_csv')) {
@@ -1501,18 +1502,41 @@ public function getCombinedAttendances(Request $request)
             }, 200, $headers);
         }
 
-         // Clone query before pagination for counts
-           $countsQuery = clone $employeesQuery;
+        // Clone query before pagination for counts - FIXED VERSION
+        $countsQuery = DB::table('users')
+            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+            ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+                $join->on('attendances.employee_id', '=', 'users.id')
+                     ->where('attendances.date', '=', $date);
+            })
+            ->whereNotIn('users.type', $excludedTypes)
+            ->where('users.is_attendance_required', 1)
+            ->when($request->filled('search'), fn($q) =>
+                $q->where('users.name', 'like', '%' . $request->search . '%'))
+            ->when($request->filled('emp_id'), fn($q) =>
+                $q->where('users.id', $request->emp_id))
+            ->when($request->filled('brand_id'), fn($q) =>
+                $q->where('users.brand_id', $request->brand_id))
+            ->when($request->filled('region_id'), fn($q) =>
+                $q->where('users.region_id', $request->region_id))
+            ->when($request->filled('branch_id'), fn($q) =>
+                $q->where('users.branch_id', $request->branch_id))
+            ->when(!empty($tagIds), function ($q) use ($tagIds) {
+                $q->where(function ($sub) use ($tagIds) {
+                    foreach ($tagIds as $tagId) {
+                        $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+                    }
+                });
+            });
 
-            // Reset the original select
-            $countsQuery->columns = [];
-
-            $statusCounts = $countsQuery->select(
-                DB::raw("SUM(CASE WHEN status = 'Absent' or status = 'Not Marked' THEN 1 ELSE 0 END) as `Absent`"),
-                DB::raw("SUM(CASE WHEN status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
-                DB::raw("SUM(CASE WHEN status = 'Early Clock Out' THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
-                DB::raw("SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as `Present`")
-            )->first();
+        $statusCounts = $countsQuery->select(
+            DB::raw("SUM(CASE WHEN attendances.id IS NULL THEN 1 ELSE 0 END) as `Absent`"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as `Present`")
+        )->first();
 
         // Regular paginated response
         $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
@@ -1559,8 +1583,6 @@ public function getCombinedAttendances(Request $request)
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
 }
-
-
 
 
         public function getCronAttendances_OLD_WORKING_FINE(Request $request)
