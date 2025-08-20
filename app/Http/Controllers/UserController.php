@@ -283,6 +283,18 @@ class UserController extends Controller
         } else {
             $employeesQuery->where('id', $user->id);
         }
+
+          // Clone query before pagination for counts
+           $countsQuery = clone $employeesQuery;
+
+// Reset the original select
+$countsQuery->getQuery()->columns = [];
+
+$statusCounts = $countsQuery->select(
+    DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
+    DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
+    DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
+)->first();
         //  dd($request->input('download_csv'));
         // Check if CSV download is requested
         if ($request->input('download_csv')) {
@@ -346,7 +358,8 @@ class UserController extends Controller
             'current_page' => $employees->currentPage(),
             'last_page' => $employees->lastPage(),
             'total_records' => $employees->total(),
-            'perPage' => $employees->perPage()
+            'perPage' => $employees->perPage(),
+            'count_summary' =>$statusCounts
         ], 200);
     }
 

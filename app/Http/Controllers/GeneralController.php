@@ -1156,5 +1156,100 @@ public function GetBranchByType()
     ]);
 }
 
+ public function totalSummary(Request $request)
+    {
+
+         $validator = Validator::make($request->all(), [ 
+                'user_id' => 'required|exists:users,id', 
+                'type' => 'required|string|in:week,month', 
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $validator->errors()
+                ], 422);
+            }
+
+            $employeeId = $request->input('user_id');
+            $type = $request->input('type', 'week');
+
+        if (!$employeeId) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Employee not found.'
+            ], 404);
+        }
+
+        $query = DB::table('attendance_employees')
+            ->where('employee_id', $employeeId);
+
+        // Filter by date range
+        if ($type === 'week') {
+            $query->whereBetween('date', [
+                now()->startOfWeek()->toDateString(),
+                now()->endOfWeek()->toDateString()
+            ]);
+        } elseif ($type === 'month') {
+            $query->whereYear('date', now()->year)
+                ->whereMonth('date', now()->month);
+        }
+
+        $records = $query->get();
+
+        // Status counts
+        $present = $records->where('status', 'Present')->count();
+        $absent = $records->where('status', 'Absent')->count();
+        $leave = $records->where('status', 'Leave')->count();
+        $holiday = $records->where('status', 'Holiday')->count();
+        $on_time_rate = $records->filter(function ($record) {
+            return $record->status === 'Present' &&
+                $record->clock_in &&
+                $record->shift_start &&
+                strtotime($record->clock_in) <= strtotime($record->shift_start);
+        })->count();
+        $total = $records->count();
+
+        // Working days = All except holidays
+        $workingDays = $present + $absent + $leave;
+
+        // Total working time in seconds (only for Present days)
+        $totalSeconds = 0;
+        foreach ($records as $record) {
+            if ($record->status === 'Present' && $record->clock_in && $record->clock_out) {
+                $clockIn = strtotime($record->clock_in);
+                $clockOut = strtotime($record->clock_out);
+                $diff = $clockOut - $clockIn;
+
+                if ($diff > 0) {
+                    $totalSeconds += $diff;
+                }
+            }
+        }
+
+        // Total working hours (HH:MM)
+        $totalHours = floor($totalSeconds / 3600);
+        $totalMinutes = floor(($totalSeconds % 3600) / 60);
+        $totalWorking = sprintf('%02d:%02d', $totalHours, $totalMinutes);
+
+        // Average working time = totalSeconds / workingDays
+        $avgSeconds = $workingDays > 0 ? intval($totalSeconds / $workingDays) : 0;
+        $avgHours = floor($avgSeconds / 3600);
+        $avgMinutes = floor(($avgSeconds % 3600) / 60);
+        $avgWorking = sprintf('%02d:%02d', $avgHours, $avgMinutes);
+
+        return response()->json([
+            'present' => $present,
+            'absent' => $absent,
+            'leave' => $leave,
+            'holiday' => $holiday,
+            'total_days' => $total,
+            'working_days' => $workingDays,
+            'total_working_hours' => $totalWorking,
+            'average_working_hours' => $avgWorking,
+            'on_time_rate' => $present > 0 ? round(($on_time_rate / $present) * 100, 2) : 0,
+        ]);
+    }
+
 
 }
