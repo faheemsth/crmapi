@@ -88,7 +88,7 @@ class EmailTemplateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Permission denied.'
-            ], 403);
+            ], 200);
         }
 
         $validator = \Validator::make(
@@ -105,7 +105,7 @@ class EmailTemplateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()
-            ], 422);
+            ], 200);
         }
 
         $emailTemplate = new EmailTemplate();
@@ -132,7 +132,7 @@ class EmailTemplateController extends Controller
             'status' => 'success',
             'message' => __('Email template successfully created.'),
             'data' => $emailTemplate
-        ], 201);
+        ], 200);
     }
 
     public function updateEmailTemplate(Request $request)
@@ -141,7 +141,7 @@ class EmailTemplateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Permission denied.'
-            ], 403);
+            ], 200);
         }
 
         $validator = \Validator::make(
@@ -159,7 +159,7 @@ class EmailTemplateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()
-            ], 422);
+            ], 200);
         }
 
         $emailTemplate = EmailTemplate::find($request->id);
@@ -209,7 +209,7 @@ class EmailTemplateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Permission denied.'
-            ], 403);
+            ], 200);
         }
 
         $validator = \Validator::make(
@@ -223,7 +223,7 @@ class EmailTemplateController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()->first()
-            ], 422);
+            ], 200);
         }
 
         $emailTemplate = EmailTemplate::find($request->id);
