@@ -1501,6 +1501,19 @@ public function getCombinedAttendances(Request $request)
             }, 200, $headers);
         }
 
+         // Clone query before pagination for counts
+           $countsQuery = clone $employeesQuery;
+
+            // Reset the original select
+            $countsQuery->columns = [];
+
+            $statusCounts = $countsQuery->select(
+                DB::raw("SUM(CASE WHEN status = 'Absent' or status = 'Not Marked' THEN 1 ELSE 0 END) as `Absent`"),
+                DB::raw("SUM(CASE WHEN status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
+                DB::raw("SUM(CASE WHEN status = 'Early Clock Out' THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
+                DB::raw("SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END) as `Present`")
+            )->first();
+
         // Regular paginated response
         $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
             $clockIn = $row->clock_in ?? '00:00:00';
@@ -1540,6 +1553,7 @@ public function getCombinedAttendances(Request $request)
             'last_page' => ceil($total / $perPage),
             'total_records' => $total,
             'perPage' => (int) $perPage,
+            'count_summary' => $statusCounts,
         ]);
     } catch (\Exception $e) {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);

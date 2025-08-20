@@ -287,14 +287,14 @@ class UserController extends Controller
           // Clone query before pagination for counts
            $countsQuery = clone $employeesQuery;
 
-// Reset the original select
-$countsQuery->getQuery()->columns = [];
+            // Reset the original select
+            $countsQuery->getQuery()->columns = [];
 
-$statusCounts = $countsQuery->select(
-    DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
-    DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
-    DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
-)->first();
+            $statusCounts = $countsQuery->select(
+                DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
+                DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
+                DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
+            )->first();
         //  dd($request->input('download_csv'));
         // Check if CSV download is requested
         if ($request->input('download_csv')) {
@@ -1477,7 +1477,7 @@ $statusCounts = $countsQuery->select(
 
         // Log updated fields
               //  ========== add ============ 
-                $typeoflog = 'employee document';
+                $typeoflog = $employeeDocument->description;
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
@@ -1539,6 +1539,7 @@ $statusCounts = $countsQuery->select(
             ], 404);
         }
         $user = User::find($EmployeeDocument->employee_id);
+          $typeoflog = $EmployeeDocument->description;
         $EmployeeDocument->delete();
 
 
@@ -1548,7 +1549,7 @@ $statusCounts = $countsQuery->select(
 
         // Log updated fields
               //  ========== add ============ 
-                $typeoflog = 'employee document';
+              
                 addLogActivity([
                     'type' => 'warning',
                     'note' => json_encode([
