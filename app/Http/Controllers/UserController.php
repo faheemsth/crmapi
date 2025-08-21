@@ -1158,6 +1158,18 @@ class UserController extends Controller
                     'message' => __('Brand not found.')
                 ], 404);
             }
+ // Find user
+             $regions = Region::where('brands', $user->id)->count();
+
+            if ($regions) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => __("there are ($regions) regions found. Brand cannot be deleted as it is associated with regions.")
+                ], 404);
+            }
+
+
+             
 
             //    =================== delete ===========
 

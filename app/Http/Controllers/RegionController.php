@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Region;
+use App\Models\Branch;
 use App\Models\SavedFilter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -274,6 +275,17 @@ class RegionController extends Controller
 
         $region = Region::findOrFail($request->id);
 
+         
+        // Find user
+                    $branches = Branch::where('region_id', $region->id)->count();
+
+                    if ($branches) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => __("there are ($branches) branches found. Region cannot be deleted as it is associated with branches.")
+                        ], 404);
+                    }
+            dd($branches);
         
         //    =================== delete ===========
  

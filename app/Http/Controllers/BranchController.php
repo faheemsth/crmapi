@@ -354,6 +354,17 @@ class BranchController extends Controller
         $branch = Branch::find($request->id);
 
 
+         // Find user
+             $employees = User::where('branch_id', $branch->id)->count();
+
+            if ($employees) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => __("there are ($employees) employees found. Branch cannot be deleted as it is associated with employees.")
+                ], 404);
+            }
+             
+
         
             $typeoflog = 'branch';
                 addLogActivity([

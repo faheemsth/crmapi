@@ -28,6 +28,82 @@ if (!function_exists('countries')) {
     }
 }
 
+  function checkUserAssociationsBeforeDelete($userId)
+    {
+        if (empty($userId)) {
+            return "Error: User ID is required.";
+        }
+
+        $tableLabels = [
+            'deal_tasks' => 'Tasks',
+            'leads' => 'Leads',
+            'deals' => 'Admissions and Applications',
+        ];
+
+        $tables = [
+            'deal_tasks' => ['created_by', 'assigned_to'],
+            'leads' => ['user_id', 'created_by'],
+            'deals' => ['created_by', 'assigned_to'],
+        ];
+
+        $user = \Auth::user(); // Fetch authenticated user
+        $filtersBrands = array_keys(FiltersBrands()); // Get filters for brands
+
+        // Fetch associated tables with record counts
+        $associatedTables = collect($tables)->mapWithKeys(function ($columns, $table) use ($userId, $user, $filtersBrands) {
+            $count = \DB::table($table)
+                ->where(function ($query) use ($columns, $userId, $user, $filtersBrands, $table) {
+                    // Check for user association in the specified columns
+                    foreach ($columns as $column) {
+                        $query->orWhere($column, $userId);
+                    }
+
+                    // Apply filtering logic based on user roles
+                    if ($user->type !== 'HR') {
+                        if ($user->type === 'super admin' || $user->can('level 1')) {
+                            $filtersBrands[] = '3751';
+                            $query->whereIn("$table.brand_id", $filtersBrands);
+                        } elseif ($user->type === 'company') {
+                            $query->where("$table.brand_id", $user->id);
+                        } elseif (in_array($user->type, ['Project Director', 'Project Manager']) || $user->can('level 2')) {
+                            $query->whereIn("$table.brand_id", $filtersBrands);
+                        } elseif ($user->type === 'Region Manager' || ($user->can('level 3') && !empty($user->region_id))) {
+                            $query->where("$table.region_id", $user->region_id);
+                        } elseif (
+                            in_array($user->type, [
+                                'Branch Manager',
+                                'Admissions Officer',
+                                'Careers Consultant',
+                                'Admissions Manager',
+                                'Marketing Officer',
+                            ]) || ($user->can('level 4') && !empty($user->branch_id))
+                        ) {
+                            $query->where("$table.branch_id", $user->branch_id);
+                        } elseif ($user->type === 'Agent') {
+                            $query->where("$table.assigned_to", $user->id)
+                                ->orWhere("$table.created_by", $user->id);
+                        } else {
+                            $query->where("$table.branch_id", $user->branch_id);
+                        }
+                    }
+                })->count();
+
+            return $count > 0 ? [$table => $count] : [];
+        });
+
+        if ($associatedTables->isNotEmpty()) {
+            // Map to user-friendly labels with counts
+            $associatedMessages = $associatedTables->map(function ($count, $table) use ($tableLabels) {
+                $label = $tableLabels[$table] ?? $table; // Default to table name if no label exists
+                return "$label ($count record(s))";
+            });
+
+            return "User is associated with the following: " . $associatedMessages->join(', ') . ". Please remove these associations before deleting the user.";
+        }
+
+        return null;
+    }
+
 function encryptData($data, $key = "mysecretkey1234567890123456") {
     $cipher = "AES-256-CBC";
     $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length($cipher));
