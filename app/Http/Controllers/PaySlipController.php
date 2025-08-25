@@ -78,6 +78,45 @@ class PaySlipController extends Controller
             }
 
             //
+
+
+            if ($request->input('download_csv')) {
+                    $pay_slips = $jobsQuery->get(); // Fetch all records without pagination
+                    $csvFileName = 'pay_slips_' . time() . '.csv';
+                    $headers = [
+                        'Content-Type' => 'text/csv',
+                        'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+                    ];
+                    $callback = function () use ($pay_slips) {
+                        $file = fopen('php://output', 'w');
+                        fputcsv($file, [
+                            'ID',
+                            'Name',
+                            'Email',
+                            'Phone',
+                            'Brand',
+                            'Branch',
+                            'Designation',
+                            'Status',
+                            'Last Login'
+                        ]);
+                        foreach ($pay_slips as $pay_slip) {
+                            fputcsv($file, [
+                                $pay_slip->id,
+                                $pay_slip->name,
+                                $pay_slip->email,
+                                $pay_slip->phone,
+                                $pay_slip->brand->name ?? '',
+                                $pay_slip->branch->name ?? '',
+                                $pay_slip->type,
+                                $pay_slip->is_active == 1 ? 'Active' : 'Inactive',
+                                $pay_slip->last_login_at,
+                            ]);
+                        }
+                        fclose($file);
+                    };
+                    return response()->stream($callback, 200, $headers);
+                }
             $payslips = $jobsQuery
             ->orderBy('pay_slips.created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
