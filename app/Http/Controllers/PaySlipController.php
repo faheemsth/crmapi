@@ -88,27 +88,19 @@ class PaySlipController extends Controller
                     $callback = function () use ($pay_slips) {
                         $file = fopen('php://output', 'w');
                         fputcsv($file, [
-                            'ID',
+                            'Basic Salary',
                             'Name',
-                            'Email',
-                            'Phone',
-                            'Brand',
-                            'Branch',
-                            'Designation',
-                            'Status',
-                            'Last Login'
+                            'Net Salary',
+                            'Salary Month',
+                            'User Role',
                         ]);
                         foreach ($pay_slips as $pay_slip) {
                             fputcsv($file, [
-                                $pay_slip->id,
+                                $pay_slip->basic_salary,
                                 $pay_slip->name,
-                                $pay_slip->email,
-                                $pay_slip->phone,
-                                $pay_slip->brand->name ?? '',
-                                $pay_slip->branch->name ?? '',
-                                $pay_slip->type,
-                                $pay_slip->is_active == 1 ? 'Active' : 'Inactive',
-                                $pay_slip->last_login_at,
+                                $pay_slip->net_salary,
+                                $pay_slip->salary_month,
+                                $pay_slip->user_role,
                             ]);
                         }
                         fclose($file);
