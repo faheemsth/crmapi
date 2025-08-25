@@ -29,7 +29,8 @@ class PaySlipController extends Controller
             'brand.name as brandname',   // Renamed for better readability
             'brand.avatar as avatar',   // Renamed for better readability
             'regions.name as regionname', // Renamed for better readability
-            'branches.name as branchname' // Renamed for better readability
+            'branches.name as branchname', // Renamed for better readability
+            'employees.name as username'
         )
         ->with([
             'employees',
@@ -88,19 +89,21 @@ class PaySlipController extends Controller
                     $callback = function () use ($pay_slips) {
                         $file = fopen('php://output', 'w');
                         fputcsv($file, [
-                            'Basic Salary',
-                            'Name',
-                            'Net Salary',
+                            'Brand',
+                            'Region',
+                            'Branch',
+                            'User',
                             'Salary Month',
-                            'User Role',
+                            'Basic Salary'
                         ]);
                         foreach ($pay_slips as $pay_slip) {
                             fputcsv($file, [
-                                $pay_slip->basic_salary,
-                                $pay_slip->name,
-                                $pay_slip->net_salary,
+                                $pay_slip->brandname,
+                                $pay_slip->regionname,
+                                $pay_slip->branchname,
+                                $pay_slip->username,
                                 $pay_slip->salary_month,
-                                $pay_slip->user_role,
+                                $pay_slip->basic_salary,
                             ]);
                         }
                         fclose($file);
