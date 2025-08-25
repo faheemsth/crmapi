@@ -335,19 +335,21 @@ class PaySlipController extends Controller
 
     private function getExistingPayslips($formattedMonthYear, $singleUserID = 0)
     {
-            // If a single user ID is provided, filter by that user
-            if ($singleUserID != 0) {
-                
-                return PaySlip::where('salary_month', $formattedMonthYear) 
-                    ->where('employee_id', $singleUserID)
-                    ->pluck('employee_id');
-            } else {
-            return PaySlip::where('salary_month', $formattedMonthYear)
-                            ->where('brand_id',request('brand_id'))
-                            ->where('region_id',request('region_id'))
-                            ->where('branch_id',request('branch_id'))
-                            ->pluck('employee_id');
+        $query = PaySlip::where('salary_month', $formattedMonthYear);
+
+        // Always filter by brand/region/branch for consistency
+        if (request()->has(['brand_id', 'region_id', 'branch_id'])) {
+            $query->where('brand_id', request('brand_id'))
+                ->where('region_id', request('region_id'))
+                ->where('branch_id', request('branch_id'));
         }
+
+        // If a single user ID is provided, filter by that user as well
+        if ($singleUserID != 0) {
+            $query->where('employee_id', $singleUserID);
+        }
+
+        return $query->pluck('employee_id');
     }
 
     // private function getEligibleEmployees($formattedMonthYear, $existingPayslips)
