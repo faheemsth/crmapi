@@ -79,13 +79,14 @@ class PaySlipController extends Controller
             }
 
 
-            if ($request->input('download_csv')) {
-                    $pay_slips = $jobsQuery->get(); // Fetch all records without pagination
+                if ($request->input('download_csv')) {
+                    $pay_slips = $jobsQuery->get();
                     $csvFileName = 'pay_slips_' . time() . '.csv';
                     $headers = [
                         'Content-Type' => 'text/csv',
                         'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
                     ];
+
                     $callback = function () use ($pay_slips) {
                         $file = fopen('php://output', 'w');
                         fputcsv($file, [
@@ -108,27 +109,24 @@ class PaySlipController extends Controller
                         }
                         fclose($file);
                     };
+
                     return response()->stream($callback, 200, $headers);
                 }
-            $payslips = $jobsQuery
-            ->orderBy('pay_slips.created_at', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
+                // Pagination
+                $payslips = $jobsQuery
+                    ->orderBy('pay_slips.created_at', 'desc')
+                    ->paginate($perPage, ['*'], 'page', $page);
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $payslips->items(),
-                'baseurl' => asset('/'),
-                'current_page' => $payslips->currentPage(),
-                'last_page' => $payslips->lastPage(),
-                'total_records' => $payslips->total(),
-                'per_page' => $payslips->perPage(),
-                'message' => __('Payslips retrieved successfully'),
-            ]);
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $payslips,
-        ], 201);
+                return response()->json([
+                    'status' => 'success',
+                    'data' => $payslips->items(),
+                    'baseurl' => asset('/'),
+                    'current_page' => $payslips->currentPage(),
+                    'last_page' => $payslips->lastPage(),
+                    'total_records' => $payslips->total(),
+                    'per_page' => $payslips->perPage(),
+                    'message' => __('Payslips retrieved successfully'),
+                ]);
     }
 
     // public function store(Request $request)
