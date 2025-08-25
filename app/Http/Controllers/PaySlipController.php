@@ -99,6 +99,62 @@ class PaySlipController extends Controller
         ], 201);
     }
 
+    // public function store(Request $request)
+    // {
+    //     // Check user permissions
+    //     if (!$this->canManagePaySlips()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => __('Permission denied.')
+    //         ], 403);
+    //     }
+
+    //     // Validate request input
+    //     $validator = Validator::make($request->all(), [
+    //         'month' => 'required|string|size:2|in:' . implode(',', array_keys($this->getMonths())),
+    //         'year' => 'required|string|size:4|regex:/^\d{4}$/',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return $this->errorResponse($validator->errors()->first(), 422);
+    //     }
+
+    //     $formattedMonthYear = $request->year . '-' . $request->month;
+    //     if($request->singleUserID){
+    //         $employeeID = User::findOrFail($request->singleUserID)->employee->id;
+    //     }else{
+    //         $employeeID = 0;
+    //     }
+        
+        
+    //     // Check for existing payslips
+    //     $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID);
+
+      
+
+    //     // Get eligible employees
+    //     $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
+
+          
+    //     if ($eligibleEmployees->isEmpty()) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => __('Payslips have already been created.')
+    //         ], 400);
+    //     }
+
+    //     // Generate payslips and send notifications
+    //     $this->generatePayslips($eligibleEmployees, $formattedMonthYear);
+    //     $this->sendNotifications($formattedMonthYear);
+
+    //     // Fetch and return generated payslips
+    //     $payslips = $this->fetchPayslips($formattedMonthYear);
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => __('Payslips successfully created.'),
+    //         'data' => $payslips,
+    //     ], 201);
+    // }
     public function store(Request $request)
     {
         // Check user permissions
@@ -113,6 +169,9 @@ class PaySlipController extends Controller
         $validator = Validator::make($request->all(), [
             'month' => 'required|string|size:2|in:' . implode(',', array_keys($this->getMonths())),
             'year' => 'required|string|size:4|regex:/^\d{4}$/',
+            'brand_id' => 'required|exists:users,id',
+            'region_id' => 'required|exists:regions,id',
+            'branch_id' => 'required|exists:branches,id',
         ]);
 
         if ($validator->fails()) {
@@ -128,12 +187,12 @@ class PaySlipController extends Controller
         
         
         // Check for existing payslips
-        $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID);
+        $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID,$request->input('singleUserID', 0),$request->input('brand_id', 0),$request->input('region_id', 0),$request->input('branch_id', 0));
 
       
 
         // Get eligible employees
-        $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
+        $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0),$request->input('brand_id', 0),$request->input('region_id', 0),$request->input('branch_id', 0));
 
           
         if ($eligibleEmployees->isEmpty()) {
@@ -144,7 +203,7 @@ class PaySlipController extends Controller
         }
 
         // Generate payslips and send notifications
-        $this->generatePayslips($eligibleEmployees, $formattedMonthYear);
+        $this->generatePayslips($eligibleEmployees, $formattedMonthYear,$request->input('brand_id', 0),$request->input('region_id', 0),$request->input('branch_id', 0));
         $this->sendNotifications($formattedMonthYear);
 
         // Fetch and return generated payslips
@@ -283,8 +342,11 @@ class PaySlipController extends Controller
                     ->where('employee_id', $singleUserID)
                     ->pluck('employee_id');
             } else {
-            return PaySlip::where('salary_month', $formattedMonthYear) 
-                ->pluck('employee_id');
+            return PaySlip::where('salary_month', $formattedMonthYear)
+                            ->where('brand_id',request('brand_id'))
+                            ->where('region_id',request('region_id'))
+                            ->where('branch_id',request('branch_id'))
+                            ->pluck('employee_id');
         }
     }
 
@@ -305,8 +367,8 @@ class PaySlipController extends Controller
     $usersQuery = User::whereNotIn('type', $excludedTypes);
 
     // Apply filters from request
-    if (!empty(request('brand'))) {
-        $usersQuery->where('brand_id', request('brand'));
+    if (!empty(request('brand_id'))) {
+        $usersQuery->where('brand_id', request('brand_id'));
     }
     if (!empty(request('region_id'))) {
         $usersQuery->where('region_id', request('region_id'));
@@ -367,13 +429,16 @@ class PaySlipController extends Controller
 
 }
 
-    private function generatePayslips($employees, $formattedMonthYear)
+    private function generatePayslips($employees, $formattedMonthYear,$brand_id,$region_id,$branch_id)
     {
         foreach ($employees as $employee) {
           $payslip =  PaySlip::firstOrCreate([
                 'employee_id' => $employee->id,
                 'salary_month' => $formattedMonthYear,
                 'created_by' => Auth::id(),
+                'brand_id' => $brand_id,
+                'region_id' => $region_id,
+                'branch_id' => $branch_id
             ], [
                 'net_payble' => $employee->get_net_salary(),
                 'status' => 0,
