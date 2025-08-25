@@ -579,5 +579,66 @@ class PaySlipController extends Controller
             ], 500);
         }
     }
+    
+    public function deleteBulkPayslip(Request $request)
+    {
+        $user = \Auth::user();
 
+        // Check Permissions
+        if (!$this->canManagePaySlips()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        // Validate Input
+        $validator = \Validator::make($request->all(), [
+            'ids' => 'required|string', // Expecting comma-separated IDs
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        // Parse and Delete Leads
+        $leadIds = array_filter(explode(',', $request->ids));
+
+        if (empty($leadIds)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('At least select one PaySlip.')
+            ], 400);
+        }
+
+        $deletedCount = PaySlip::whereIn('id', $leadIds)->delete();
+
+        if ($deletedCount > 0) {
+            // Log Activity
+            addLogActivity([
+                'type' => 'warning',
+                'note' => json_encode([
+                    'title' => 'PaySlip Deleted',
+                    'message' => count($leadIds) . ' PaySlip deleted successfully'
+                ]),
+                'module_id' => null,
+                'module_type' => 'lead',
+                'notification_type' => 'PaySlip Deleted'
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => __('PaySlip deleted successfully.'),
+                'deleted_count' => $deletedCount
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('No PaySlip were deleted. Please check the IDs.')
+            ], 404);
+        }
+    }
 }
