@@ -77,16 +77,8 @@ class PaySlipController extends Controller
                 });
             }
 
-            //
-
 
             if ($request->input('download_csv')) {
-
-                return response()->json([
-                    'status' => 'success',
-                    'data' => "ssiais asxisaixa aisxsaoixsa ois"
-                ], 201);
-
                     $pay_slips = $jobsQuery->get(); // Fetch all records without pagination
                     $csvFileName = 'pay_slips_' . time() . '.csv';
                     $headers = [
