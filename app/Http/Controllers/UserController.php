@@ -581,7 +581,7 @@ class UserController extends Controller
         $data = [
             'EmployeeDetails' => $EmployeeDetails,
             'Branch_Manager' => $EmployeeDetails?->branch?->manager,
-            'Region_Manager' => $EmployeeDetails?->manager?->manager,
+            'Region_Manager' => $EmployeeDetails?->region?->manager,
             'pay_slips' => $Employee,
             'EmergencyContact' => $EmergencyContact,
             'AdditionalAddress' => $AdditionalAddress,
