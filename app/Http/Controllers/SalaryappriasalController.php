@@ -100,7 +100,7 @@ class SalaryappriasalController extends Controller
 
         // Fetch paginated Salaryappriasals
         $Salaryappriasals = $SalaryappriasalQuery
-            ->orderBy('Salaryappriasals.created_at', 'desc')
+            ->orderBy('salaryappriasals.created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
         // Get competency count
@@ -435,7 +435,7 @@ class SalaryappriasalController extends Controller
     public function SalaryappriasalDetails(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'id' => 'required|exists:Salaryappriasals,id',
+            'id' => 'required|exists:salaryappriasals,id',
         ]);
 
         if ($validator->fails()) {
@@ -443,7 +443,7 @@ class SalaryappriasalController extends Controller
         }
 
         $Salaryappriasal = Salaryappriasal::select(
-            'Salaryappriasals.*',
+            'salaryappriasals.*',
             'regions.name as region',
             'branches.name as branch',
             'users.name as brand',
@@ -452,11 +452,11 @@ class SalaryappriasalController extends Controller
             'assigned_to.id as created_id',
         )
             ->with('employees')
-            ->leftJoin('users', 'users.id', '=', 'Salaryappriasals.brand_id')
-            ->leftJoin('branches', 'branches.id', '=', 'Salaryappriasals.branch')
-            ->leftJoin('regions', 'regions.id', '=', 'Salaryappriasals.region_id')
-            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'Salaryappriasals.employee')
-            ->where('Salaryappriasals.id', $request->id)
+            ->leftJoin('users', 'users.id', '=', 'salaryappriasals.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'salaryappriasals.branch')
+            ->leftJoin('regions', 'regions.id', '=', 'salaryappriasals.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'salaryappriasals.employee')
+            ->where('salaryappriasals.id', $request->id)
             ->first();
 
         if (!$Salaryappriasal) {
@@ -501,7 +501,7 @@ class SalaryappriasalController extends Controller
     {
          $validator = Validator::make($request->all(), [
             'employee' => 'required|exists:users,id',
-            'Salaryappriasal' => 'nullable|exists:Salaryappriasals,id',
+            'Salaryappriasal' => 'nullable|exists:salaryappriasals,id',
         ]);
 
         if ($validator->fails()) {
