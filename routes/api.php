@@ -56,6 +56,7 @@ use App\Http\Controllers\PermissionTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalaryappriasalController;
 use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TerminationTypeController;
@@ -270,6 +271,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/additional-address-update', [UserController::class, 'AdditionalAddressUpdate']);
     Route::post('/additional-address-delete', [UserController::class, 'AdditionalAddressDelete']);
     Route::post('/getAdditionalAddresses/{userId}', [UserController::class, 'getAdditionalAddresses']);
+
+    // Salary appriasal
+    Route::post('/addSalaryappriasal', [SalaryappriasalController::class, 'addSalaryappriasal']);
+    Route::post('/updateSalaryappriasal', [SalaryappriasalController::class, 'updateSalaryappriasal']);
+    Route::post('/getSalaryappriasals', [SalaryappriasalController::class, 'getSalaryappriasals']);
+    Route::post('/deleteSalaryappriasal', [SalaryappriasalController::class, 'deleteSalaryappriasal']);
 
 
     // UserEmployeeFileUpdate

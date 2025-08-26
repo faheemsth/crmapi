@@ -1533,21 +1533,21 @@ public function getemplyee_monthly_attandance(Request $request)
 
         $statusCounts = $countsQuery->select(
             DB::raw("
-                    SUM(
-                        CASE 
-                            WHEN attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
-                            THEN 1 ELSE 0 
-                        END
-                    ) as OnTime
-                "),
-                DB::raw("
-                    SUM(
-                        CASE 
-                            WHEN attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
-                            THEN 1 ELSE 0 
-                        END
-                    ) as Late
-                "),
+                        SUM(
+                            CASE 
+                                WHEN attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
+                                THEN 1 ELSE 0 
+                            END
+                        ) as OnTime
+                    "),
+            DB::raw("
+                        SUM(
+                            CASE 
+                                WHEN attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
+                                THEN 1 ELSE 0 
+                            END
+                        ) as Late
+                    "),
             DB::raw("SUM(CASE WHEN attendances.id IS NULL THEN 1 ELSE 0 END) as `Absent`"),
             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
