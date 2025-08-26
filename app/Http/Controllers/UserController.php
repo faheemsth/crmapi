@@ -553,6 +553,7 @@ class UserController extends Controller
         ], 200);
     }
 
+
     public function EmployeeDetails(Request $request)
     {
 
@@ -579,6 +580,8 @@ class UserController extends Controller
 
         $data = [
             'EmployeeDetails' => $EmployeeDetails,
+            'Branch_Manager' => $EmployeeDetails?->branch?->manager,
+            'Region_Manager' => $EmployeeDetails?->region?->manager,
             'pay_slips' => $Employee,
             'EmergencyContact' => $EmergencyContact,
             'AdditionalAddress' => $AdditionalAddress,
