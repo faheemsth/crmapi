@@ -259,7 +259,7 @@ class RegionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission denied.')
-            ], 403);
+            ], 200);
         }
 
         $validator = Validator::make($request->all(), [
@@ -283,9 +283,9 @@ class RegionController extends Controller
                         return response()->json([
                             'status' => 'error',
                             'message' => __("there are ($branches) branches found. Region cannot be deleted as it is associated with branches.")
-                        ], 404);
+                        ], 200);
                     }
-            dd($branches);
+        
         
         //    =================== delete ===========
  

@@ -347,7 +347,7 @@ class BranchController extends Controller
             return response()->json([
                 'status' => 'error',
                 'msg' => __('Permission denied.'),
-            ], 403);
+            ], 200);
         }
 
         // Find and delete the branch
@@ -361,7 +361,7 @@ class BranchController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => __("there are ($employees) employees found. Branch cannot be deleted as it is associated with employees.")
-                ], 404);
+                ], 200);
             }
              
 
