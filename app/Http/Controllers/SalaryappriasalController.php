@@ -113,6 +113,7 @@ class SalaryappriasalController extends Controller
         // Return JSON response
         return response()->json([
             'status' => 'success',
+            'baseurl' => asset('/'),
             'data' => $Salaryappriasals->items(),
             'current_page' => $Salaryappriasals->currentPage(),
             'last_page' => $Salaryappriasals->lastPage(),
@@ -486,7 +487,7 @@ class SalaryappriasalController extends Controller
 
         return response()->json([
             'status' => 'success',
-
+            'baseurl' => asset('/'),
             'data' => $Salaryappriasal,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
