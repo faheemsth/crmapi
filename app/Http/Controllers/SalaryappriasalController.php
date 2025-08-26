@@ -52,7 +52,7 @@ class SalaryappriasalController extends Controller
 
         // Build the query
         $SalaryappriasalQuery = Salaryappriasal::select(
-            'Salaryappriasals.*',
+            'salaryappriasals.*',
             'regions.name as region',
             'branches.name as branch',
             'users.name as brand',
@@ -60,30 +60,30 @@ class SalaryappriasalController extends Controller
             'branches.name as branch_id',
         )
             ->with('employees')
-            ->leftJoin('users', 'users.id', '=', 'Salaryappriasals.brand_id')
-            ->leftJoin('branches', 'branches.id', '=', 'Salaryappriasals.branch_id')
-            ->leftJoin('regions', 'regions.id', '=', 'Salaryappriasals.region_id')
-            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'Salaryappriasals.created_by');
+            ->leftJoin('users', 'users.id', '=', 'salaryappriasals.brand_id')
+            ->leftJoin('branches', 'branches.id', '=', 'salaryappriasals.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'salaryappriasals.region_id')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'salaryappriasals.created_by');
 
-         $SalaryappriasalQuery->where('Salaryappriasals.user_id', $request->user_id);
+         $SalaryappriasalQuery->where('salaryappriasals.user_id', $request->user_id);
         // Apply filters
         if ($request->filled('brand')) {
-            $SalaryappriasalQuery->where('Salaryappriasals.brand_id', $request->brand);
+            $SalaryappriasalQuery->where('salaryappriasals.brand_id', $request->brand);
            
         }
 
         if ($request->filled('region_id')) {
-            $SalaryappriasalQuery->where('Salaryappriasals.region_id', $request->region_id);
+            $SalaryappriasalQuery->where('salaryappriasals.region_id', $request->region_id);
         }
 
         if ($request->filled('branch_id')) {
-            $SalaryappriasalQuery->where('Salaryappriasals.branch_id', $request->branch_id);
+            $SalaryappriasalQuery->where('salaryappriasals.branch_id', $request->branch_id);
         }
 
          
 
         if ($request->filled('created_at')) {
-            $SalaryappriasalQuery->whereDate('Salaryappriasals.created_at', '=', $request->created_at);
+            $SalaryappriasalQuery->whereDate('salaryappriasals.created_at', '=', $request->created_at);
         }
 
         if ($request->filled('search')) {
