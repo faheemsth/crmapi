@@ -132,6 +132,10 @@ class User extends Authenticatable
     {
         return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
     }
+    public function region()
+    {
+        return $this->hasOne('App\Models\Region', 'id', 'region_id');
+    }
     public function brand()
     {
         return $this->hasOne('App\Models\User', 'id', 'brand_id');
