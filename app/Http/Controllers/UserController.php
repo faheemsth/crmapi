@@ -557,7 +557,7 @@ class UserController extends Controller
     {
 
 
-        $EmployeeDetails = User::with('employee')->select(
+        $EmployeeDetails = User::with('employee','branch.manager','region.manager')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',
@@ -1133,7 +1133,7 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied')
-            ], 403);
+            ], 200);
         }
 
         // Validate request
@@ -1156,7 +1156,7 @@ class UserController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => __('Brand not found.')
-                ], 404);
+                ], 200);
             }
  // Find user
              $regions = Region::where('brands', $user->id)->count();
@@ -1165,7 +1165,7 @@ class UserController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => __("there are ($regions) regions found. Brand cannot be deleted as it is associated with regions.")
-                ], 404);
+                ], 200);
             }
 
 

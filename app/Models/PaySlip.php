@@ -19,6 +19,9 @@ class PaySlip extends Model
         'other_payment',
         'overtime',
         'created_by',
+        'brand_id',
+        'region_id',
+        'branch_id',
     ];
 
     public function user()
