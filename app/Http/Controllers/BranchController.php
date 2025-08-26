@@ -89,7 +89,7 @@ class BranchController extends Controller
             $branchQuery->where('brand_id', $user->id);
         } elseif (!in_array($user->type, ['super admin', 'Admin Team', 'HR'])) {
             $brandIds = array_keys(FiltersBrands());
-            $branchQuery->whereIn('brand_id', $brandIds);
+            $branchQuery->whereIn('brands', $brandIds);
         }
 
         if ($user->type === 'Region Manager') {
