@@ -46,9 +46,9 @@ class RegionController extends Controller
         // Permission-based filtering
         $user = Auth::user();
         if ($user->type === 'company') {
-            $query->where('brand_id', $user->id);
+            $query->where('brands', $user->id);
         } elseif (!in_array($user->type, ['super admin', 'Admin Team', 'HR'])) {
-            $query->whereIn('brand_id', array_keys(FiltersBrands()));
+            $query->whereIn('brands', array_keys(FiltersBrands()));
         }
 
         // Search filter
@@ -59,7 +59,7 @@ class RegionController extends Controller
 
         // Brand filter
         if ($request->filled('brand_id')) {
-            $query->where('brand_id', $request->brand_id);
+            $query->where('brands', $request->brand_id);
         }
 
         // Region filter

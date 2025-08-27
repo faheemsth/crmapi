@@ -798,7 +798,7 @@ class UserController extends Controller
         $num_results_on_page = $request->get('perPage', $num_results_on_page);
         $start = ($page - 1) * $num_results_on_page;
 
-        if (\Auth::user()->can('manage user')) {
+        if (\Auth::user()->can('manage brand')) {
 
             $user_query = User::select(['users.*',  'project_director.name as project_director',  'project_manager.name as project_manager'])
                 ->where('users.type', 'company')
