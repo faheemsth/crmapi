@@ -139,10 +139,18 @@ class UserController extends Controller
         }
 
         $userId = $request->input('emp_id', \Auth::id());
-        $authUser = User::join('countries', 'countries.id', '=', 'users.country_id')
+        $authUser = User::leftJoin('countries', 'users.country_id', '=', 'countries.id')
             ->where('users.id', $userId)
-            ->select('users.*', 'countries.name as country_name') // add fields you need
-            ->firstOrFail();
+            ->select('users.*', 'countries.name as country_name')
+            ->first();
+
+        if (!$authUser) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found or missing related country.',
+            ], 404);
+        }
+
 
 
         if (!\Auth::user()->can('edit employee') && \Auth::id() !== (int) $userId) {
