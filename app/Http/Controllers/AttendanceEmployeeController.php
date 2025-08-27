@@ -1932,7 +1932,7 @@ public function getemplyee_monthly_attandance(Request $request)
         $insertData_email = [];
 
         foreach ($employees as $employee) {
-           $branch_detail = isset($employee->branch_id) && $employee->branch_id != 0 && $branchespluck->has($employee->branch_id)
+                        $branch_detail = isset($employee->branch_id) && $employee->branch_id != 0 && $branchespluck->has($employee->branch_id)
                             ? $branchespluck[$employee->branch_id]
                             : null;
 
@@ -1959,6 +1959,11 @@ public function getemplyee_monthly_attandance(Request $request)
                         $project_director_detail = $brand_detail && $brand_detail->project_director_id != 0 && $userspluck->has($brand_detail->project_director_id)
                             ? $userspluck[$brand_detail->project_director_id]
                             : null;
+                        $is_attendace_email = User::getEmployeeMeta($employee->employee_id, 'is_attendace_email');
+                        $is_attendace_email = $is_attendace_email ? $is_attendace_email->is_attendace_email: 0;
+                        // echo $employee->employee_id;
+                        // dd($is_attendace_email);
+                        
 
             // Check if Saturday is off for this branch
             $isSatOff = $branch_detail && $branch_detail->is_sat_off;
@@ -1986,7 +1991,7 @@ public function getemplyee_monthly_attandance(Request $request)
                     ];
                 } else {
 
-                   
+                   if($is_attendace_email==1){
                         // Prepare email for this case
                         $replacedHtml = str_replace(
                                     [
@@ -2045,6 +2050,8 @@ public function getemplyee_monthly_attandance(Request $request)
                                         'updated_at' => now()
                                     ];
 
+                                       }
+
                                   
                    
                         // Clocked in but didn't clock out on holiday - mark as absent
@@ -2074,6 +2081,7 @@ public function getemplyee_monthly_attandance(Request $request)
                         'updated_at' => now(),
                     ];
                     
+                       if($is_attendace_email==1){
                     // Prepare email
                     $replacedHtml = str_replace(
                                     [
@@ -2131,6 +2139,7 @@ public function getemplyee_monthly_attandance(Request $request)
                                         'created_at' => now(),
                                         'updated_at' => now()
                                     ];
+                                }
                 } elseif ($employee->clock_out == '00:00:00') {
                     // Attendance exists but no clock out — update status to 'Absent'
                     AttendanceEmployee::where('id', $employee->attendance_id)
@@ -2139,6 +2148,7 @@ public function getemplyee_monthly_attandance(Request $request)
                             'updated_at' => now(),
                         ]);
                     
+                           if($is_attendace_email==1){
                     // Prepare email
                      $replacedHtml = str_replace(
                                     [
@@ -2196,6 +2206,7 @@ public function getemplyee_monthly_attandance(Request $request)
                                         'created_at' => now(),
                                         'updated_at' => now()
                                     ];
+                                    
                 }
             }
         }
