@@ -771,6 +771,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getemailTagstype', [GeneralController::class, 'getemailTagstype']);
     Route::post('/totalSummary', [GeneralController::class, 'totalSummary']);
     Route::post('/saveSystemSettings', [GeneralController::class, 'saveSystemSettings']);
+    Route::post('/fetchSystemSettings', [GeneralController::class, 'fetchSystemSettings']);
 
     // User Reassign
     
