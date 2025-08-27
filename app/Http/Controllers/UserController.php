@@ -163,6 +163,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
+            'baseurl' => asset('/'),
             'data' => [
                 'user' => $user,
                 'employee' => $employee,
