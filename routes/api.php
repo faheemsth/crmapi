@@ -398,6 +398,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // user/employees
+    Route::post('/getDashboardLastLogin', [UserController::class, 'getDashboardLastLogin']);
     Route::post('/getDashboardEmployeesCount', [UserController::class, 'getDashboardEmployeesCount']);
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);

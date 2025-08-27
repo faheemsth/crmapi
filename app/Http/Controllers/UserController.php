@@ -430,6 +430,54 @@ public function getDashboardEmployeesCount(Request $request)
 }
 
 
+public function getDashboardLastLogin(Request $request)
+{
+    $user = \Auth::user();
+
+    $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+    // Pagination settings
+    $perPage = 25; // fixed per your requirement
+    $page = $request->input('page', 1);
+
+    $employeesQuery = User::select('users.name', 'users.avatar', 'users.last_login_at')
+        ->whereNotIn('users.type', $excludedTypes);
+
+    // Apply user-specific restrictions
+    if ($user->can('level 1') || $user->type === 'super admin') {
+        // full access
+    } elseif ($user->type === 'company') {
+        $employeesQuery->where('users.brand_id', $user->id);
+    } elseif ($user->can('level 2')) {
+        $brandIds = array_keys(FiltersBrands());
+        $employeesQuery->whereIn('users.brand_id', $brandIds);
+    } elseif ($user->can('level 3') && $user->region_id) {
+        $employeesQuery->where('users.region_id', $user->region_id);
+    } elseif ($user->can('level 4') && $user->branch_id) {
+        $employeesQuery->where('users.branch_id', $user->branch_id);
+    } else {
+        $employeesQuery->where('users.id', $user->id);
+    }
+
+    // Filter for today’s login
+    $today = now()->toDateString();
+    $employeesQuery->whereDate('users.last_login_at', $today);
+
+    // ✅ Paginate properly
+    $employees = $employeesQuery->orderBy('users.last_login_at', 'DESC')
+        ->paginate($perPage, ['*'], 'page', $page);
+
+    return response()->json([
+        'status'         => 'success',
+        'data'           => $employees->items(),
+        'current_page'   => $employees->currentPage(),
+        'last_page'      => $employees->lastPage(),
+        'total_records'  => $employees->total(),
+        'per_page'       => $employees->perPage(),
+    ], 200);
+}
+
+
     public function getEmployees_download(Request $request)
     {
         $validator = Validator::make($request->all(), [
