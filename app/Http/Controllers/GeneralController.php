@@ -1326,6 +1326,29 @@ public function GetBranchByType()
             'updated_fields' => $updatedFields
         ], 200);
     }
+
+    public function fetchSystemSettings(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->can('manage company settings')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        // Fetch settings for current company/creator
+        $settings = DB::table('settings')
+            ->pluck('value', 'name') // returns key-value pair
+            ->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $settings
+        ], 200);
+    }
+
  
 
 }
