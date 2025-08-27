@@ -1251,5 +1251,81 @@ public function GetBranchByType()
         ]);
     }
 
+ 
+    public function saveSystemSettings(Request $request)
+    {
+         
+
+        $user = Auth::user();
+
+        if (!$user->can('manage company settings')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission denied.')
+            ], 403);
+        }
+
+        $post = $request->except(['_token']);
+
+        
+
+        $settings = Utility::settings();
+
+        // Capture original settings for logging
+        $originalData = $settings;
+
+        // Track changes
+        $changes = [];
+        $updatedFields = [];
+       // dd($post);
+        foreach ($post as $key => $data) {
+            if (array_key_exists($key, $settings)) {
+                    if ($settings[$key] != $data) {
+                        $changes[$key] = [
+                            'old' => $settings[$key],
+                            'new' => $data
+                        ];
+                        $updatedFields[] = $key;
+                    }
+                 }
+
+                DB::insert(
+                    'insert into settings (`value`, `name`,`created_by`,`created_at`,`updated_at`) 
+                     values (?, ?, ?, ?, ?) 
+                     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)',
+                    [
+                        $data,
+                        $key,
+                        $user->creatorId(),
+                        now(),
+                        now(),
+                    ]
+                );
+           
+        }
+
+        // 🔹 Log only if changes exist
+        if (!empty($changes)) {
+            $typeoflog = ' system settings';
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name. ucfirst($typeoflog) . ' updated ' ,
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $user->creatorId(),
+                'module_type' => 'settings',
+                'notification_type' => ucfirst($typeoflog) . ' Updated'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Settings successfully updated.'),
+            'updated_fields' => $updatedFields
+        ], 200);
+    }
+ 
 
 }

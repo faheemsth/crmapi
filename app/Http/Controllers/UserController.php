@@ -1292,12 +1292,12 @@ class UserController extends Controller
 
     public function UserEmployeeFileUpdate(Request $request)
     {
-        if (!\Auth::user()->can('edit employee')) {
-            return response()->json([
-                'status' => 'error',
-                'msg' => 'Permission Denied',
-            ]);
-        }
+        // if (!\Auth::user()->can('edit employee')) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'msg' => 'Permission Denied',
+        //     ]);
+        // }
 
         // Debugging: Check if request contains files
         // dd($request->all(), $request->file());
