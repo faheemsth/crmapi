@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use Carbon\Carbon;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -175,6 +176,12 @@ class LoginRegisterController extends Controller
             ], 401);
         }
 
+         $user->update(
+            [
+                'last_login_at' => Carbon::now()->toDateTimeString(),
+            ]
+        );
+
         $data['token'] = $user->createToken($request->email)->plainTextToken;
 
         $userArray = $user->toArray();
@@ -228,6 +235,12 @@ class LoginRegisterController extends Controller
             'message' => 'User blocked'
         ], 401);
     }
+
+     $user->update(
+            [
+                'last_login_at' => Carbon::now()->toDateTimeString(),
+            ]
+        );
 
     // Create token if user exists
     $data['token'] = $user->createToken($request->email)->plainTextToken;
