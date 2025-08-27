@@ -400,4 +400,37 @@ class User extends Authenticatable
         return $this->hasOne('App\Models\EmployeeDocument', 'employee_id', 'id');
     }
 
+
+      public static  function getEmployeeMeta($user_id,$key = 'all')
+    {
+        
+        $metadata = EmployeeMeta::where('user_id', $user_id);
+        if($key != 'all'){
+            $metadata = $metadata->where('meta_key', $key);
+        }   
+        
+        $metadata = $metadata->get();
+
+        if ($metadata->isEmpty()) {
+            return null; // Return null if no metadata found
+        }
+
+        $metas = new \stdClass(); // Create empty object
+
+        foreach ($metadata as $data) {
+            $key = $data->meta_key;
+            $value = $data->meta_value;
+
+            // Handle JSON values if stored as JSON strings
+            $decodedValue = json_decode($value);
+            $metas->$key = json_last_error() === JSON_ERROR_NONE ? $decodedValue : $value;
+        }
+
+        return $metas ? $metas : null;
+    }
+
+    public function employeeMetas()
+    {
+        return $this->hasMany(\App\Models\EmployeeMeta::class, 'user_id');
+    }
 }

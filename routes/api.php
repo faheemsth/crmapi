@@ -116,6 +116,7 @@ Route::get('/proxy-image', function (Request $request) {
 
 
     Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
+    Route::get('/sendBirthdayAndAnniversaryEmails', [UserController::class, 'sendBirthdayAndAnniversaryEmails']);
     Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']); 
 
 Route::get('/AttendanceEmployeeCron', function () {
@@ -334,6 +335,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/changeLeaveStatus', [LeaveController::class, 'changeLeaveStatus']);
     // Leaves
     Route::post('/getAttendances', [AttendanceEmployeeController::class, 'getCombinedAttendances']);
+    Route::post('/getDashboardAttendances', [AttendanceEmployeeController::class, 'getDashboardAttendances']);
 
     Route::post('/getemplyee_monthly_attandance', [AttendanceEmployeeController::class, 'getemplyee_monthly_attandance']);
     
@@ -395,6 +397,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // user/employees
+    Route::post('/getDashboardEmployeesCount', [UserController::class, 'getDashboardEmployeesCount']);
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::get('/employees', [UserController::class, 'employees']);
     Route::get('/Pluck_All_Users', [UserController::class, 'Pluck_All_Users']);

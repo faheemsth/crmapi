@@ -36,6 +36,9 @@ use App\Models\DealApplication;
 use App\Models\EmergencyContact;
 use App\Models\EmployeeDocument;
 use App\Models\EmployeeMeta;
+use App\Models\EmailTag;
+use App\Models\EmailTemplate;
+use App\Models\EmailSendingQueue;
 use App\Models\InternalEmployeeNotes;
 use Illuminate\Support\Facades\Validator;
 
@@ -367,6 +370,57 @@ class UserController extends Controller
             'count_summary' =>$statusCounts
         ], 200);
     }
+public function getDashboardEmployeesCount(Request $request)
+{
+    $user = \Auth::user();
+
+    $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+    $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
+        ->whereNotIn('type', $excludedTypes);
+
+    // Apply user-specific restrictions
+    if ($user->can('level 1') || $user->type === 'super admin') {
+        // full access
+    } elseif ($user->type === 'company') {
+        $employeesQuery->where('brand_id', $user->id);
+    } elseif ($user->can('level 2')) {
+        $brandIds = array_keys(FiltersBrands());
+        $employeesQuery->whereIn('brand_id', $brandIds);
+    } elseif ($user->can('level 3') && $user->region_id) {
+        $employeesQuery->where('region_id', $user->region_id);
+    } elseif ($user->can('level 4') && $user->branch_id) {
+        $employeesQuery->where('branch_id', $user->branch_id);
+    } else {
+        $employeesQuery->where('id', $user->id);
+    }
+
+    // Clone for counts
+    $countsQuery = clone $employeesQuery;
+
+    // Reset select
+    $countsQuery->getQuery()->columns = [];
+
+    // Base counts
+    $statusCounts = $countsQuery->select(
+        DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
+        DB::raw("COUNT(id) as `total`")
+    )->first();
+
+    // --- Role Based Counts ---
+    $roleCounts = $employeesQuery
+        ->select('type', DB::raw('COUNT(*) as total'))
+        ->groupBy('type')
+        ->pluck('total', 'type'); // returns [ "Admin" => 10, "Manager" => 5, ...]
+
+    return response()->json([
+        'status' => 'success',
+        'total'  => $statusCounts->total,
+        'active' => $statusCounts->active,
+        'roles'  => $roleCounts
+    ], 200);
+}
+
 
     public function getEmployees_download(Request $request)
     {
@@ -2877,5 +2931,120 @@ class UserController extends Controller
             'message' => 'Brand updated successfully',
             'data' => $user,
         ]);
+    }
+
+     public function sendBirthdayAndAnniversaryEmails()
+    {
+        $today = now()->format('m-d');
+        $insertData = [];
+
+        // --- Birthdays ---
+        $birthdayUsers = User::whereRaw("DATE_FORMAT(date_of_birth, '%m-%d') = ?", [$today])
+            ->where('is_active', 1)
+            ->get();
+
+             $birthday_email_template = Utility::getValByName('birthday_email_template');
+             $anniversary_email_template = Utility::getValByName('anniversary_email_template');
+
+             
+
+        $birthdayTemplate = EmailTemplate::find($birthday_email_template);
+
+        foreach ($birthdayUsers as $user) {
+
+          
+            $insertData[] = $this->buildEmailData($birthdayTemplate, $user);
+        }
+
+        // --- Anniversaries (from employee_metas.commencedDate) ---
+        $anniversaryUsers = User::where('is_active', 1)
+            ->whereHas('employeeMetas', function ($q) use ($today) {
+                $q->where('meta_key', 'commencedDate')
+                  ->whereRaw("DATE_FORMAT(meta_value, '%m-%d') = ?", [$today]);
+            })
+            ->get();
+
+        $anniversaryTemplate = EmailTemplate::find($anniversary_email_template);
+
+        foreach ($anniversaryUsers as $user) {
+            $insertData[] = $this->buildEmailData($anniversaryTemplate, $user);
+        }
+
+        // --- Batch Insert ---
+        if (!empty($insertData)) {
+            EmailSendingQueue::insert($insertData);
+        }
+
+        return count($insertData) . " emails queued.";
+    }
+
+    private function buildEmailData($template, $user)
+    {
+        if (!$template) {
+            return [];
+        }
+
+        $subject = $this->replaceTags($template->subject, $user);
+        $content = $this->replaceTags($template->template, $user);
+       
+        return [
+            'to'           => $user->email,
+            'cc'           => null,
+            'subject'      => $subject,
+            'brand_id'     => $user->brand_id,
+            'from_email'   => $template->from ?? 'hr@scorp.co',
+            'branch_id'    => $user->branch_id,
+            'region_id'    => $user->region_id,
+            'is_send'      => '0',
+            'sender_id'    => 0,
+            'created_by'   => 0,
+            'priority'     => 1,
+            'content'      => $content,
+            'stage_id'     => null,
+            'pipeline_id'  => null,
+            'template_id'  => $template->id,
+            'related_type' => 'employee',
+            'related_id'   => $user->id,
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ];
+    }
+
+    private function replaceTags($content, $user)
+    {
+        $tags = EmailTag::all();
+        $replacePairs = [];
+
+        foreach ($tags as $tag) {
+            $key = '{' . $tag->tag . '}';
+            $value = '';
+
+            switch ($tag->tag) {
+                case 'employee_name':
+                    $value = $user->name;
+                    break;
+                case 'employee_email':
+                    $value = $user->email;
+                    break;
+                case 'DOB':
+                    $value = $user->date_of_birth;
+                    break;
+                case 'date_today':
+                    $value = now()->toDateString();
+                    break;
+                case 'employee_designation':
+                    $value = optional($user->designation)->name ?? '';
+                    break;
+                case 'commencedDate':
+                    $value = optional(
+                        $user->employeeMetas->where('meta_key', 'commencedDate')->first()
+                    )->meta_value ?? '';
+                    break;
+            }
+
+            $replacePairs[$key] = $value;
+        }
+
+        return strtr($content, $replacePairs);
     }
 }
