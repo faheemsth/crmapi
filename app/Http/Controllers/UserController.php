@@ -136,7 +136,7 @@ class UserController extends Controller
         }
 
         $userId = $request->input('emp_id', \Auth::id());
-        $authUser = User::leftjoin('users', 'users.country_id', '=', 'countries.id')
+        $authUser = User::leftJoin('countries', 'users.country_id', '=', 'countries.id')
             ->where('users.id', $userId)
             ->select('users.*', 'countries.name as country_name')
             ->first();
