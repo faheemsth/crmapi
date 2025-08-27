@@ -328,6 +328,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Leaves
     Route::post('/getLeaves', [LeaveController::class, 'getLeaves']);
+    Route::post('/getDashboardLeaves', [LeaveController::class, 'getDashboardLeaves']);
     Route::post('/addLeave', [LeaveController::class, 'addLeave']);
     Route::post('/updateLeave', [LeaveController::class, 'updateLeave']);
     Route::post('/deleteLeave', [LeaveController::class, 'deleteLeave']);

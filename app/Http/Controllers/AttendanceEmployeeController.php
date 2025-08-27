@@ -1600,6 +1600,56 @@ public function getemplyee_monthly_attandance(Request $request)
     }
 }
 
+ 
+ 
+ public function getDashboardAttendances(Request $request)
+{
+     
+
+    $user = \Auth::user();
+ 
+
+    // ✅ Inputs
+    $date = $request->input('date', Carbon::today()->format('Y-m-d'));
+    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 25));
+    $page = $request->input('page', 1);
+    $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+   $attendanceQuery = User::query()
+            ->select([
+                'users.id as employee_id',
+                'users.name as employee_name',
+                'users.avatar',  
+                'attendances.clock_in', 
+                'attendances.status' 
+            ])
+            ->leftJoin('attendance_employees as attendances', function($join) use ($date) {
+                $join->on('users.id', '=', 'attendances.employee_id')
+                     ->where('attendances.date', '=', $date);
+            })
+            ->where('users.is_attendance_required', 1)
+            ->where('attendances.status', 'Present')
+            ->orderBy('attendances.clock_in', 'desc') ;
+        
+    $attendances = $attendanceQuery
+        ->orderBy('attendances.id', 'desc')
+        ->paginate($perPage, ['*'], 'page', $page);
+
+      
+
+    // ✅ Response
+    return response()->json([
+        'status' => 'success',
+        'data' => $attendances->items(),
+        'date' => $date,
+        'current_page' => $attendances->currentPage(),
+        'last_page' => $attendances->lastPage(),
+        'total_records' => $attendanceQuery->count(),
+        'per_page' => $attendances->perPage(),
+        'baseurl' => asset('/EmployeeDocument'),
+    ], 200);
+}
+
 
         public function getCronAttendances_OLD_WORKING_FINE(Request $request)
         {
@@ -1973,261 +2023,262 @@ public function getemplyee_monthly_attandance(Request $request)
                              $dayOfWeek == 0 || // Sunday
                              ($dayOfWeek == 6 && $isSatOff); // Saturday with is_sat_off
 
-            if ($treatAsHoliday) {
-                // For holiday/weekend - mark as holiday if no attendance exists
-                if (!$employee->attendance_id) {
-                    $insertData[] = [
-                        'employee_id' => $employee->employee_id,
-                        'date' => $date,
-                        'status' => 'Holiday',
-                        'clock_in' => '00:00:00',
-                        'clock_out' => '00:00:00',
-                        'early_leaving' => '00:00:00',
-                        'overtime' => '00:00:00',
-                        'total_rest' => '00:00:00',
-                        'created_by' => 0,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+                if ($treatAsHoliday) {
+                    // For holiday/weekend - mark as holiday if no attendance exists
+                    if (!$employee->attendance_id) {
+                        $insertData[] = [
+                            'employee_id' => $employee->employee_id,
+                            'date' => $date,
+                            'status' => 'Holiday',
+                            'clock_in' => '00:00:00',
+                            'clock_out' => '00:00:00',
+                            'early_leaving' => '00:00:00',
+                            'overtime' => '00:00:00',
+                            'total_rest' => '00:00:00',
+                            'created_by' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    } else {
+
+                    if($is_attendace_email==1){
+                            // Prepare email for this case
+                            $replacedHtml = str_replace(
+                                        [
+                                            '{{employee_name}}', '{{designation}}', '{{brand_name}}',
+                                            '{{project_manager_name}}', '{{branch_name}}', '{{branch_manager_name}}',
+                                            '{{date}}'
+                                        ],
+                                        [
+                                            $employee->employee_name,
+                                            $employee->type ?? '-',
+                                            $brand_detail->name ?? '',
+                                            $project_manager_detail->name ?? '',
+                                            $branch_detail->name ?? '',
+                                            $branch_manager_detail->name ?? '',
+                                            $date,
+                                        ],
+                                        $absentTemplate
+                                    );
+
+                                    $ccList = [];
+
+                                        if (!empty($branch_manager_detail?->email)) {
+                                            $ccList[] = $branch_manager_detail->email;
+                                        }
+
+                                        if (!empty($region_manager_detail?->email)) {
+                                            $ccList[] = $region_manager_detail->email;
+                                        }
+
+                                        if (!empty($project_manager_detail?->email)) {
+                                            $ccList[] = $project_manager_detail->email;
+                                        }
+
+                                        // Always include attendance team email
+                                        $ccList[] = 'scorp-erp_attendance@convosoft.com';
+
+                                        $insertData_email[] = [
+                                            'to' => $employee->employee_email,
+                                            'cc' => implode(',', $ccList),
+                                            'subject' => 'Marked as Absent for ' . $date,
+                                            'brand_id' => $employee->brand_id,
+                                            'from_email' => 'hr@scorp.co',
+                                            'branch_id' => $employee->branch_id,
+                                            'region_id' => $employee->region_id,
+                                            'is_send' => '0',
+                                            'sender_id' => 0,
+                                            'created_by' => 0,
+                                            'priority' => 1,
+                                            'content' => $replacedHtml,
+                                            'stage_id' => null,
+                                            'pipeline_id' => null,
+                                            'template_id' => null,
+                                            'related_type' => 'employee',
+                                            'related_id' => $employee->employee_id,
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
+
+                                        }
+
+                                    
+                    
+                            // Clocked in but didn't clock out on holiday - mark as absent
+                            AttendanceEmployee::where('id', $employee->attendance_id)
+                                ->update([
+                                    'status' => 'Absent',
+                                    'updated_at' => now(),
+                                ]);
+                            
+                    
+                    }
                 } else {
+                    // Regular working day processing
+                    if (!$employee->attendance_id) {
+                        // No attendance found — insert new absent record
+                        $insertData[] = [
+                            'employee_id' => $employee->employee_id,
+                            'date' => $date,
+                            'status' => 'Absent',
+                            'clock_in' => '00:00:00',
+                            'clock_out' => '00:00:00',
+                            'early_leaving' => '00:00:00',
+                            'overtime' => '00:00:00',
+                            'total_rest' => '00:00:00',
+                            'created_by' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        
+                        if($is_attendace_email==1){
+                                // Prepare email
+                                $replacedHtml = str_replace(
+                                                [
+                                                    '{{employee_name}}', '{{designation}}', '{{brand_name}}',
+                                                    '{{project_manager_name}}', '{{branch_name}}', '{{branch_manager_name}}',
+                                                    '{{date}}'
+                                                ],
+                                        [
+                                            $employee->employee_name,
+                                            $employee->type ?? '-',
+                                            $brand_detail->name ?? '',
+                                            $project_manager_detail->name ?? '',
+                                            $branch_detail->name ?? '',
+                                            $branch_manager_detail->name ?? '',
+                                            $date,
+                                        ],
+                                        $absentTemplate
+                                    );
 
-                   if($is_attendace_email==1){
-                        // Prepare email for this case
-                        $replacedHtml = str_replace(
-                                    [
-                                        '{{employee_name}}', '{{designation}}', '{{brand_name}}',
-                                        '{{project_manager_name}}', '{{branch_name}}', '{{branch_manager_name}}',
-                                        '{{date}}'
-                                    ],
-                                    [
-                                        $employee->employee_name,
-                                        $employee->type ?? '-',
-                                        $brand_detail->name ?? '',
-                                        $project_manager_detail->name ?? '',
-                                        $branch_detail->name ?? '',
-                                        $branch_manager_detail->name ?? '',
-                                        $date,
-                                    ],
-                                    $absentTemplate
-                                );
+                                    $ccList = [];
 
-                                $ccList = [];
+                                        if (!empty($branch_manager_detail?->email)) {
+                                            $ccList[] = $branch_manager_detail->email;
+                                        }
 
-                                    if (!empty($branch_manager_detail?->email)) {
-                                        $ccList[] = $branch_manager_detail->email;
+                                        if (!empty($region_manager_detail?->email)) {
+                                            $ccList[] = $region_manager_detail->email;
+                                        }
+
+                                        if (!empty($project_manager_detail?->email)) {
+                                            $ccList[] = $project_manager_detail->email;
+                                        }
+
+                                        // Always include attendance team email
+                                        $ccList[] = 'scorp-erp_attendance@convosoft.com';
+
+                                        $insertData_email[] = [
+                                            'to' => $employee->employee_email,
+                                            'cc' => implode(',', $ccList),
+                                            'subject' => 'Marked as Absent for ' . $date,
+                                            'brand_id' => $employee->brand_id,
+                                            'from_email' => 'hr@scorp.co',
+                                            'branch_id' => $employee->branch_id,
+                                            'region_id' => $employee->region_id,
+                                            'is_send' => '0',
+                                            'sender_id' => 0,
+                                            'created_by' => 0,
+                                            'priority' => 1,
+                                            'content' => $replacedHtml,
+                                            'stage_id' => null,
+                                            'pipeline_id' => null,
+                                            'template_id' => null,
+                                            'related_type' => 'employee',
+                                            'related_id' => $employee->employee_id,
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
                                     }
-
-                                    if (!empty($region_manager_detail?->email)) {
-                                        $ccList[] = $region_manager_detail->email;
-                                    }
-
-                                    if (!empty($project_manager_detail?->email)) {
-                                        $ccList[] = $project_manager_detail->email;
-                                    }
-
-                                    // Always include attendance team email
-                                    $ccList[] = 'scorp-erp_attendance@convosoft.com';
-
-                                    $insertData_email[] = [
-                                        'to' => $employee->employee_email,
-                                        'cc' => implode(',', $ccList),
-                                        'subject' => 'Marked as Absent for ' . $date,
-                                        'brand_id' => $employee->brand_id,
-                                        'from_email' => 'hr@scorp.co',
-                                        'branch_id' => $employee->branch_id,
-                                        'region_id' => $employee->region_id,
-                                        'is_send' => '0',
-                                        'sender_id' => 0,
-                                        'created_by' => 0,
-                                        'priority' => 1,
-                                        'content' => $replacedHtml,
-                                        'stage_id' => null,
-                                        'pipeline_id' => null,
-                                        'template_id' => null,
-                                        'related_type' => 'employee',
-                                        'related_id' => $employee->employee_id,
-                                        'created_at' => now(),
-                                        'updated_at' => now()
-                                    ];
-
-                                       }
-
-                                  
-                   
-                        // Clocked in but didn't clock out on holiday - mark as absent
+                    } elseif ($employee->clock_out == '00:00:00') {
+                        // Attendance exists but no clock out — update status to 'Absent'
                         AttendanceEmployee::where('id', $employee->attendance_id)
                             ->update([
                                 'status' => 'Absent',
                                 'updated_at' => now(),
                             ]);
                         
-                   
-                }
-            } else {
-                // Regular working day processing
-                if (!$employee->attendance_id) {
-                    // No attendance found — insert new absent record
-                    $insertData[] = [
-                        'employee_id' => $employee->employee_id,
-                        'date' => $date,
-                        'status' => 'Absent',
-                        'clock_in' => '00:00:00',
-                        'clock_out' => '00:00:00',
-                        'early_leaving' => '00:00:00',
-                        'overtime' => '00:00:00',
-                        'total_rest' => '00:00:00',
-                        'created_by' => 0,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                    
-                       if($is_attendace_email==1){
-                    // Prepare email
-                    $replacedHtml = str_replace(
-                                    [
-                                        '{{employee_name}}', '{{designation}}', '{{brand_name}}',
-                                        '{{project_manager_name}}', '{{branch_name}}', '{{branch_manager_name}}',
-                                        '{{date}}'
-                                    ],
-                                    [
-                                        $employee->employee_name,
-                                        $employee->type ?? '-',
-                                        $brand_detail->name ?? '',
-                                        $project_manager_detail->name ?? '',
-                                        $branch_detail->name ?? '',
-                                        $branch_manager_detail->name ?? '',
-                                        $date,
-                                    ],
-                                    $absentTemplate
-                                );
+                            if($is_attendace_email==1){
+                                    // Prepare email
+                                    $replacedHtml = str_replace(
+                                                    [
+                                                        '{{employee_name}}', '{{designation}}', '{{brand_name}}',
+                                                        '{{project_manager_name}}', '{{branch_name}}', '{{branch_manager_name}}',
+                                                        '{{date}}'
+                                                    ],
+                                        [
+                                            $employee->employee_name,
+                                            $employee->type ?? '-',
+                                            $brand_detail->name ?? '',
+                                            $project_manager_detail->name ?? '',
+                                            $branch_detail->name ?? '',
+                                            $branch_manager_detail->name ?? '',
+                                            $date,
+                                        ],
+                                        $absentTemplate
+                                    );
 
-                                $ccList = [];
+                                    $ccList = [];
 
-                                    if (!empty($branch_manager_detail?->email)) {
-                                        $ccList[] = $branch_manager_detail->email;
-                                    }
+                                        if (!empty($branch_manager_detail?->email)) {
+                                            $ccList[] = $branch_manager_detail->email;
+                                        }
 
-                                    if (!empty($region_manager_detail?->email)) {
-                                        $ccList[] = $region_manager_detail->email;
-                                    }
+                                        if (!empty($region_manager_detail?->email)) {
+                                            $ccList[] = $region_manager_detail->email;
+                                        }
 
-                                    if (!empty($project_manager_detail?->email)) {
-                                        $ccList[] = $project_manager_detail->email;
-                                    }
+                                        if (!empty($project_manager_detail?->email)) {
+                                            $ccList[] = $project_manager_detail->email;
+                                        }
 
-                                    // Always include attendance team email
-                                    $ccList[] = 'scorp-erp_attendance@convosoft.com';
+                                        // Always include attendance team email
+                                        $ccList[] = 'scorp-erp_attendance@convosoft.com';
 
-                                    $insertData_email[] = [
-                                        'to' => $employee->employee_email,
-                                        'cc' => implode(',', $ccList),
-                                        'subject' => 'Marked as Absent for ' . $date,
-                                        'brand_id' => $employee->brand_id,
-                                        'from_email' => 'hr@scorp.co',
-                                        'branch_id' => $employee->branch_id,
-                                        'region_id' => $employee->region_id,
-                                        'is_send' => '0',
-                                        'sender_id' => 0,
-                                        'created_by' => 0,
-                                        'priority' => 1,
-                                        'content' => $replacedHtml,
-                                        'stage_id' => null,
-                                        'pipeline_id' => null,
-                                        'template_id' => null,
-                                        'related_type' => 'employee',
-                                        'related_id' => $employee->employee_id,
-                                        'created_at' => now(),
-                                        'updated_at' => now()
-                                    ];
-                                }
-                } elseif ($employee->clock_out == '00:00:00') {
-                    // Attendance exists but no clock out — update status to 'Absent'
-                    AttendanceEmployee::where('id', $employee->attendance_id)
-                        ->update([
-                            'status' => 'Absent',
-                            'updated_at' => now(),
-                        ]);
-                    
-                           if($is_attendace_email==1){
-                    // Prepare email
-                     $replacedHtml = str_replace(
-                                    [
-                                        '{{employee_name}}', '{{designation}}', '{{brand_name}}',
-                                        '{{project_manager_name}}', '{{branch_name}}', '{{branch_manager_name}}',
-                                        '{{date}}'
-                                    ],
-                                    [
-                                        $employee->employee_name,
-                                        $employee->type ?? '-',
-                                        $brand_detail->name ?? '',
-                                        $project_manager_detail->name ?? '',
-                                        $branch_detail->name ?? '',
-                                        $branch_manager_detail->name ?? '',
-                                        $date,
-                                    ],
-                                    $absentTemplate
-                                );
-
-                                $ccList = [];
-
-                                    if (!empty($branch_manager_detail?->email)) {
-                                        $ccList[] = $branch_manager_detail->email;
-                                    }
-
-                                    if (!empty($region_manager_detail?->email)) {
-                                        $ccList[] = $region_manager_detail->email;
-                                    }
-
-                                    if (!empty($project_manager_detail?->email)) {
-                                        $ccList[] = $project_manager_detail->email;
-                                    }
-
-                                    // Always include attendance team email
-                                    $ccList[] = 'scorp-erp_attendance@convosoft.com';
-
-                                    $insertData_email[] = [
-                                        'to' => $employee->employee_email,
-                                        'cc' => implode(',', $ccList),
-                                        'subject' => 'Marked as Absent for ' . $date,
-                                        'brand_id' => $employee->brand_id,
-                                        'from_email' => 'hr@scorp.co',
-                                        'branch_id' => $employee->branch_id,
-                                        'region_id' => $employee->region_id,
-                                        'is_send' => '0',
-                                        'sender_id' => 0,
-                                        'created_by' => 0,
-                                        'priority' => 1,
-                                        'content' => $replacedHtml,
-                                        'stage_id' => null,
-                                        'pipeline_id' => null,
-                                        'template_id' => null,
-                                        'related_type' => 'employee',
-                                        'related_id' => $employee->employee_id,
-                                        'created_at' => now(),
-                                        'updated_at' => now()
-                                    ];
-                                    
+                                        $insertData_email[] = [
+                                            'to' => $employee->employee_email,
+                                            'cc' => implode(',', $ccList),
+                                            'subject' => 'Marked as Absent for ' . $date,
+                                            'brand_id' => $employee->brand_id,
+                                            'from_email' => 'hr@scorp.co',
+                                            'branch_id' => $employee->branch_id,
+                                            'region_id' => $employee->region_id,
+                                            'is_send' => '0',
+                                            'sender_id' => 0,
+                                            'created_by' => 0,
+                                            'priority' => 1,
+                                            'content' => $replacedHtml,
+                                            'stage_id' => null,
+                                            'pipeline_id' => null,
+                                            'template_id' => null,
+                                            'related_type' => 'employee',
+                                            'related_id' => $employee->employee_id,
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ];
+                                        
+                        }
+                    }
                 }
             }
-        }
-
          
-        if (!empty($insertData)) {
-            AttendanceEmployee::insert($insertData);
-        }
+                if (!empty($insertData)) {
+                    AttendanceEmployee::insert($insertData);
+                }
 
-        // Only send emails if it's not a holiday/weekend (except for special cases handled above)
-        if (!empty($insertData_email) ) {
-            EmailSendingQueue::insert($insertData_email);
-        }
+                // Only send emails if it's not a holiday/weekend (except for special cases handled above)
+                if (!empty($insertData_email) ) {
+                    EmailSendingQueue::insert($insertData_email);
+                }
 
-        return response()->json([
-            'status' => 'success',
-            'total' => $total, 
-            'date' => $date,
-            'is_holiday' => $isHoliday,
-            'day_of_week' => $dayOfWeek,
-        ]);
+                return response()->json([
+                    'status' => 'success',
+                    'total' => $total, 
+                    'date' => $date,
+                    'is_holiday' => $isHoliday,
+                    'day_of_week' => $dayOfWeek,
+                ]);
+
     } catch (\Exception $e) {
         return response()->json([
             'status' => 'error',
