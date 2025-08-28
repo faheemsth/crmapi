@@ -1265,8 +1265,17 @@ public function getemplyee_monthly_attandance(Request $request)
             $timeInUTC = Carbon::now('UTC');
             $timezoneDifference = ($timeInBranch->getOffset() - $timeInUTC->getOffset()) / 3600;
             $recordclockIn = Carbon::parse($record->clock_in)->addHours($timezoneDifference);
-            $earlyPunchOut = $clockOut->diffInHours($recordclockIn) < $branch->shift_time ? 'Yes' : 'No';
+
+            $recordclockOut = $record->clock_out
+                ? Carbon::parse($record->clock_out)->addHours($timezoneDifference)
+                : null;
+
+            $earlyPunchOut = ($recordclockOut && $branch->shift_time)
+                ? ($recordclockOut->diffInHours($recordclockIn) < $branch->shift_time ? 'Yes' : 'No')
+                : 'No';
+
             $status = $earlyPunchOut === 'Yes' ? 'Early Punch Out' : 'Present';
+
 
             $data[] = [
                 'employee_id' => $record->employee_id,
