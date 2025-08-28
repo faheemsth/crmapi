@@ -786,6 +786,10 @@ public function getLogActivity(Request $request)
     if ($request->filled('logtype')) {
         $query->where('type', $request->logtype);
     }
+    // type filter
+    if ($request->filled('module_type')) {
+        $query->where('module_type', $request->module_type);
+    }
 
     // search filter
     if ($request->filled('search')) {

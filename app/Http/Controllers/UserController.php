@@ -2379,8 +2379,8 @@ public function getDashboardholiday(Request $request)
             addLogActivity([
                 'type' => 'success',
                 'note' => json_encode([
-                    'title' => $user->name . '  created',
-                    'message' => $user->name . '  created'
+                    'title' => $user->name . ' new employee  created',
+                    'message' => $user->name . ' new employee    created'
                 ]),
                 'module_id' => $user->id,
                 'module_type' => 'employee',
@@ -2390,8 +2390,8 @@ public function getDashboardholiday(Request $request)
             addLogActivity([
                 'type' => 'success',
                 'note' => json_encode([
-                    'title' => $user->name . '  created',
-                    'message' => $user->name . '  created'
+                    'title' => $user->name . ' new employee    created',
+                    'message' => $user->name . ' new employee    created'
                 ]),
                 'module_id' => $user->id,
                 'module_type' => 'employeeprofile',
@@ -2576,7 +2576,7 @@ public function getDashboardholiday(Request $request)
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name . ' updated ',
+                        'title' => $user->name . ' employee   updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => [
                             'user' => $userChanges,
@@ -2592,7 +2592,7 @@ public function getDashboardholiday(Request $request)
                 addLogActivity([
                     'type' => 'info',
                     'note' => json_encode([
-                        'title' => $user->name . ' updated ',
+                        'title' => $user->name . ' employee   updated ',
                         'message' => 'Fields updated: ' . implode(', ', $updatedFields),
                         'changes' => [
                             'user' => $userChanges,
