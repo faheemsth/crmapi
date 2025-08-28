@@ -152,7 +152,7 @@ class LeaveController extends Controller
     // Return the paginated data
     return response()->json([
         'status' => 'success',
-        'date' => $today,
+        '' => '$today',
         'data' => $leaves->items(),
         'current_page' => $leaves->currentPage(),
         'last_page' => $leaves->lastPage(),
@@ -160,7 +160,6 @@ class LeaveController extends Controller
         'per_page' => $leaves->perPage()
     ], 200);
 }
-
 public function getLeaves(Request $request)
 {
     // Permission check
@@ -190,10 +189,8 @@ public function getLeaves(Request $request)
     }
 
     // Pagination settings
-    $perPage = $request->input('perPage', 25); // fixed to 25 per page
+    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
     $page = $request->input('page', 1);
-
-    $today = now()->toDateString();
 
     // Base query with necessary joins
     $query = Leave::select(
@@ -208,11 +205,7 @@ public function getLeaves(Request $request)
         ->leftJoin('users', 'users.id', '=', 'employees.user_id')
         ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
         ->leftJoin('users as brands', 'brands.id', '=', 'leaves.brand_id')
-        ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id')
-        // ✅ Only employees on leave today
-        ->whereDate('leaves.start_date', '<=', $today)
-        ->whereDate('leaves.end_date', '>=', $today)
-        ->where('leaves.status', 'Approved'); // Only approved leaves are considered
+        ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id');
 
     // Apply role-based filtering
     $query = RoleBaseTableGet($query, 'leaves.brand_id', 'leaves.region_id', 'leaves.branch_id', 'leaves.created_by');
@@ -229,6 +222,7 @@ public function getLeaves(Request $request)
         });
     }
 
+    // Apply additional filters
     if ($request->filled('brand_id')) {
         $query->where('leaves.brand_id', $request->brand_id);
     }
@@ -245,10 +239,56 @@ public function getLeaves(Request $request)
         $query->whereDate('leaves.created_at', substr($request->created_at, 0, 10));
     }
 
-    // Apply sorting and pagination
+    // Get status counts - create a fresh query with only the aggregate functions
+    $countQuery = Leave::query()
+        ->leftJoin('employees', 'employees.id', '=', 'leaves.employee_id')
+        ->leftJoin('users', 'users.id', '=', 'employees.user_id')
+        ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
+        ->leftJoin('users as brands', 'brands.id', '=', 'leaves.brand_id')
+        ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id');
+
+    // Apply the same WHERE conditions as the main query
+    $countQuery = RoleBaseTableGet($countQuery, 'leaves.brand_id', 'leaves.region_id', 'leaves.branch_id', 'leaves.created_by');
+
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $countQuery->where(function ($subQuery) use ($search) {
+            $subQuery->where('users.name', 'like', "%$search%")
+                ->orWhere('employees.name', 'like', "%$search%")
+                ->orWhere('brands.name', 'like', "%$search%")
+                ->orWhere('regions.name', 'like', "%$search%")
+                ->orWhere('branches.name', 'like', "%$search%");
+        });
+    }
+
+    if ($request->filled('brand_id')) {
+        $countQuery->where('leaves.brand_id', $request->brand_id);
+    }
+    if ($request->filled('region_id')) {
+        $countQuery->where('leaves.region_id', $request->region_id);
+    }
+    if ($request->filled('branch_id')) {
+        $countQuery->where('leaves.branch_id', $request->branch_id);
+    }
+    if ($request->filled('employee_id') && $request->employee_id !== 'undefined') {
+        $countQuery->where('leaves.employee_id', $request->employee_id);
+    }
+    if ($request->filled('created_at')) {
+        $countQuery->whereDate('leaves.created_at', substr($request->created_at, 0, 10));
+    }
+
+    // Get status counts with only aggregate functions
+    $statusCounts = $countQuery->selectRaw("
+        SUM(CASE WHEN leaves.status = 'Pending' THEN 1 ELSE 0 END) as Pending,
+        SUM(CASE WHEN leaves.status = 'Approved' THEN 1 ELSE 0 END) as Approved,
+        SUM(CASE WHEN leaves.status = 'Rejected' THEN 1 ELSE 0 END) as Rejected
+    ")->first();
+
+    // Apply sorting and pagination to the original query
     $leaves = $query->orderBy('leaves.created_at', 'DESC')
         ->paginate($perPage, ['*'], 'page', $page);
 
+    // Return the paginated data
     return response()->json([
         'status' => 'success',
         'data' => $leaves->items(),
@@ -256,6 +296,7 @@ public function getLeaves(Request $request)
         'last_page' => $leaves->lastPage(),
         'total_records' => $leaves->total(),
         'per_page' => $leaves->perPage(),
+        'count_summary' => $statusCounts
     ], 200);
 }
 
