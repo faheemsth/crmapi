@@ -398,6 +398,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // user/employees
+    Route::post('/getDashboardBrandLastLogin', [UserController::class, 'getDashboardBrandLastLogin']);
+    Route::post('/getDashboardholiday', [UserController::class, 'getDashboardholiday']);
+    Route::post('/getDashboardCurrentMonthexpiredDocument', [UserController::class, 'getDashboardCurrentMonthexpiredDocument']);
+    Route::post('/getDashboardBirthday', [UserController::class, 'getDashboardBirthday']);
     Route::post('/getDashboardLastLogin', [UserController::class, 'getDashboardLastLogin']);
     Route::post('/getDashboardEmployeesCount', [UserController::class, 'getDashboardEmployeesCount']);
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);

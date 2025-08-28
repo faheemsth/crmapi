@@ -385,7 +385,7 @@ public function getDashboardEmployeesCount(Request $request)
     $excludedTypes = ['company', 'team', 'client', 'Agent'];
 
     $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
-        ->whereNotIn('type', $excludedTypes);
+        ->whereNotIn('type', $excludedTypes) ;
 
     // Apply user-specific restrictions
     if ($user->can('level 1') || $user->type === 'super admin') {
@@ -476,6 +476,183 @@ public function getDashboardLastLogin(Request $request)
         'per_page'       => $employees->perPage(),
     ], 200);
 }
+
+
+public function getDashboardBrandLastLogin(Request $request)
+{
+    $user = \Auth::user();
+
+    $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+    // Filter base employees
+    $employeesBaseQuery = User::query()
+        ->whereNotIn('users.type', $excludedTypes)
+        ->whereDate('users.last_login_at', now()->toDateString());
+
+    // Apply user-specific restrictions
+    if ($user->can('level 1') || $user->type === 'super admin') {
+        // full access
+    } elseif ($user->type === 'company') {
+        $employeesBaseQuery->where('users.brand_id', $user->id);
+    } elseif ($user->can('level 2')) {
+        $brandIds = array_keys(FiltersBrands());
+        $employeesBaseQuery->whereIn('users.brand_id', $brandIds);
+    } elseif ($user->can('level 3') && $user->region_id) {
+        $employeesBaseQuery->where('users.region_id', $user->region_id);
+    } elseif ($user->can('level 4') && $user->branch_id) {
+        $employeesBaseQuery->where('users.branch_id', $user->branch_id);
+    } else {
+        $employeesBaseQuery->where('users.id', $user->id);
+    }
+
+    // ✅ Count employees per brand in one query
+    $brandCounts = (clone $employeesBaseQuery)
+        ->select('users.brand_id', DB::raw('COUNT(users.id) as total'))
+        ->groupBy('users.brand_id')
+        ->pluck('total', 'users.brand_id');
+
+    // Get brand names (companies)
+    $allBrands = User::where('users.type', 'company')
+        ->pluck('users.name', 'users.id');
+
+    // Merge counts with brand names
+    $brandResult = [];
+    foreach ($allBrands as $brandId => $brandName) {
+        $brandResult[$brandName] = $brandCounts[$brandId] ?? 0;
+    }
+
+    return response()->json([
+        'status'        => 'success',
+        'total_records' => $employeesBaseQuery->count(),
+        'brand_count'   => $brandResult,
+    ], 200);
+}
+
+
+public function getDashboardBirthday(Request $request)
+{
+    $user = \Auth::user();
+
+    $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+    // Pagination settings
+    $perPage = 200; // fixed per your requirement
+    $page = $request->input('page', 1);
+
+    $employeesQuery = User::select('users.name', 'users.avatar', 'users.last_login_at')
+        ->whereNotIn('users.type', $excludedTypes);
+
+    // Apply user-specific restrictions
+    if ($user->can('level 1') || $user->type === 'super admin') {
+        // full access
+    } elseif ($user->type === 'company') {
+        $employeesQuery->where('users.brand_id', $user->id);
+    } elseif ($user->can('level 2')) {
+        $brandIds = array_keys(FiltersBrands());
+        $employeesQuery->whereIn('users.brand_id', $brandIds);
+    } elseif ($user->can('level 3') && $user->region_id) {
+        $employeesQuery->where('users.region_id', $user->region_id);
+    } elseif ($user->can('level 4') && $user->branch_id) {
+        $employeesQuery->where('users.branch_id', $user->branch_id);
+    } else {
+        $employeesQuery->where('users.id', $user->id);
+    }
+
+    // Filter for today’s login
+    $today = now()->toDateString();
+    $employeesQuery->whereDate('users.date_of_birth', $today);
+
+    // ✅ Paginate properly
+    $employees = $employeesQuery->orderBy('users.date_of_birth', 'DESC')
+        ->paginate($perPage, ['*'], 'page', $page);
+
+    return response()->json([
+        'status'         => 'success',
+        'data'           => $employees->items(),
+        'current_page'   => $employees->currentPage(),
+        'last_page'      => $employees->lastPage(),
+        'total_records'  => $employees->total(),
+        'per_page'       => $employees->perPage(),
+    ], 200);
+}
+
+public function getDashboardCurrentMonthexpiredDocument(Request $request)
+{
+    $user = \Auth::user();
+
+    $excludedTypes = ['company', 'team', 'client', 'Agent'];
+
+    // Pagination settings
+    $perPage = 200; // fixed per your requirement
+    $page = $request->input('page', 1);
+
+    $employeesQuery = User::select('users.name', 'employee_documents.renewal_date', 'employee_documents.description','document_types.name as document_type_name')
+        ->whereNotIn('users.type', $excludedTypes)
+         ->leftJoin('employee_documents', 'users.id', '=', 'employee_documents.employee_id')
+         ->leftJoin('document_types', 'document_types.id', '=', 'employee_documents.documenttypeID');
+
+    // Apply user-specific restrictions
+    if ($user->can('level 1') || $user->type === 'super admin') {
+        // full access
+    } elseif ($user->type === 'company') {
+        $employeesQuery->where('users.brand_id', $user->id);
+    } elseif ($user->can('level 2')) {
+        $brandIds = array_keys(FiltersBrands());
+        $employeesQuery->whereIn('users.brand_id', $brandIds);
+    } elseif ($user->can('level 3') && $user->region_id) {
+        $employeesQuery->where('users.region_id', $user->region_id);
+    } elseif ($user->can('level 4') && $user->branch_id) {
+        $employeesQuery->where('users.branch_id', $user->branch_id);
+    } else {
+        $employeesQuery->where('users.id', $user->id);
+    }
+
+      // 🔹 Expired documents within current month
+    $startOfMonth = now()->startOfMonth()->toDateString();
+    $endOfMonth   = now()->endOfMonth()->toDateString();
+
+    $employeesQuery->whereBetween('employee_documents.renewal_date', [$startOfMonth, $endOfMonth])
+                   ->where('employee_documents.set_is_renewable', 1);
+
+    // ✅ Paginate properly
+    $employees = $employeesQuery->orderBy('users.date_of_birth', 'DESC')
+        ->paginate($perPage, ['*'], 'page', $page);
+
+    return response()->json([
+        'status'         => 'success',
+        'data'           => $employees->items(),
+        'current_page'   => $employees->currentPage(),
+        'last_page'      => $employees->lastPage(),
+        'total_records'  => $employees->total(),
+        'per_page'       => $employees->perPage(),
+    ], 200);
+}
+public function getDashboardholiday(Request $request)
+{
+     
+    $startOfMonth = now()->startOfMonth()->toDateString();
+    $endOfMonth   = now()->endOfMonth()->toDateString();
+
+    $currentMonthHolidays = DB::table('holidays')
+        ->where(function ($query) use ($startOfMonth, $endOfMonth) {
+            $query->whereBetween('date', [$startOfMonth, $endOfMonth])     // holiday starts this month
+                ->orWhereBetween('end_date', [$startOfMonth, $endOfMonth]) // holiday ends this month
+                ->orWhere(function ($q) use ($startOfMonth, $endOfMonth) {
+                    $q->where('date', '<=', $startOfMonth)   // holiday starts before month
+                        ->where('end_date', '>=', $endOfMonth); // holiday ends after month
+                });
+        })
+        ->get();
+
+
+   
+
+    return response()->json([
+        'status'         => 'success',
+        'data'           => $currentMonthHolidays,
+    ], 200);
+}
+
 
 
     public function getEmployees_download(Request $request)
@@ -1596,6 +1773,7 @@ public function getDashboardLastLogin(Request $request)
         $employeeDocument->set_as_reminder = $request->set_as_reminder;
         $employeeDocument->reminder_date = $request->reminder_date; 
         $employeeDocument->issue_date = $request->issue_date; 
+        $employeeDocument->set_is_renewable = $request->set_is_renewable; 
         $user->save();
 
       
