@@ -778,7 +778,7 @@ public function getLogActivity(Request $request)
     }
 
     // module_type filter
-    if ($request->filled('type')) {
+    if ($request->filled('type') && $request->type === 'user') {
         $query->where('module_type', $request->type);
     }
 

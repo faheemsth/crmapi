@@ -3143,21 +3143,7 @@ public function getDashboardholiday(Request $request)
                 'notification_type' =>  ' ' . $typeoflog . ' Updated'
             ]);
         }
-
-
-        if (!empty($changes)) {
-            addLogActivity([
-                'type' => 'info',
-                'note' => json_encode([
-                    'title' => $user->name .  ' ' . $typeoflog . ' updated ',
-                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                    'changes' => $changes
-                ]),
-                'module_id' => $user->id,
-                'module_type' => 'brand',
-                'notification_type' =>  ' ' . $typeoflog . ' Updated'
-            ]);
-        }
+ 
 
 
         return response()->json([
