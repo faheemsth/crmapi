@@ -1255,6 +1255,18 @@ public function getemplyee_monthly_attandance(Request $request)
             $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
                 ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
                 : 0;
+            $branchId = $record->branch_id;
+
+            $branch = Branch::find($branchId);
+
+            $timezone = $branch->timezone ?? 'Asia/Karachi';
+
+            $timeInBranch = Carbon::now($timezone);
+            $timeInUTC = Carbon::now('UTC');
+            $timezoneDifference = ($timeInBranch->getOffset() - $timeInUTC->getOffset()) / 3600;
+            $recordclockIn = Carbon::parse($record->clock_in)->addHours($timezoneDifference);
+            $earlyPunchOut = $clockOut->diffInHours($recordclockIn) < $branch->shift_time ? 'Yes' : 'No';
+            $status = $earlyPunchOut === 'Yes' ? 'Early Punch Out' : 'Present';
 
             $data[] = [
                 'employee_id' => $record->employee_id,
@@ -1270,7 +1282,7 @@ public function getemplyee_monthly_attandance(Request $request)
                 'clock_out' => $clockOut,
                 'earlyCheckOutReason' => $record->earlyCheckOutReason ?? null,
                 'worked_hours' => gmdate('H:i:s', $workedSeconds),
-                'status' => $record->status,
+                'status' => $status,
                 'late' => $record->late ?? "00:00:00",
                 'early_leaving' => $record->early_leaving ?? "00:00:00",
                 'overtime' => $record->overtime ?? "00:00:00",
