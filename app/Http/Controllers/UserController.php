@@ -1172,11 +1172,11 @@ public function getDashboardholiday(Request $request)
 
     public function addBrand(Request $request)
     {
-        if (!Auth::user()->can('create user')) {
+        if (!Auth::user()->can('create brand')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied')
-            ], 403);
+            ], 200);
         }
 
         $default_language = DB::table('settings')
@@ -1318,11 +1318,11 @@ public function getDashboardholiday(Request $request)
     public function updateBrand(Request $request)
     {
         // Check permission
-        if (!Auth::user()->can('edit user')) {
+        if (!Auth::user()->can('edit brand')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied')
-            ], 403);
+            ], 200);
         }
 
         // Validate request
@@ -1421,7 +1421,7 @@ public function getDashboardholiday(Request $request)
     public function deleteBrand(Request $request)
     {
         // Check permission
-        if (!Auth::user()->can('delete user')) {
+        if (!Auth::user()->can('delete brand')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied')
