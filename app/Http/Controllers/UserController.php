@@ -477,17 +477,24 @@ public function getDashboardLastLogin(Request $request)
     ], 200);
 }
 
-
 public function getDashboardBrandLastLogin(Request $request)
 {
     $user = \Auth::user();
 
     $excludedTypes = ['company', 'team', 'client', 'Agent'];
 
-    // Filter base employees
+    // 📅 Date ranges
+    $today        = now()->toDateString();
+    $startOfWeek  = now()->startOfWeek()->toDateString();
+    $endOfWeek    = now()->endOfWeek()->toDateString();
+    $startOfMonth = now()->startOfMonth()->toDateString();
+    $endOfMonth   = now()->endOfMonth()->toDateString();
+    $startOfYear  = now()->startOfYear()->toDateString();
+    $endOfYear    = now()->endOfYear()->toDateString();
+
+    // Base query for employees
     $employeesBaseQuery = User::query()
-        ->whereNotIn('users.type', $excludedTypes)
-        ->whereDate('users.last_login_at', now()->toDateString());
+        ->whereNotIn('users.type', $excludedTypes);
 
     // Apply user-specific restrictions
     if ($user->can('level 1') || $user->type === 'super admin') {
@@ -505,28 +512,27 @@ public function getDashboardBrandLastLogin(Request $request)
         $employeesBaseQuery->where('users.id', $user->id);
     }
 
-    // ✅ Count employees per brand in one query
-    $brandCounts = (clone $employeesBaseQuery)
-        ->select('users.brand_id', DB::raw('COUNT(users.id) as total'))
-        ->groupBy('users.brand_id')
-        ->pluck('total', 'users.brand_id');
-
-    // Get brand names (companies)
-    $allBrands = User::where('users.type', 'company')
-        ->pluck('users.name', 'users.id');
-
-    // Merge counts with brand names
-    $brandResult = [];
-    foreach ($allBrands as $brandId => $brandName) {
-        $brandResult[$brandName] = $brandCounts[$brandId] ?? 0;
-    }
+    // ✅ Single query with conditional aggregation
+    $brandData = $employeesBaseQuery
+        ->select(
+            'companies.name as company',
+            DB::raw("SUM(CASE WHEN DATE(users.last_login_at) = '$today' THEN 1 ELSE 0 END) as daily"),
+            DB::raw("SUM(CASE WHEN DATE(users.last_login_at) BETWEEN '$startOfWeek' AND '$endOfWeek' THEN 1 ELSE 0 END) as weekly"),
+            DB::raw("SUM(CASE WHEN DATE(users.last_login_at) BETWEEN '$startOfMonth' AND '$endOfMonth' THEN 1 ELSE 0 END) as monthly"),
+            DB::raw("SUM(CASE WHEN DATE(users.last_login_at) BETWEEN '$startOfYear' AND '$endOfYear' THEN 1 ELSE 0 END) as yearly")
+        )
+        ->join('users as companies', 'users.brand_id', '=', 'companies.id')
+        ->where('companies.type', 'company')
+        ->groupBy('companies.id', 'companies.name')
+        ->get();
 
     return response()->json([
         'status'        => 'success',
-        'total_records' => $employeesBaseQuery->count(),
-        'brand_count'   => $brandResult,
+        'total_records' => $brandData->sum('yearly'),
+        'data'          => $brandData,
     ], 200);
 }
+
 
 
 public function getDashboardBirthday(Request $request)
