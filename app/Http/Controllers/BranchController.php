@@ -173,7 +173,7 @@ class BranchController extends Controller
             'timezone' => 'required|string',
             'google_link' => 'nullable|url',
             'social_media_link' => 'nullable|url',
-            'shift_time' => 'required|string',
+            'is_sat_off' => 'required|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -202,6 +202,7 @@ class BranchController extends Controller
             'phone' => $request->full_number,
             'email' => $request->email,
             'shift_time' => $decimalHours,
+            'is_sat_off' => $request->is_sat_off,
             'created_by' => \Auth::user()->creatorId(),
         ]);
 
