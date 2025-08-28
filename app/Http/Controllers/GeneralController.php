@@ -778,8 +778,8 @@ public function getLogActivity(Request $request)
     }
 
     // module_type filter
-    if ($request->filled('module_type')) {
-        $query->where('module_type', $request->module_type);
+    if ($request->filled('type')) {
+        $query->where('module_type', $request->type);
     }
 
     // type filter
