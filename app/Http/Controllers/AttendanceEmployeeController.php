@@ -2481,9 +2481,15 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
        $validator = Validator::make($request->all(), [
             'attendance_id' => 'required|exists:attendance_employees,id',
             'status'        => 'required|string|in:Present,Absent',
-            'clock_in'      => 'required|date_format:H:i',
-            'clock_out'     => 'required|date_format:H:i|after:clock_in',
+            'clock_in'      => 'nullable|date_format:H:i',
+            'clock_out'     => 'nullable|date_format:H:i|after:clock_in',
         ]);
+
+        if($request->status=='Present'){
+            $validator = Validator::make($request->all(), [ 
+                'clock_in'      => 'required|date_format:H:i', 
+            ]);
+        }
 
         if ($validator->fails()) {
             return response()->json([
