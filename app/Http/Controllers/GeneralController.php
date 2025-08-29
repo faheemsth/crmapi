@@ -755,6 +755,7 @@ public function getLogActivity(Request $request)
 
     if ($request->type === 'user') {
         $query->where('created_by', $request->id);
+        $query->where('module_type','!=', 'employeeprofile');
     } else {
         $query->where('module_id', $request->id) ;
     }
