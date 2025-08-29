@@ -1788,7 +1788,7 @@ public function getDashboardholiday(Request $request)
 
         // Log updated fields
               //  ========== add ============ 
-                $typeoflog = $employeeDocument->description;
+                $typeoflog = $employeeDocument->documentType->name ?? 'document';
                 addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
