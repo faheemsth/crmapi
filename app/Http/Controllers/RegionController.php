@@ -124,7 +124,7 @@ class RegionController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'brand_id' => 'required|integer|exists:users,id',
-            'region_manager_id' => 'required|integer|exists:users,id'
+            'region_manager_id' => 'nullable|integer|exists:users,id'
         ]);
 
         if ($validator->fails()) {
@@ -180,7 +180,7 @@ class RegionController extends Controller
             'name' => 'required|string|max:255',
             'location' => 'required|string|max:255',
             'brand_id' => 'required|integer|exists:users,id',
-            'region_manager_id' => 'required|integer|exists:users,id',
+            'region_manager_id' => 'nullable|integer|exists:users,id',
             'email' => 'required|email|unique:branches,email,' . $request->id,
         ]);
 
