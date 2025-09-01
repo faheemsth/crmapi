@@ -98,7 +98,7 @@ class BranchController extends Controller
 
         // Additional filters
         if ($request->filled('brand_id')) {
-            $branchQuery->where('brand_id', $request->brand_id);
+            $branchQuery->where('brands', $request->brand_id);
         }
         if ($request->filled('region_id')) {
             $branchQuery->where('region_id', $request->region_id);

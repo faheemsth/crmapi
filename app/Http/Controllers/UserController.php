@@ -2381,6 +2381,28 @@ public function getDashboardholiday(Request $request)
             $employee->created_by = \Auth::user()->id;
             $employee->save();
 
+
+             
+             $new_employee_email_template = Utility::getValByName('new_employee_email_template');
+
+             
+
+            $new_employee_email_template = EmailTemplate::find($new_employee_email_template);
+
+        
+             $insertData = [];
+          
+            $insertData[] = $this->buildEmailData($new_employee_email_template, $user);
+        
+
+                
+            //dd($insertData);
+                // --- Batch Insert ---
+                if (!empty($insertData)) {
+                    EmailSendingQueue::insert($insertData);
+                }
+
+
             // Log Activity
             addLogActivity([
                 'type' => 'success',
@@ -2422,6 +2444,87 @@ public function getDashboardholiday(Request $request)
         }
     }
 
+
+
+
+    public function newEmployeeEmailSend(Request $request)
+    {
+        if (!\Auth::user()->can('create employee')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Permission denied.',
+            ], 403);
+        }
+
+        $validator = \Validator::make($request->all(), [ 
+            'emp_id' => 'required|exists:users,id', 
+        ]);
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors(),
+            ], 400);
+        } 
+        
+            $user = User::find($request->emp_id);
+
+            
+             $new_employee_email_template = Utility::getValByName('new_employee_email_template');
+
+             
+
+            $new_employee_email_template = EmailTemplate::find($new_employee_email_template);
+
+        
+             $insertData = [];
+          
+            $insertData[] = $this->buildEmailData($new_employee_email_template, $user);
+        
+
+                
+            //dd($insertData);
+                // --- Batch Insert ---
+                if (!empty($insertData)) {
+                    EmailSendingQueue::insert($insertData);
+                }
+
+                
+            // Log Activity
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name . ' new employee email  sent',
+                    'message' => $user->name . ' new employee email  sent'
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employee',
+                'notification_type' => 'Employee Created',
+            ]);
+
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name . ' new employee email  sent',
+                    'message' => $user->name . ' new employee email  sent'
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'employeeprofile',
+                'notification_type' => 'Employee Created',
+            ]);
+
+
+             return response()->json([
+                'status' => true,
+                'message' => 'New employee email  sent.',
+                'data' => [
+                    'user' => $user, 
+                ],
+            ]);
+
+         
+    }
 
     public function UpdateEmployee(Request $request)
     {
@@ -3255,6 +3358,19 @@ public function getDashboardholiday(Request $request)
                 case 'DOB':
                     $value = $user->date_of_birth;
                     break;
+                case 'project_manager_name':
+                   $value = optional(optional($user->brand)->manager)->name ?? '';
+                    break;
+                case 'project_manager_email':
+                   $value = optional(optional($user->brand)->manager)->email ?? '';
+                    break;
+                case 'branch_manager_name':
+                    $value = optional(optional($user->branch)->manager)->name ?? '';
+                    break;
+                case 'branch_manager_email':
+                    $value = optional(optional($user->branch)->manager)->email ?? '';
+                    break;
+
                 case 'date_today':
                     $value = now()->toDateString();
                     break;

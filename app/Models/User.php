@@ -120,30 +120,56 @@ class User extends Authenticatable
         }
     }
 
-    public function manager()
-    {
-        return $this->hasOne('App\Models\User', 'id', 'project_manager_id');
-    }   
+    // public function manager()
+    // {
+    //     return $this->hasOne('App\Models\User', 'id', 'project_manager_id');
+    // }   
      public function designation()
     {
         return $this->hasOne('App\Models\Designation', 'id', 'designation_id');
     }
-    public function branch()
-    {
-        return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
-    }
-    public function region()
-    {
-        return $this->hasOne('App\Models\Region', 'id', 'region_id');
-    }
-    public function brand()
-    {
-        return $this->hasOne('App\Models\User', 'id', 'brand_id');
-    }
-    public function director()
-    {
-        return $this->hasOne('App\Models\User', 'id', 'project_director_id');
-    }
+    // public function branch()
+    // {
+    //     return $this->hasOne('App\Models\Branch', 'id', 'branch_id');
+    // }
+    // public function region()
+    // {
+    //     return $this->hasOne('App\Models\Region', 'id', 'region_id');
+    // }
+    // public function brand()
+    // {
+    //     return $this->hasOne('App\Models\User', 'id', 'brand_id');
+    // }
+
+            public function manager()
+        {
+            return $this->belongsTo(User::class, 'project_manager_id');
+        }
+
+        public function director()
+        {
+            return $this->belongsTo(User::class, 'project_director_id');
+        }
+
+        public function branch()
+        {
+            return $this->belongsTo(Branch::class, 'branch_id');
+        }
+
+        public function region()
+        {
+            return $this->belongsTo(Region::class, 'region_id');
+        }
+
+        public function brand()
+        {
+            return $this->belongsTo(User::class, 'brand_id');
+        }
+
+    // public function director()
+    // {
+    //     return $this->hasOne('App\Models\User', 'id', 'project_director_id');
+    // }
     public function created_by()
     {
         return $this->hasOne('App\Models\User', 'id', 'created_by');
