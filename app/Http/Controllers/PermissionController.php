@@ -80,7 +80,7 @@ class PermissionController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()
-            ], 422);
+            ], 200);
         }
 
         $permission = Permission::create([
