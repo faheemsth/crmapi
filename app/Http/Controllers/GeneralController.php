@@ -365,7 +365,10 @@ class GeneralController extends Controller
 
 
 
-        $ProjectDirector = User::where('type', 'Project Director')->pluck('name', 'id')->toArray();
+        $ProjectDirector = User::where('type', 'Project Director')
+                     ->orWhere('id', 3257)
+                     ->pluck('name', 'id')
+                     ->toArray();
 
         if ($ProjectDirector) {
 
