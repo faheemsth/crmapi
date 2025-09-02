@@ -503,13 +503,14 @@ class PaySlipController extends Controller
     private function generatePayslips($employees, $formattedMonthYear,$brand_id,$region_id,$branch_id)
     {
         foreach ($employees as $employee) {
+          $user=User::find($employee->user_id);
           $payslip =  PaySlip::firstOrCreate([
                 'employee_id' => $employee->id,
                 'salary_month' => $formattedMonthYear,
                 'created_by' => Auth::id() ?? 0,
-                'brand_id' => $brand_id ?? $employee->brand_id,
-                'region_id' => $region_id ?? $employee->region_id,
-                'branch_id' => $branch_id ?? $employee->branch_id
+                'brand_id' => $user?->brand_id,
+                'region_id' => $user?->region_id,
+                'branch_id' => $user?->branch_id
             ], [
                 'net_payble' => $employee->get_net_salary(),
                 'status' => 0,
