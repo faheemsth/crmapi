@@ -195,14 +195,25 @@ class PaySlipController extends Controller
             ], 403);
         }
 
-        // Validate request input
-        $validator = Validator::make($request->all(), [
-            'month' => 'required|string|size:2|in:' . implode(',', array_keys($this->getMonths())),
-            'year' => 'required|string|size:4|regex:/^\d{4}$/',
-            'brand_id' => 'required|exists:users,id',
-            'region_id' => 'required|exists:regions,id',
-            'branch_id' => 'required|exists:branches,id',
-        ]);
+        $rules = [
+            'month'     => 'required|string|size:2|in:' . implode(',', array_keys($this->getMonths())),
+            'year'      => 'required|string|size:4|regex:/^\d{4}$/',
+            'brand_id'  => 'required',   // default required
+            'region_id' => 'required',   // define first
+            'branch_id' => 'required',   // define first
+        ];
+
+        // Apply conditions based on user type
+        $userType = Auth::user()->type;
+
+        if (in_array($userType, ["Project Manager", "Project Director", "Admin Team", "Super Admin"])) {
+            unset($rules['region_id'], $rules['branch_id']);
+        } elseif ($userType === "Region Manager") {
+            unset($rules['branch_id']);
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
