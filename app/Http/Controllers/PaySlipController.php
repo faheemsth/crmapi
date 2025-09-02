@@ -764,4 +764,38 @@ class PaySlipController extends Controller
             ], 404);
         }
     }
+
+    public function PayslipAutoGenerateEachMonth(Request $request)
+    {
+        $month = $request->input('month', now()->format('m'));
+        $year  = $request->input('year', now()->format('Y'));
+        $formattedMonthYear = $year . '-' . $month;
+        $existingPayslips = $this->getExistingPayslips(
+            $formattedMonthYear,
+            0,
+            0,
+            0, 
+            0, 
+            0 
+        );
+
+        // Get eligible employees (no brand/region/branch filter)
+        $eligibleEmployees = $this->getEligibleEmployees(
+            $formattedMonthYear,
+            $existingPayslips,
+            0,
+            0, 
+            0, 
+            0 
+        );
+
+        if ($eligibleEmployees->isEmpty()) {
+            
+        }
+        $this->generatePayslips($eligibleEmployees, $formattedMonthYear, 0, 0, 0);
+        $this->sendNotifications($formattedMonthYear);
+        $this->fetchPayslips($formattedMonthYear);
+        return true;
+    }
+
 }

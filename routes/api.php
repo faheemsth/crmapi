@@ -593,6 +593,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('getpayslips/', [PaySlipController::class, 'index']);
     Route::get('payslips/{id}', [PaySlipController::class, 'show']);
     Route::post('payslips/', [PaySlipController::class, 'store']);
+    Route::get('PayslipAutoGenerateEachMonth/', [PaySlipController::class, 'PayslipAutoGenerateEachMonth']);
+    
     Route::post('payslips-show', [PaySlipController::class, 'searchJson']);
     Route::match(['put', 'patch'], 'payslips/{id}', [PaySlipController::class, 'update']);
     Route::delete('payslips/{id}', [PaySlipController::class, 'destroy']);
