@@ -42,8 +42,7 @@ class PaySlipController extends Controller
         ->leftJoin('users', 'users.id', '=', 'employees.user_id') // Corrected column relation
         ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id') // Referring to employees' brand_id
         ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
-        ->where('pay_slips.created_by', Auth::id()); // Filtering for the authenticated user
+        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id') ;  
 
 
 
@@ -77,6 +76,20 @@ class PaySlipController extends Controller
                         ->orWhere('pay_slips.net_payble', 'like', "%$search%");
                 });
             }
+
+            
+           if ($request->filled('tag_ids')) {
+                $tagIds = explode(',', $request->input('tag_ids')); // "6,4"
+
+                $jobsQuery->where(function ($query) use ($tagIds) {
+                    foreach ($tagIds as $tagId) {
+                        $query->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+                    }
+                });
+            }
+
+           // dd($jobsQuery->toSql(), $jobsQuery->getBindings());
+
 
 
                 if ($request->input('download_csv')) {

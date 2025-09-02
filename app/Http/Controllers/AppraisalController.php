@@ -107,6 +107,18 @@ class AppraisalController extends Controller
                     ->orWhere('users.name', 'like', "%$search%");
             });
         }
+       if ($request->filled('tag_ids')) {
+                $tagIds = explode(',', $request->input('tag_ids')); // e.g. "6,4"
+
+                $appraisalQuery->whereHas('employees', function ($q) use ($tagIds) {
+                    $q->where(function ($subQuery) use ($tagIds) {
+                        foreach ($tagIds as $tagId) {
+                            $subQuery->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+                        }
+                    });
+                });
+            }
+
 
         // Fetch paginated appraisals
         $appraisals = $appraisalQuery

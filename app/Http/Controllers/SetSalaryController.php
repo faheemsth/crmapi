@@ -92,6 +92,16 @@ class SetSalaryController extends Controller
                     ->orWhere('BrandUsers.name', 'like', "%$search%");
             });
         }
+         
+           if ($request->filled('tag_ids')) {
+                $tagIds = explode(',', $request->input('tag_ids')); // "6,4"
+
+                $query->where(function ($q) use ($tagIds) {
+                    foreach ($tagIds as $tagId) {
+                        $q->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+                    }
+                });
+            }
         // Get total count before pagination
         $totalRecords = $query->count();
 

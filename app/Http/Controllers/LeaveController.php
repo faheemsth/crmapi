@@ -229,6 +229,18 @@ public function getLeaves(Request $request)
         });
     }
 
+       if ($request->filled('tag_ids')) {
+            $tagIds = explode(',', $request->input('tag_ids')); // e.g. [6,4]
+
+            $query->where(function ($subQuery) use ($tagIds) {
+                foreach ($tagIds as $tagId) {
+                    $subQuery->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+                }
+            });
+        }
+
+
+
     // Apply additional filters
     if ($request->filled('brand_id')) {
         $query->where('leaves.brand_id', $request->brand_id);
