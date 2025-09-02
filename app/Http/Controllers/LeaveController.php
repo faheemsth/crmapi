@@ -268,9 +268,9 @@ public function getLeaves(Request $request)
     if ($request->filled('brand_id')) {
         $countQuery->where('leaves.brand_id', $request->brand_id);
     }
-    if ($request->filled('status')) {
-        $countQuery->where('leaves.status', $request->status);
-    }
+    // if ($request->filled('status')) {
+    //     $countQuery->where('leaves.status', $request->status);
+    // }
     if ($request->filled('region_id')) {
         $countQuery->where('leaves.region_id', $request->region_id);
     }
