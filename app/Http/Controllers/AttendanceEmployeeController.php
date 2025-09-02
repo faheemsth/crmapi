@@ -2559,9 +2559,9 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
 
             // Save reason if provided
             if (!empty($request->earlyCheckOutReason)) {
-                $attendance->early_check_out_reason = $request->earlyCheckOutReason;
+                $attendance->earlyCheckOutReason = $request->earlyCheckOutReason;
             }else {
-                $attendance->early_check_out_reason = null; // Clear if not provided
+                $attendance->earlyCheckOutReason = null; // Clear if not provided
             }
 
         // Calculate late time

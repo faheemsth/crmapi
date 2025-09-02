@@ -12,6 +12,10 @@ use App\Events\NewNotification;
 use App\Models\CompanyPermission;
 use App\Models\HistoryRequest;
 use App\Models\LeadTag;
+use App\Models\EmailTemplate;
+use App\Models\Utility;
+use App\Models\EmailSendingQueue;
+use App\Models\EmailTag;
 
 if (!function_exists('countries')) {
     function countries()
@@ -228,6 +232,181 @@ if (!function_exists('allPermittedCompanies')) {
         return CompanyPermission::where('user_id', \Auth::user()->id)->where('active', 'true')->pluck('permitted_company_id')->toArray();
     }
 }
+if (!function_exists('addToEmailQueue')) {
+    function addToEmailQueue(
+        $user_id,
+        $settingtemplate,
+        $templateId = null,
+        $ccchecklist = [
+            'is_branch_manager'   => 'yes',
+            'is_region_manager'   => 'yes',
+            'is_project_manager'  => 'yes',
+            'is_scrop_attendance' => 'yes'
+        ],
+        $ccadditional = [],
+        $additionalTags = []
+    ) {
+        $user = User::with(['branch.manager', 'region.manager'])
+            ->findOrFail($user_id);
+
+        // Resolve manager details
+        $branch_manager_detail  = optional($user->branch)->manager;
+        $region_manager_detail  = optional($user->region)->manager; 
+        $project_manager_detail = User::where('id', $user->brand->project_manager_id)->first();
+
+        // Build CC list
+        $ccList = [];
+
+        if (($ccchecklist['is_branch_manager'] ?? 'no') === 'yes' && !empty($branch_manager_detail?->email)) {
+            $ccList[] = $branch_manager_detail->email;
+        }
+
+        if (($ccchecklist['is_region_manager'] ?? 'no') === 'yes' && !empty($region_manager_detail?->email)) {
+            $ccList[] = $region_manager_detail->email;
+        }
+
+        if (($ccchecklist['is_project_manager'] ?? 'no') === 'yes' && !empty($project_manager_detail?->email)) {
+            $ccList[] = $project_manager_detail->email;
+        }
+
+        if (($ccchecklist['is_scrop_attendance'] ?? 'no') === 'yes') {
+            $ccList[] = 'scorp-erp_attendance@convosoft.com';
+        }
+
+        // Merge additional CCs
+        $ccList = array_unique(array_merge($ccList, $ccadditional));
+
+        // Inject managers for email template usage
+        $user->branch_manager  = $branch_manager_detail;
+        $user->region_manager  = $region_manager_detail;
+        $user->project_manager = $project_manager_detail;
+
+        // Add employee status
+        $statusMap = [
+            0 => 'Inactive',
+            1 => 'Active',
+            2 => 'Terminated',
+            3 => 'Suspended',
+        ];
+        $user->employee_status = $statusMap[$user->is_active] ?? 'Unknown';
+
+        // Add custom tags
+        foreach ($additionalTags as $key => $value) {
+            $user->$key = $value;
+        }
+
+        // Get template
+        $resolvedTemplateId = $templateId ?? Utility::getValByName($settingtemplate);
+        $emailTemplate = EmailTemplate::find($resolvedTemplateId);
+
+        if ($emailTemplate) {
+            $insertData = [
+                buildEmailData($emailTemplate, $user, implode(',', $ccList))
+            ];
+
+            EmailSendingQueue::insert($insertData);
+        }
+    }
+}
+
+
+ function buildEmailData($template, $user,$cc=null)
+    {
+        if (!$template) {
+            return [];
+        }
+
+        $subject = replaceTags($template->subject, $user);
+        $content = replaceTags($template->template, $user);
+       
+        return [
+            'to'           => $user->email,
+            'cc'           => $cc,
+            'subject'      => $subject,
+            'brand_id'     => $user->brand_id,
+            'from_email'   => $template->from ?? 'hr@scorp.co',
+            'branch_id'    => $user->branch_id,
+            'region_id'    => $user->region_id,
+            'is_send'      => '0',
+            'sender_id'    => 0,
+            'created_by'   => 0,
+            'priority'     => 1,
+            'content'      => $content,
+            'stage_id'     => null,
+            'pipeline_id'  => null,
+            'template_id'  => $template->id,
+            'related_type' => 'employee',
+            'related_id'   => $user->id,
+            'created_at'   => now(),
+            'updated_at'   => now(),
+        ];
+    }
+
+     function replaceTags($content, $user)
+    {
+        $tags = EmailTag::all();
+        $replacePairs = [];
+
+        foreach ($tags as $tag) {
+            $key = '{' . $tag->tag . '}';
+               // If tag exists as dynamic property on $user (from $additionalTags)
+                if (isset($user->{$tag->tag})) {
+                    $value = $user->{$tag->tag};
+                } else {
+                    $value = ''; // default
+                }
+
+            switch ($tag->tag) {
+                case 'employee_name':
+                    $value = $user->name;
+                    break;
+                case 'employee_email':
+                    $value = $user->email;
+                    break;
+                case 'DOB':
+                    $value = $user->date_of_birth;
+                    break;
+                
+                case 'branch_manager_name':
+                    $value = optional(optional($user->branch)->manager)->name ?? '';
+                    break;
+                case 'branch_manager_email':
+                    $value = optional(optional($user->branch)->manager)->email ?? '';
+                    break;
+
+                case 'date_today':
+                    $value = now()->toDateString();
+                    break;
+                case 'employee_designation':
+                    $value = optional($user->designation)->name ?? '';
+                    break;
+                case 'commencedDate':
+                    $value = optional(
+                        $user->employeeMetas->where('meta_key', 'commencedDate')->first()
+                    )->meta_value ?? '';
+                    break;
+                        // 🔹 Document info
+                    case 'document_name':
+                        $value = $user->document_name ?? '';
+                        break;
+                    case 'document_expiry':
+                        $value = $user->document_expiry ?? '';
+                        break;
+
+                    // 🔹 Managers
+                    case 'project_manager_name':
+                        $value = $user->project_manager?->name ?? '';
+                        break;
+                    case 'project_manager_email':
+                        $value = $user->project_manager?->email ?? '';
+                        break;
+                    }
+
+            $replacePairs[$key] = $value;
+        }
+
+        return strtr($content, $replacePairs);
+    }
 
 
 if (!function_exists('addLogActivity')) {

@@ -144,7 +144,7 @@ class LeaveController extends Controller
 
     
   
-
+        
     // Apply sorting and pagination to the original query
     $leaves = $query->orderBy('leaves.created_at', 'DESC')
         ->paginate($perPage, ['*'], 'page', $page);
@@ -366,6 +366,36 @@ public function getLeaves(Request $request)
         //     'module_type' => 'leave',
         //     'notification_type' => 'Leave Created'
         // ]);
+
+            // Send email to queue start 
+
+        
+
+        $additionalTags = [
+            'leave_start_date' => $leave->start_date ?? '-',
+            'leave_end_date'   => $leave->end_date ?? '-',
+            'leave_status'     => $leave->status ?? '-',
+            'leave_reason'     => $leave->remark ?? 'Not provided',
+        ];
+
+        $templateId = null;
+        $ccchecklist = [
+                    'is_branch_manager'   => 'yes',
+                    'is_region_manager'   => 'yes',
+                    'is_project_manager'  => 'yes',
+                    'is_scrop_attendance' => 'yes'
+                ];
+
+        addToEmailQueue(
+            $leave->employee_id,
+                'apply_leave_email_template',
+                $templateId,
+                $ccchecklist,
+                array() ,
+                $additionalTags 
+            );
+
+             // Send email to queue end 
 
           addLogActivity([
             'type' => 'success',
