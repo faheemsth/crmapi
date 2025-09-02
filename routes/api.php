@@ -114,7 +114,7 @@ Route::get('/proxy-image', function (Request $request) {
     }
 });
 
-
+    Route::get('PayslipAutoGenerateEachMonth/', [PaySlipController::class, 'PayslipAutoGenerateEachMonth']);
     Route::get('/sendexpiredDocumentEmail', [UserController::class, 'sendexpiredDocumentEmail']);
     Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
     Route::get('/sendBirthdayAndAnniversaryEmails', [UserController::class, 'sendBirthdayAndAnniversaryEmails']);
@@ -593,6 +593,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('getpayslips/', [PaySlipController::class, 'index']);
     Route::get('payslips/{id}', [PaySlipController::class, 'show']);
     Route::post('payslips/', [PaySlipController::class, 'store']);
+   
+    
     Route::post('payslips-show', [PaySlipController::class, 'searchJson']);
     Route::match(['put', 'patch'], 'payslips/{id}', [PaySlipController::class, 'update']);
     Route::delete('payslips/{id}', [PaySlipController::class, 'destroy']);

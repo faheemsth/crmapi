@@ -147,6 +147,7 @@ class GoalTrackingController extends Controller
         $goalTracking->start_date = $request->start_date;
         $goalTracking->end_date = $request->end_date;
         $goalTracking->subject = $request->subject;
+        $goalTracking->rating = $request->ratings;
         $goalTracking->target_achievement = $request->target_achievement;
         $goalTracking->description = $request->description;
         $goalTracking->status = $request->status;
@@ -249,6 +250,7 @@ class GoalTrackingController extends Controller
         $goalTracking->region_id = $request->region_id ?? $goalTracking->region_id;
         $goalTracking->branch = $request->lead_branch ?? $goalTracking->branch;
         $goalTracking->goal_type = $request->goal_type ?? $goalTracking->goal_type;
+        $goalTracking->rating = $request->ratings;
         $goalTracking->start_date = $request->start_date ?? $goalTracking->start_date;
         $goalTracking->end_date = $request->end_date ?? $goalTracking->end_date;
         $goalTracking->subject = $request->subject ?? $goalTracking->subject;
