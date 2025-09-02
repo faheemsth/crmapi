@@ -175,6 +175,7 @@ public function getLeaves(Request $request)
         'perPage'    => 'nullable|integer|min:1',
         'page'       => 'nullable|integer|min:1',
         'search'     => 'nullable|string',
+        'status'     => 'nullable|string',
         'brand_id'   => 'nullable|integer|exists:users,id',
         'region_id'  => 'nullable|integer|exists:regions,id',
         'branch_id'  => 'nullable|integer|exists:branches,id',
@@ -226,6 +227,9 @@ public function getLeaves(Request $request)
     if ($request->filled('brand_id')) {
         $query->where('leaves.brand_id', $request->brand_id);
     }
+    if ($request->filled('status')) {
+        $query->where('leaves.status', $request->status);
+    }
     if ($request->filled('region_id')) {
         $query->where('leaves.region_id', $request->region_id);
     }
@@ -264,6 +268,9 @@ public function getLeaves(Request $request)
     if ($request->filled('brand_id')) {
         $countQuery->where('leaves.brand_id', $request->brand_id);
     }
+    // if ($request->filled('status')) {
+    //     $countQuery->where('leaves.status', $request->status);
+    // }
     if ($request->filled('region_id')) {
         $countQuery->where('leaves.region_id', $request->region_id);
     }
@@ -735,7 +742,7 @@ public function getLeaves(Request $request)
                 <li>Leave Type: {$leave->leaveType->title}</li>
                 <li>Total Days: {$leave->total_leave_days}</li>
             </ul>
-            <p>Please ensure that you complete any handover of ongoing tasks to your project team before your leave begins. If there are any last-minute updates or urgent matters, kindly coordinate with your Project Manager, {$project_manager_detail->name} , to ensure continuity.</p>
+            <p>Please ensure that you complete any handover of ongoing tasks to your project team before your leave begins. If there are any last-minute updates or urgent matters, kindly coordinate with your Project Manager, {$project_manager_detail?->name} , to ensure continuity.</p>
             <p>Your leave balance after this approval is: {$remainingLeaveBalance} ( {$leave->leaveType->title}) days.</p>
             <p>Enjoy your well-deserved time off. If your plans change or you need to extend your leave, please submit a new leave request at least 3 days in advance.</p>
             <p>Regards,</p>
@@ -755,7 +762,7 @@ public function getLeaves(Request $request)
                 <li>Comments:  {$request->reason}</li>
             </ul>
             <p>Unfortunately, we are unable to approve your request due to some reason. You currently have {$remainingLeaveBalance}  ( {$leave->leaveType->title})  days of leave available.</p>
-            <p>Please coordinate with your Project Manager, {$project_manager_detail->name}, to discuss alternative dates or solutions. You may submit a revised leave request once the matter is resolved.</p>
+            <p>Please coordinate with your Project Manager, {$project_manager_detail?->name}, to discuss alternative dates or solutions. You may submit a revised leave request once the matter is resolved.</p>
             <p>If you have any questions or need further clarification, feel free to reach out to the HR Department.</p>
             <p>Regards,</p>
             <p>{$brand_detail->name } – HR Department, SCORP</p>

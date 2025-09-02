@@ -195,14 +195,25 @@ class PaySlipController extends Controller
             ], 403);
         }
 
-        // Validate request input
-        $validator = Validator::make($request->all(), [
-            'month' => 'required|string|size:2|in:' . implode(',', array_keys($this->getMonths())),
-            'year' => 'required|string|size:4|regex:/^\d{4}$/',
-            'brand_id' => 'required|exists:users,id',
-            'region_id' => 'required|exists:regions,id',
-            'branch_id' => 'required|exists:branches,id',
-        ]);
+        $rules = [
+            'month'     => 'required|string|size:2|in:' . implode(',', array_keys($this->getMonths())),
+            'year'      => 'required|string|size:4|regex:/^\d{4}$/',
+            'brand_id'  => 'required',   // default required
+            'region_id' => 'required',   // define first
+            'branch_id' => 'required',   // define first
+        ];
+
+        // Apply conditions based on user type
+        $userType = Auth::user()->type;
+
+        if (in_array($userType, ["Project Manager", "Project Director", "Admin Team", "Super Admin"])) {
+            unset($rules['region_id'], $rules['branch_id']);
+        } elseif ($userType === "Region Manager") {
+            unset($rules['branch_id']);
+        }
+
+        $validator = Validator::make($request->all(), $rules);
+
 
         if ($validator->fails()) {
             return $this->errorResponse($validator->errors()->first(), 422);
@@ -226,11 +237,26 @@ class PaySlipController extends Controller
 
           
         if ($eligibleEmployees->isEmpty()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Payslips have already been created.')
-            ], 400);
+            if (!empty($request->input('singleUserID'))) {
+                if ($existingPayslips->isEmpty()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => __('Sorry, payslip cannot be created because this user\'s salary missing in information.')
+                    ], 400);
+                } else {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => __('Payslips have already been created.')
+                    ], 400);
+                }
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => __('Payslips have already been created.')
+                ], 400);
+            }
         }
+
 
         // Generate payslips and send notifications
         $this->generatePayslips($eligibleEmployees, $formattedMonthYear,$request->input('brand_id', 0),$request->input('region_id', 0),$request->input('branch_id', 0));
