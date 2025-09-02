@@ -493,7 +493,7 @@ class PaySlipController extends Controller
           $payslip =  PaySlip::firstOrCreate([
                 'employee_id' => $employee->id,
                 'salary_month' => $formattedMonthYear,
-                'created_by' => Auth::id(),
+                'created_by' => Auth::id() ?? 0,
                 'brand_id' => $brand_id,
                 'region_id' => $region_id,
                 'branch_id' => $branch_id
@@ -828,8 +828,6 @@ class PaySlipController extends Controller
             
         }
         $this->generatePayslips($eligibleEmployees, $formattedMonthYear, 0, 0, 0);
-        $this->sendNotifications($formattedMonthYear);
-        $this->fetchPayslips($formattedMonthYear);
         return true;
     }
 
