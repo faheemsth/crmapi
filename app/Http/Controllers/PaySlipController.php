@@ -765,6 +765,41 @@ class PaySlipController extends Controller
         }
     }
 
+    private function getEligibleEmployeeGenerateEachMonth($formattedMonthYear, $existingPayslips,$singleUserID =0)
+    {
+    $excludedTypes = ['super admin', 'company', 'team', 'client'];
+
+    // Get the base user query
+    $usersQuery = User::whereNotIn('type', $excludedTypes);
+
+    // Apply filters from request
+    if (!empty(request('brand_id'))) {
+        $usersQuery->where('brand_id', request('brand_id'));
+    }
+    if (!empty(request('region_id'))) {
+        $usersQuery->where('region_id', request('region_id'));
+    }
+    if (!empty(request('branch_id'))) {
+        $usersQuery->where('branch_id', request('branch_id'));
+    }
+    if (!empty(request('Name'))) {
+        $usersQuery->where('name', 'like', '%' . request('Name') . '%');
+    }
+    if (!empty(request('Designation'))) {
+        $usersQuery->where('type', 'like', '%' . request('Designation') . '%');
+    }
+    if (!empty(request('phone'))) {
+        $usersQuery->where('phone', 'like', '%' . request('phone') . '%');
+    }
+    // Get the filtered user IDs
+    $userIds = $usersQuery->pluck('id');
+    return Employee::where('company_doj', '<=', now()->endOfMonth())
+        ->whereNotIn('id', $existingPayslips)
+        ->whereNotNull('salary') 
+        ->whereIn('user_id', $userIds)
+        ->with('user') // Load related user data
+        ->get();
+}
     public function PayslipAutoGenerateEachMonth(Request $request)
     {
         $month = $request->input('month', now()->format('m'));
@@ -780,7 +815,7 @@ class PaySlipController extends Controller
         );
 
         // Get eligible employees (no brand/region/branch filter)
-        $eligibleEmployees = $this->getEligibleEmployees(
+        $eligibleEmployees = $this->getEligibleEmployeeGenerateEachMonth(
             $formattedMonthYear,
             $existingPayslips,
             0,
