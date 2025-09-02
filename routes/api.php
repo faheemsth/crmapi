@@ -778,6 +778,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getemailTags', [GeneralController::class, 'getemailTags']);
     Route::post('/getemailTagstype', [GeneralController::class, 'getemailTagstype']);
     Route::post('/totalSummary', [GeneralController::class, 'totalSummary']);
+    Route::post('/getAttendanceReport', [GeneralController::class, 'getAttendanceReport']);
     Route::post('/saveSystemSettings', [GeneralController::class, 'saveSystemSettings']);
     Route::post('/fetchSystemSettings', [GeneralController::class, 'fetchSystemSettings']);
 
