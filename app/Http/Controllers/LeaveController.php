@@ -201,9 +201,16 @@ public function getLeaves(Request $request)
         'brands.name as brand_name',
         'regions.name as region_name'
     )
-        ->with(['brand', 'branch', 'region', 'created_by', 'leaveType', 'employees','User'])
-        ->leftJoin('employees', 'employees.id', '=', 'leaves.employee_id')
-        ->leftJoin('users', 'users.id', '=', 'employees.user_id')
+          ->with([
+        'brand:id,name',
+        'branch:id,name',
+        'region:id,name',
+        'created_by:id,name',
+        'leaveType',
+        'employees',
+        'User'
+    ]) 
+        ->leftJoin('users', 'users.id', '=', 'leaves.employee_id')
         ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
         ->leftJoin('users as brands', 'brands.id', '=', 'leaves.brand_id')
         ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id');
@@ -215,8 +222,7 @@ public function getLeaves(Request $request)
     if ($request->filled('search')) {
         $search = $request->input('search');
         $query->where(function ($subQuery) use ($search) {
-            $subQuery->where('users.name', 'like', "%$search%")
-                ->orWhere('employees.name', 'like', "%$search%")
+            $subQuery->where('users.name', 'like', "%$search%") 
                 ->orWhere('brands.name', 'like', "%$search%")
                 ->orWhere('regions.name', 'like', "%$search%")
                 ->orWhere('branches.name', 'like', "%$search%");
@@ -244,9 +250,8 @@ public function getLeaves(Request $request)
     }
 
     // Get status counts - create a fresh query with only the aggregate functions
-    $countQuery = Leave::query()
-        ->leftJoin('employees', 'employees.id', '=', 'leaves.employee_id')
-        ->leftJoin('users', 'users.id', '=', 'employees.user_id')
+    $countQuery = Leave::query() 
+        ->leftJoin('users', 'users.id', '=', 'leaves.employee_id')
         ->leftJoin('branches', 'branches.id', '=', 'leaves.branch_id')
         ->leftJoin('users as brands', 'brands.id', '=', 'leaves.brand_id')
         ->leftJoin('regions', 'regions.id', '=', 'leaves.region_id');
@@ -257,8 +262,7 @@ public function getLeaves(Request $request)
     if ($request->filled('search')) {
         $search = $request->input('search');
         $countQuery->where(function ($subQuery) use ($search) {
-            $subQuery->where('users.name', 'like', "%$search%")
-                ->orWhere('employees.name', 'like', "%$search%")
+            $subQuery->where('users.name', 'like', "%$search%") 
                 ->orWhere('brands.name', 'like', "%$search%")
                 ->orWhere('regions.name', 'like', "%$search%")
                 ->orWhere('branches.name', 'like', "%$search%");
