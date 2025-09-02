@@ -237,11 +237,26 @@ class PaySlipController extends Controller
 
           
         if ($eligibleEmployees->isEmpty()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Payslips have already been created.')
-            ], 400);
+            if (!empty($request->input('singleUserID'))) {
+                if ($existingPayslips->isEmpty()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => __('Sorry, payslip cannot be created because this user\'s salary missing in information.')
+                    ], 400);
+                } else {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => __('Payslips have already been created.')
+                    ], 400);
+                }
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => __('Payslips have already been created.')
+                ], 400);
+            }
         }
+
 
         // Generate payslips and send notifications
         $this->generatePayslips($eligibleEmployees, $formattedMonthYear,$request->input('brand_id', 0),$request->input('region_id', 0),$request->input('branch_id', 0));
