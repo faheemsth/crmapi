@@ -422,7 +422,7 @@ if (!function_exists('addLogActivity')) {
         if($is_cron==1){
             $new_log->created_by = 0;
         }else{
-            $new_log->created_by = \Auth::user()->id;
+            $new_log->created_by = \Auth::user()?->id ?? 0;
             }
         
         $new_log->save();
