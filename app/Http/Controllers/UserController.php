@@ -3479,7 +3479,12 @@ public function getDashboardholiday(Request $request)
 
         foreach ($tags as $tag) {
             $key = '{' . $tag->tag . '}';
-            $value = '';
+              // If tag exists as dynamic property on $user (from $additionalTags)
+            if (isset($user->{$tag->tag})) {
+                $value = $user->{$tag->tag};
+            } else {
+                $value = ''; // default
+            }
 
             switch ($tag->tag) {
                 case 'employee_name':
