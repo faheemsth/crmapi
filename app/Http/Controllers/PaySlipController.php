@@ -511,6 +511,27 @@ class PaySlipController extends Controller
 
                  //  ========== add ============
                 $user = User::find($employee->user_id);
+
+                 $additionalTags = [
+                        'salary_month' => $formattedMonthYear, 
+                    ];
+
+        $templateId = null;
+        $ccchecklist = [
+                    'is_branch_manager'   => 'yes',
+                    'is_region_manager'   => 'yes',
+                    'is_project_manager'  => 'yes',
+                    'is_scrop_attendance' => 'yes'
+                ];
+
+        addToEmailQueue(
+            $user->id,
+                'pay_slip_email_template',
+                $templateId,
+                $ccchecklist,
+                array() ,
+                $additionalTags 
+            );
                 $typeoflog = 'payslip';
                 addLogActivity([
                     'type' => 'success',

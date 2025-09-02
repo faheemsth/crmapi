@@ -128,6 +128,9 @@ class AttendanceEmployeeController extends Controller
             }
         }
 
+        usort($attendanceData, function ($a, $b) {
+            return strtotime($b['date']) <=> strtotime($a['date']);
+        });
         return response()->json([
             'success' => true,
             'data' => $attendanceData,
