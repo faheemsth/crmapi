@@ -98,7 +98,7 @@ class BranchController extends Controller
 
         // Additional filters
         if ($request->filled('brand_id')) {
-            $branchQuery->where('brand_id', $request->brand_id);
+            $branchQuery->where('brands', $request->brand_id);
         }
         if ($request->filled('region_id')) {
             $branchQuery->where('region_id', $request->region_id);
@@ -163,7 +163,7 @@ class BranchController extends Controller
             'name' => 'required|string|max:255',
             'brands' => 'required|integer|exists:users,id',
             'region_id' => 'required|integer|exists:regions,id',
-            'branch_manager_id' => 'required|integer|exists:users,id',
+            'branch_manager_id' => 'nullable|integer|exists:users,id',
             'email' => 'required|email|unique:branches,email,NULL,id,brands,' . $request->brands . ',region_id,' . $request->region_id,
             'full_number' => 'nullable|string|max:20',
             'longitude' => 'required|numeric',
@@ -231,7 +231,7 @@ class BranchController extends Controller
             'name' => 'required|string|max:255',
             'brands' => 'required|integer|exists:users,id',
             'region_id' => 'required|integer|exists:regions,id',
-            'branch_manager_id' => 'required|integer|exists:users,id',
+            'branch_manager_id' => 'nullable|integer|exists:users,id',
             'email' => 'required|email|unique:branches,email,' . $request->id . ',id,brands,' . $request->brands . ',region_id,' . $request->region_id,
             'full_number' => 'required|string|max:20',
             'longitude' => 'required|numeric',

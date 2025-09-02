@@ -2502,9 +2502,15 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
        $validator = Validator::make($request->all(), [
             'attendance_id' => 'required|exists:attendance_employees,id',
             'status'        => 'required|string|in:Present,Absent',
-            'clock_in'      => 'required|date_format:H:i',
-            'clock_out'     => 'required|date_format:H:i|after:clock_in',
+            'clock_in'      => 'nullable|date_format:H:i',
+            'clock_out'     => 'nullable|date_format:H:i|after:clock_in',
         ]);
+
+        if($request->status=='Present'){
+            $validator = Validator::make($request->all(), [ 
+                'clock_in'      => 'required|date_format:H:i', 
+            ]);
+        }
 
         if ($validator->fails()) {
             return response()->json([
@@ -2535,9 +2541,28 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
         
 
         // Get company start and end time
-        $startTime = Utility::getValByName('company_start_time');
-        $endTime = Utility::getValByName('company_end_time');
+        $startTime = $attendance->shift_start ?? Utility::getValByName('company_start_time');
+        $endTime = $attendance->shift_end ?? Utility::getValByName('company_end_time');
         $date = $attendance->date;
+
+        // --- ✅ Calculate shift time and clock time
+            $shiftDuration  = strtotime($date . ' ' . $endTime) - strtotime($date . ' ' . $startTime);
+            $clockDuration  = strtotime($attendance->clock_out) - strtotime($attendance->clock_in);
+
+            // Require early checkout reason if worked less than shift
+            if ($attendance->status == 'Present' && $clockDuration < $shiftDuration && empty($request->earlyCheckOutReason)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Early check-out reason is required when worked time is less than shift time.'
+                ], 422);
+            }
+
+            // Save reason if provided
+            if (!empty($request->earlyCheckOutReason)) {
+                $attendance->early_check_out_reason = $request->earlyCheckOutReason;
+            }else {
+                $attendance->early_check_out_reason = null; // Clear if not provided
+            }
 
         // Calculate late time
         $totalLateSeconds = strtotime($attendance->clock_in) - strtotime($date . ' ' . $startTime);

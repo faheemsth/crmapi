@@ -115,11 +115,12 @@ Route::get('/proxy-image', function (Request $request) {
 });
 
 
+    Route::get('/sendexpiredDocumentEmail', [UserController::class, 'sendexpiredDocumentEmail']);
     Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
     Route::get('/sendBirthdayAndAnniversaryEmails', [UserController::class, 'sendBirthdayAndAnniversaryEmails']);
     Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']); 
 
-Route::get('/AttendanceEmployeeCron', function () {
+Route::get('/AttendanceEmployeeCron_old', function () {
     $today = Carbon::today()->toDateString();
 
     $excludedTypes = ['company', 'team', 'client', 'Agent'];
@@ -410,6 +411,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/get/employee/Details', [UserController::class, 'EmployeeDetails']);
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
+    Route::post('/newEmployeeEmailSend', [UserController::class, 'newEmployeeEmailSend']);
     Route::post('/UpdateEmployee', [UserController::class, 'UpdateEmployee']);
     Route::post('/TerminateEmployee', [UserController::class, 'TerminateEmployee']);
 
@@ -776,6 +778,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getemailTags', [GeneralController::class, 'getemailTags']);
     Route::post('/getemailTagstype', [GeneralController::class, 'getemailTagstype']);
     Route::post('/totalSummary', [GeneralController::class, 'totalSummary']);
+    Route::post('/getAttendanceReport', [GeneralController::class, 'getAttendanceReport']);
     Route::post('/saveSystemSettings', [GeneralController::class, 'saveSystemSettings']);
     Route::post('/fetchSystemSettings', [GeneralController::class, 'fetchSystemSettings']);
 
