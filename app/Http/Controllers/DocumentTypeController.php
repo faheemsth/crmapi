@@ -32,8 +32,7 @@ class DocumentTypeController extends Controller
         $validator = \Validator::make(
             $request->all(),
             [
-                'name' => 'required|string',
-                'is_required' => 'required|boolean',
+                'name' => 'required|string', 
             ]
         );
 
@@ -41,12 +40,12 @@ class DocumentTypeController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors()
-            ], 422);
+            ], 200);
         }
 
         $documentType = DocumentType::create([
             'name' => $request->name,
-            'is_required' => $request->is_required,
+            'is_required' => 1,
             'created_by' => \Auth::id()
         ]);
 
@@ -101,7 +100,7 @@ class DocumentTypeController extends Controller
 
         $documentType->update([
             'name' => $request->name,
-            'is_required' => $request->is_required,
+            'is_required' => 1,
             'created_by' => \Auth::id()
         ]);
 

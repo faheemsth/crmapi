@@ -417,7 +417,7 @@ public function getLeaves(Request $request)
             'type' => 'success',
               'note' => json_encode([
                 'title' => $leave->user->name. ' leave  created',
-                'message' => $leave->user->name. 'leave  created'
+                'message' => $leave->user->name. ' leave  created'
             ]),
             'module_id' => $leave->id,
             'module_type' => 'leave',
@@ -427,7 +427,7 @@ public function getLeaves(Request $request)
                 'type' => 'success',
                 'note' => json_encode([
                     'title' => $leave->user->name. ' leave  created',
-                    'message' => $leave->user->name. 'leave  created'
+                    'message' => $leave->user->name. ' leave  created'
                 ]),
                 'module_id' => $leave->employee_id,
                 'module_type' => 'employeeprofile',
