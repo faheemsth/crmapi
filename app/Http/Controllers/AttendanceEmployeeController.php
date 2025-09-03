@@ -2633,11 +2633,23 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
         $logData = [
             'type' => 'info',
             'note' => json_encode([
-                'title' => 'Attendance Deleted',
-                'message' => 'An attendance record was deleted successfully.'
+                'title' => $attendance->user->name. ' Attendance Deleted',
+                'message' =>  $attendance->user->name. ' An attendance record was deleted successfully.'
             ]),
             'module_id' => $attendance->id,
             'module_type' => 'attendance',
+            'notification_type' => 'Attendance Deleted'
+        ];
+        addLogActivity($logData);
+        // Log the deletion activity
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $attendance->user->name. ' Attendance Deleted',
+                'message' =>  $attendance->user->name. ' An attendance record was deleted successfully.'
+            ]),
+            'module_id' => $attendance->id,
+            'module_type' => 'employeeprofile',
             'notification_type' => 'Attendance Deleted'
         ];
         addLogActivity($logData);
