@@ -699,7 +699,7 @@ public function getLeaves(Request $request)
         // ]);
 
             addLogActivity([
-                    'type' => 'warning',
+                    'type' => 'info',
                     'note' => json_encode([
                         'title' => $leave->user->name. ' leave  status changed to '.$leave->status,
                         'message' => $leave->user->name. ' leave status changed to '.$leave->status,
@@ -709,7 +709,7 @@ public function getLeaves(Request $request)
                     'notification_type' => 'leave created',
                 ]);
             addLogActivity([
-                    'type' => 'warning',
+                    'type' => 'info',
                     'note' => json_encode([
                         'title' => $leave->user->name. ' leave  status changed to '.$leave->status,
                         'message' => $leave->user->name. ' leave status changed to '.$leave->status,

@@ -2631,7 +2631,7 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
 
         // Log the deletion activity
         $logData = [
-            'type' => 'info',
+            'type' => 'warning',
             'note' => json_encode([
                 'title' => $attendance->user->name. ' Attendance Deleted',
                 'message' =>  $attendance->user->name. ' An attendance record was deleted successfully.'
@@ -2643,7 +2643,7 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
         addLogActivity($logData);
         // Log the deletion activity
         $logData = [
-            'type' => 'info',
+            'type' => 'warning',
             'note' => json_encode([
                 'title' => $attendance->user->name. ' Attendance Deleted',
                 'message' =>  $attendance->user->name. ' An attendance record was deleted successfully.'
