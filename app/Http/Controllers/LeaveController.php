@@ -701,8 +701,8 @@ public function getLeaves(Request $request)
             addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $leave->user->name. '  status changed to '.$leave->status,
-                        'message' => $leave->user->name. ' status changed to '.$leave->status,
+                        'title' => $leave->user->name. ' leave  status changed to '.$leave->status,
+                        'message' => $leave->user->name. ' leave status changed to '.$leave->status,
                     ]),
                     'module_id' => $leave->id,
                     'module_type' => 'leave',
@@ -711,8 +711,8 @@ public function getLeaves(Request $request)
             addLogActivity([
                     'type' => 'success',
                     'note' => json_encode([
-                        'title' => $leave->user->name. '  status changed to '.$leave->status,
-                        'message' => $leave->user->name. ' status changed to '.$leave->status,
+                        'title' => $leave->user->name. ' leave  status changed to '.$leave->status,
+                        'message' => $leave->user->name. ' leave status changed to '.$leave->status,
                     ]),
                     'module_id' => $leave->employee_id,
                     'module_type' => 'employeeprofile',
