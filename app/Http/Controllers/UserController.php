@@ -1681,7 +1681,10 @@ public function getDashboardholiday(Request $request)
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-        $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)->get();
+        $hrmFileAttachment = EmployeeDocument::where('employee_id', $request->employee_id)
+        ->orderBy('id', 'desc')
+        ->get();
+
 
         if (!$hrmFileAttachment) {
             return response()->json([
