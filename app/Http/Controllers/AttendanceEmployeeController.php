@@ -2648,7 +2648,7 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
                 'title' => $attendance->user->name. ' Attendance Deleted',
                 'message' =>  $attendance->user->name. ' An attendance record was deleted successfully.'
             ]),
-            'module_id' => $attendance->id,
+            'module_id' => $attendance->user->id,
             'module_type' => 'employeeprofile',
             'notification_type' => 'Attendance Deleted'
         ];
