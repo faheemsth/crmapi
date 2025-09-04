@@ -1415,6 +1415,8 @@ public function getemplyee_monthly_attandance(Request $request)
                 'branches.name as branch_name',
                 'branches.timezone as timezone',
                 'regions.name as region_name',
+                'attendances.shift_start',
+                'attendances.shift_end',
                 'attendances.clock_in',
                 'attendances.clock_out',
                 'attendances.earlyCheckOutReason',
@@ -1481,6 +1483,8 @@ public function getemplyee_monthly_attandance(Request $request)
                     'branch_name' => $row->branch_name,
                     'timezone' => $row->timezone,
                     'date' => $date,
+                    'shift_start' => $row?->shift_start,
+                    'shift_end' => $row?->shift_end,
                     'clock_in' => $clockIn,
                     'clock_out' => $clockOut,
                     'earlyCheckOutReason' => $row->earlyCheckOutReason,
@@ -1597,6 +1601,10 @@ public function getemplyee_monthly_attandance(Request $request)
                 'branch_name' => $row->branch_name,
                 'brand_name' => $row->brand_name,
                 'region_name' => $row->region_name,
+
+                'shift_start' => $row->shift_start,
+                'shift_end' => $row->shift_end,
+
                 'date' => $date,
                 'clock_in' => $clockIn,
                 'clock_out' => $clockOut,
