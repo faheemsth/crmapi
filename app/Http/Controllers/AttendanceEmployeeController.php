@@ -2490,116 +2490,138 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
         ], 201);
     }
 
+public function updateAttendance(Request $request)
+{
+    // Permission check
+    if (!Auth::user()->can('edit attendance')) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Permission denied.'
+        ], 403);
+    }
 
-    public function updateAttendance(Request $request)
-    {
-        // Permission check
-        if (!Auth::user()->can('edit attendance')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Permission denied.'
-            ], 403);
-        }
+    // Base validation
+    $validator = Validator::make($request->all(), [
+        'attendance_id' => 'required|exists:attendance_employees,id',
+        'status'        => 'required|string|in:Present,Absent',
+        'clock_in'      => 'nullable|date_format:H:i',
+        'clock_out'     => 'nullable|date_format:H:i|after:clock_in',
+        'earlyCheckOutReason' => 'nullable|string|max:255',
+    ]);
 
-        // Validate input
-       $validator = Validator::make($request->all(), [
+    if ($request->status == 'Present') {
+        $validator = Validator::make($request->all(), [
             'attendance_id' => 'required|exists:attendance_employees,id',
             'status'        => 'required|string|in:Present,Absent',
-            'clock_in'      => 'nullable|date_format:H:i',
+            'clock_in'      => 'required|date_format:H:i',
             'clock_out'     => 'nullable|date_format:H:i|after:clock_in',
+            'earlyCheckOutReason' => 'nullable|string|max:255',
         ]);
+    }
 
-        if($request->status=='Present'){
-            $validator = Validator::make($request->all(), [ 
-                'clock_in'      => 'required|date_format:H:i', 
-            ]);
-        }
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $validator->errors()->first()
-            ], 422);
-        }
-
-        // Fetch Attendance Record
-        $attendance = AttendanceEmployee::where('id', $request->attendance_id)->first();
-
-        if (!$attendance) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Attendance record not found.'
-            ], 404);
-        }
-
-        // Preserve existing values if not provided
-        $attendance->status = $request->status ?? $attendance->status; 
-        if ($attendance->status == 'Absent') {
-            $attendance->clock_in = '00:00:00';
-            $attendance->clock_out = '00:00:00';
-        }else {
-            $attendance->clock_in = $request->clock_in ? $request->clock_in . ':00' : $attendance->clock_in;
-            $attendance->clock_out = $request->clock_out ? $request->clock_out . ':00' : $attendance->clock_out;
-        }
-        
-
-        // Get company start and end time
-        $startTime = $attendance->shift_start ?? Utility::getValByName('company_start_time');
-        $endTime = $attendance->shift_end ?? Utility::getValByName('company_end_time');
-        $date = $attendance->date;
-
-        // --- ✅ Calculate shift time and clock time
-            $shiftDuration  = strtotime($date . ' ' . $endTime) - strtotime($date . ' ' . $startTime);
-            $clockDuration  = strtotime($attendance->clock_out) - strtotime($attendance->clock_in);
-
-            // Require early checkout reason if worked less than shift
-            if ($attendance->status == 'Present' && $clockDuration < $shiftDuration && empty($request->earlyCheckOutReason)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Early check-out reason is required when worked time is less than shift time.'
-                ], 422);
-            }
-
-            // Save reason if provided
-            if (!empty($request->earlyCheckOutReason)) {
-                $attendance->earlyCheckOutReason = $request->earlyCheckOutReason;
-            }else {
-                $attendance->earlyCheckOutReason = null; // Clear if not provided
-            }
-
-        // Calculate late time
-        $totalLateSeconds = strtotime($attendance->clock_in) - strtotime($date . ' ' . $startTime);
-        $attendance->late = gmdate('H:i:s', max(0, $totalLateSeconds));
-
-        // Calculate early leaving
-        $totalEarlyLeavingSeconds = strtotime($date . ' ' . $endTime) - strtotime($attendance->clock_out);
-        $attendance->early_leaving = gmdate('H:i:s', max(0, $totalEarlyLeavingSeconds));
-
-        // Calculate overtime
-        $attendance->overtime = (strtotime($attendance->clock_out) > strtotime($date . ' ' . $endTime))
-            ? gmdate('H:i:s', strtotime($attendance->clock_out) - strtotime($date . ' ' . $endTime))
-            : '00:00:00';
-
-        $attendance->save();
-
-        // Log Activity
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => 'Attendance Updated',
-                'message' => 'Employee attendance record updated successfully'
-            ]),
-            'module_id' => $attendance->id,
-            'module_type' => 'attendance',
-            'notification_type' => 'Attendance Updated'
-        ]);
-
+    if ($validator->fails()) {
         return response()->json([
-            'status' => 'success',
-            'message' => 'Employee attendance successfully updated.',
-            'data' => $attendance
+            'status' => 'error',
+            'message' => $validator->errors() // return first error only
         ], 200);
     }
+
+    // Fetch Attendance Record
+    $attendance = AttendanceEmployee::find($request->attendance_id);
+
+    if (!$attendance) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Attendance record not found.'
+        ], 404);
+    }
+
+    $attendance->status = $request->status ?? $attendance->status;
+    $date = $attendance->date; // Y-m-d
+
+    if ($attendance->status == 'Absent') {
+        $attendance->clock_in = '00:00:00';
+        $attendance->clock_out = '00:00:00';
+        $attendance->earlyCheckOutReason = null;
+    } else {
+        // Convert clock_in/out to full datetime
+        $attendance->clock_in = $request->clock_in
+            ? date('Y-m-d H:i:s', strtotime("$date {$request->clock_in}:00"))
+            : $attendance->clock_in;
+
+        $attendance->clock_out = $request->clock_out
+            ? date('Y-m-d H:i:s', strtotime("$date {$request->clock_out}:00"))
+            : $attendance->clock_out;
+    }
+
+    // Get company start and end time
+    $startTime = $attendance->shift_start ?? Utility::getValByName('company_start_time');
+    $endTime   = $attendance->shift_end ?? Utility::getValByName('company_end_time');
+
+    $shiftStart = strtotime("$date $startTime");
+    $shiftEnd   = strtotime("$date $endTime");
+    $clockIn    = strtotime($attendance->clock_in);
+    $clockOut   = strtotime($attendance->clock_out);
+
+    // --- Require early checkout reason if worked time < shift duration ---
+    if ($attendance->status == 'Present' && $request->clock_out) {
+        $shiftDuration = $shiftEnd - $shiftStart;
+        $clockDuration = $clockOut - $clockIn;
+
+        if ($clockDuration < $shiftDuration && empty($request->earlyCheckOutReason)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Early check-out reason is required when worked time is less than shift time.'
+            ], 422);
+        }
+    }
+
+    $attendance->earlyCheckOutReason = $request->earlyCheckOutReason ?? null;
+
+    // --- Calculate times (force 00:00:00 if negative) ---
+
+    // Late time
+    $totalLateSeconds = $clockIn - $shiftStart;
+    $attendance->late = $totalLateSeconds > 0 ? gmdate('H:i:s', $totalLateSeconds) : '00:00:00';
+
+    // Early leaving
+    $totalEarlyLeavingSeconds = $shiftEnd - $clockOut;
+    $attendance->early_leaving = $totalEarlyLeavingSeconds > 0 ? gmdate('H:i:s', $totalEarlyLeavingSeconds) : '00:00:00';
+
+    // Overtime
+    $totalOvertimeSeconds = $clockOut - $shiftEnd;
+    $attendance->overtime = $totalOvertimeSeconds > 0 ? gmdate('H:i:s', $totalOvertimeSeconds) : '00:00:00';
+
+    $attendance->save();
+
+    // Log Activity
+    addLogActivity([
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => $attendance->user->name.  'Attendance Updated',
+            'message' => $attendance->user->name. 'Employee attendance record updated successfully'
+        ]),
+        'module_id' => $attendance->id,
+        'module_type' => 'attendance',
+        'notification_type' => 'Attendance Updated'
+    ]);  // Log Activity
+    addLogActivity([
+        'type' => 'info',
+        'note' => json_encode([
+            'title' => $attendance->user->name.  'Attendance Updated',
+            'message' => $attendance->user->name. 'Employee attendance record updated successfully'
+        ]),
+        'module_id' => $attendance->user->id,
+        'module_type' => 'employeeprofile',
+        'notification_type' => 'Attendance Updated'
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Employee attendance successfully updated.',
+        'data' => $attendance
+    ], 200);
+}
 
 
 
