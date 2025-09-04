@@ -660,23 +660,25 @@ public function getLeaves(Request $request)
             $endDate->modify('+1 day');
             $interval = new \DateInterval('P1D');
             $dateRange = new \DatePeriod($startDate, $interval, $endDate);
-            foreach ($dateRange as $date) {
+           foreach ($dateRange as $date) {
                 $formattedDate = $date->format('Y-m-d');
-                // Find or create attendance record for each day
-                $attendance = \App\Models\AttendanceEmployee::firstOrNew([
-                'employee_id' => $leave->employee_id,
-                'date' => $formattedDate,
-                'clock_in' => '00:00:00',
-                'clock_out' => '00:00:00',
-                'early_leaving' => '00:00:00',
-                'overtime' => '00:00:00',
-                'total_rest' => '00:00:00',
-                'created_by' => \Auth::user()->id,
-                'created_at' => now(),
-                'updated_at' => now(),
-                ]);
-                $attendance->status = 'Leave';
-                $attendance->save();
+
+                \App\Models\AttendanceEmployee::updateOrCreate(
+                    [
+                        'employee_id' => $leave->employee_id,
+                        'date'        => $formattedDate,
+                    ],
+                    [
+                        'clock_in'      => '00:00:00',
+                        'clock_out'     => '00:00:00',
+                        'early_leaving' => '00:00:00',
+                        'overtime'      => '00:00:00',
+                        'total_rest'    => '00:00:00',
+                        'status'        => 'Leave',
+                        'created_by'    => \Auth::id(),
+                        'updated_at'    => now(),
+                    ]
+                );
             }
             // Calculate total leave days
             $leave->total_leave_days = (new \DateTime($leave->start_date))->diff(new \DateTime($leave->end_date))->days + 1;
