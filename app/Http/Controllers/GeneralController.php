@@ -1216,6 +1216,12 @@ public function GetBranchByType()
                     $record->shift_start &&
                     strtotime($record->clock_in) <= strtotime($record->shift_start . ' +30 minutes');
             })->count();
+          $latecount = $records->filter(function ($record) {
+                return $record->status === 'Present' &&
+                    $record->clock_in &&
+                    $record->shift_start &&
+                    strtotime($record->clock_in) >= strtotime($record->shift_start . ' +30 minutes');
+            })->count();
         $total = $records->count();
 
         // Working days = All except holidays
@@ -1247,7 +1253,8 @@ public function GetBranchByType()
         $avgWorking = sprintf('%02d:%02d', $avgHours, $avgMinutes);
 
         return response()->json([
-            'present' => $present,
+            'present' => $present-$latecount,
+            'late' => $latecount,
             'absent' => $absent,
             'leave' => $leave,
             'holiday' => $holiday,
