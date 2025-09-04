@@ -684,6 +684,15 @@ public function getLeaves(Request $request)
             $leave->total_leave_days = (new \DateTime($leave->start_date))->diff(new \DateTime($leave->end_date))->days + 1;
             $leave->status = 'Approved';
             $leave->save();
+        } else if ($request->status === 'Rejected') {
+
+            \App\Models\AttendanceEmployee::where('employee_id', $leave->employee_id)
+                ->whereBetween('date', [$leave->start_date, $leave->end_date])
+                ->where('status', 'Leave')
+                ->delete();
+
+            $leave->status = 'Rejected';
+            $leave->save();
         }
 
         $leave->save();
