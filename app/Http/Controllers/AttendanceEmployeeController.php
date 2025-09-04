@@ -2526,7 +2526,7 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()->first()
+                'message' => $validator->errors()
             ], 422);
         }
 
@@ -2537,7 +2537,7 @@ private function prepareAbsentEmail($employee, $date, $absentTemplate, &$insertD
             return response()->json([
                 'status' => 'error',
                 'message' => 'Attendance record not found.'
-            ], 404);
+            ], 200);
         }
 
         // Preserve existing values if not provided
