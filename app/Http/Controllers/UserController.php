@@ -206,6 +206,7 @@ class UserController extends Controller
             'is_active' => 'nullable|string',
             'tag_ids' => 'nullable|string',
             'designation_id' => 'nullable|string',
+            'department_id' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
             'download_csv' => 'nullable|boolean', // Add this parameter
@@ -252,6 +253,9 @@ class UserController extends Controller
         }
         if ($request->filled('designation_id')) {
             $employeesQuery->where('designation_id', $request->designation_id);
+        }
+        if ($request->filled('department_id')) {
+            $employeesQuery->where('department_id', $request->department_id);
         }
         if ($request->filled('tag_ids')) 
         {
@@ -965,7 +969,7 @@ public function getDashboardholiday(Request $request)
     {
 
 
-        $EmployeeDetails = User::with('employee','branch.manager','region.manager')->select(
+        $EmployeeDetails = User::with('employee','branch.manager','region.manager','designation')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',
@@ -2407,6 +2411,7 @@ public function getDashboardholiday(Request $request)
             'branch_location' => 'nullable|string',
             'tax_payer_id' => 'nullable|string',
             'designation_id' => 'required|exists:designations,id',
+            'department_id' => 'required|exists:departments,id',
         ], [
             // 💡 Custom messages
             'passport_number.required' => 'Passport/CNIC number is required.',
@@ -2429,6 +2434,7 @@ public function getDashboardholiday(Request $request)
             $user = new User();
             $user->name = $request->name;
             $user->email = $request->email;
+            $user->department_id = $request->department_id;
             $user->password = $password;
             $user->passport_number = $request->passport_number;
             $user->type = $role->name ?? 'Client'; // Storing role ID
@@ -2669,6 +2675,7 @@ public function getDashboardholiday(Request $request)
             'branch_location' => 'nullable|string',
             'tax_payer_id' => 'nullable|string',
             'designation_id' => 'required|exists:designations,id',
+            'department_id' => 'required|exists:departments,id',
         ], [
             // 🔽 Custom error messages
             'passport_number.required' => 'Passport/CNIC number is required.',
@@ -2693,7 +2700,7 @@ public function getDashboardholiday(Request $request)
             $originalUserData = $user->exists ? $user->toArray() : [];
             $user->name = $request->name;
             $user->email = $request->email;
-            //  $user->password = $password;
+            $user->department_id = $request->department_id;
             $user->passport_number = $request->passport_number;
             $user->type = $request->role; // Storing role ID
             $user->branch_id = $request->branch_id;

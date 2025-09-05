@@ -2534,7 +2534,7 @@ public function updateAttendance(Request $request)
     if ($validator->fails()) {
         return response()->json([
             'status' => 'error',
-            'message' => $validator->errors() // return first error only
+            'message' => $validator->errors()->first(), // return first error only
         ], 200);
     }
 
