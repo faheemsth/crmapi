@@ -271,22 +271,30 @@ class BranchController extends Controller
         $decimalHours = round($start->floatDiffInHours($end), 2);
 
         // Update branch details
+       $startTimeUtc = Carbon::parse($request->start_time, $request->timezone)
+                      ->setTimezone('UTC')
+                      ->format('H:i:s');
+
+        $endTimeUtc = Carbon::parse($request->end_time, $request->timezone)
+                            ->setTimezone('UTC')
+                            ->format('H:i:s');
+
         $branch->update([
-            'name' => $request->name,
-            'brands' => $request->brands,
-            'region_id' => $request->region_id,
-            'branch_manager_id' => $request->branch_manager_id,
-            'longitude' => $request->longitude,
-            'latitude' => $request->latitude,
-            'timezone' => $request->timezone,
-            'google_link' => $request->google_link,
-            'social_media_link' => $request->social_media_link,
-            'phone' => $request->full_number,
-            'email' => $request->email,
-            'end_time' => $request->end_time,
-            'start_time' => $request->start_time,
-            'is_sat_off' => $request->is_sat_off,
-            'shift_time' => $decimalHours,
+            'name'               => $request->name,
+            'brands'             => $request->brands,
+            'region_id'          => $request->region_id,
+            'branch_manager_id'  => $request->branch_manager_id,
+            'longitude'          => $request->longitude,
+            'latitude'           => $request->latitude,
+            'timezone'           => $request->timezone,
+            'google_link'        => $request->google_link,
+            'social_media_link'  => $request->social_media_link,
+            'phone'              => $request->full_number,
+            'email'              => $request->email,
+            'start_time'         => $startTimeUtc,  // ✅ saved in UTC
+            'end_time'           => $endTimeUtc,    // ✅ saved in UTC
+            'is_sat_off'         => $request->is_sat_off,
+            'shift_time'         => $decimalHours,
         ]);
 
 
