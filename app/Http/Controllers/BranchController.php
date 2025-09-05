@@ -188,6 +188,15 @@ class BranchController extends Controller
         if ($end->lt($start)) $end->addDay();
         $decimalHours = round($start->floatDiffInHours($end), 2);
         // Create a new branch
+
+         // Update branch details
+       $startTimeUtc = Carbon::parse($request->start_time, $request->timezone)
+                      ->setTimezone('UTC')
+                      ->format('H:i:s');
+
+        $endTimeUtc = Carbon::parse($request->end_time, $request->timezone)
+                            ->setTimezone('UTC')
+                            ->format('H:i:s');
         $branch = Branch::create([
             'name' => $request->name,
             'brands' => $request->brands,
@@ -196,8 +205,8 @@ class BranchController extends Controller
             'longitude' => $request->longitude,
             'latitude' => $request->latitude,
             'timezone' => $request->timezone,
-            'end_time' => $request->end_time,
-            'start_time' => $request->start_time,
+            'start_time'         => $startTimeUtc,  // ✅ saved in UTC
+            'end_time'           => $endTimeUtc,    // ✅ saved in UTC
             'google_link' => $request->google_link,
             'social_media_link' => $request->social_media_link,
             'phone' => $request->full_number,
