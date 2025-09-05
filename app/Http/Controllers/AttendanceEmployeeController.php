@@ -1475,9 +1475,12 @@ public function getemplyee_monthly_attandance(Request $request)
                     ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
                     : 0;
 
-                $lateSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
-                    ? Carbon::parse($row?->shift_start)->diffInSeconds(Carbon::parse($clockIn))
-                    : 0;
+                // $lateSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+                //     ? Carbon::parse($clockIn )->diffInSeconds(Carbon::parse($row?->shift_start))
+                //     : 0;
+                $lateSeconds = ($clockIn !== '00:00:00')
+                ? Carbon::parse($clockIn)->diffInSeconds(Carbon::parse($row?->shift_start), false)
+                : 0;
 
                 return [
                     'employee_id' => $row->employee_id,
