@@ -1597,6 +1597,10 @@ public function getemplyee_monthly_attandance(Request $request)
                 ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
                 : 0;
 
+                $lateSeconds = ($clockIn !== '00:00:00')
+                ? Carbon::parse($clockIn)->diffInSeconds(Carbon::parse($row?->shift_start), false)
+                : 0;
+
             return [
                 'employee_id' => $row->employee_id,
                 'attendance_id' => $row->attendance_id,
@@ -1618,7 +1622,7 @@ public function getemplyee_monthly_attandance(Request $request)
                 'earlyCheckOutReason' => $row->earlyCheckOutReason,
                 'worked_hours' => gmdate('H:i:s', $workedSeconds),
                 'status' => $row->status,
-                'late' => $row->late ?? '00:00:00',
+                'late' =>  gmdate('H:i', $lateSeconds) ?? '00:00:00',
                 'early_leaving' => $row->early_leaving ?? '00:00:00',
                 'overtime' => $row->overtime ?? '00:00:00',
             ];
