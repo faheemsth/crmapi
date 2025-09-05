@@ -128,6 +128,10 @@ class User extends Authenticatable
     {
         return $this->hasOne('App\Models\Designation', 'id', 'designation_id');
     }
+    public function department()
+    {
+        return $this->hasOne('App\Models\Department', 'id', 'department_id');
+    }
     // public function branch()
     // {
     //     return $this->hasOne('App\Models\Branch', 'id', 'branch_id');

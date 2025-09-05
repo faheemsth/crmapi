@@ -965,7 +965,7 @@ public function getDashboardholiday(Request $request)
     {
 
 
-        $EmployeeDetails = User::with('employee','branch.manager','region.manager')->select(
+        $EmployeeDetails = User::with('employee','branch.manager','region.manager','designation')->select(
             'users.*',
             'assignedUser.name as brand_name',
             'regions.name as region_name',
