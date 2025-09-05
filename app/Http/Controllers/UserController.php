@@ -206,6 +206,7 @@ class UserController extends Controller
             'is_active' => 'nullable|string',
             'tag_ids' => 'nullable|string',
             'designation_id' => 'nullable|string',
+            'department_id' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
             'download_csv' => 'nullable|boolean', // Add this parameter
@@ -252,6 +253,9 @@ class UserController extends Controller
         }
         if ($request->filled('designation_id')) {
             $employeesQuery->where('designation_id', $request->designation_id);
+        }
+        if ($request->filled('department_id')) {
+            $employeesQuery->where('department_id', $request->department_id);
         }
         if ($request->filled('tag_ids')) 
         {
