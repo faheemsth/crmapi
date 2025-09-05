@@ -83,6 +83,7 @@ class User extends Authenticatable
         'admin_action_reason',
         'admin_action_attachments',
         'tag_ids',
+        "department_id",
     ];
 
     protected $hidden = [
@@ -93,7 +94,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
-     protected $with = ['designation'];
+     protected $with = ['designation','department'];
     public $settings;
 
   public function getTagNamesAttribute()
