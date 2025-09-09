@@ -1461,9 +1461,16 @@ public function getemplyee_monthly_attandance(Request $request)
             attendances.id DESC
         ");
 
-        // Apply status filter after ordering
+       // Apply status filter after ordering
         if ($request->filled('status')) {
-            $employeesQuery->having('status', '=', $request->status);
+            if($request->status != 'Absent') {
+                $employeesQuery->having('status', '=', $request->status);
+            } else {
+                $employeesQuery->having(function($q) {
+                    $q->having('status', '=', 'Absent')
+                    ->orHaving('status', '=', 'Not Marked');
+                });
+            }
         }
 
         // If CSV download requested, get all records without pagination
