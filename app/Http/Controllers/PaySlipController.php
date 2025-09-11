@@ -219,13 +219,21 @@ class PaySlipController extends Controller
         // Apply conditions based on user type
         $userType = Auth::user()->type;
 
-        if (in_array($userType, ["Admin Team", "Super Admin"])) {
-            unset($rules['brand_id']);
+        if (in_array($userType, ["Super Admin", "Admin Team"])) {
+            $rules = [
+                'brand_id' => 'required',
+            ];
         } elseif (in_array($userType, ["Project Manager", "Project Director"])) {
-             unset($rules['region_id'], $rules['branch_id']);
+            $rules = [
+                'brand_id' => 'required',
+            ];
         } elseif ($userType === "Region Manager") {
-            unset($rules['branch_id']);
+            $rules = [
+                'brand_id'  => 'required',
+                'region_id' => 'required',
+            ];
         }
+
 
         $validator = Validator::make($request->all(), $rules);
 
