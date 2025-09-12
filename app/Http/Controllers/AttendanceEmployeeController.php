@@ -1457,20 +1457,9 @@ public function getemplyee_monthly_attandance(Request $request)
 
         // Sort by latest marked first, unmarked last
         $employeesQuery->orderByRaw("
-                CASE 
-                    WHEN attendances.id IS NULL THEN 3
-                    WHEN attendances.status = 'Absent' THEN 2
-                    ELSE 1 
-                END ASC,
-                CASE 
-                    WHEN attendances.status != 'Absent' THEN attendances.id 
-                    ELSE NULL 
-                END DESC,
-                CASE 
-                    WHEN attendances.status = 'Absent' THEN attendances.id 
-                    ELSE NULL 
-                END DESC
-            ");
+            CASE WHEN attendances.id IS NULL THEN 2 ELSE 1 END ASC,
+            attendances.id DESC
+        ");
 
        // Apply status filter after ordering
         if ($request->filled('status')) {
