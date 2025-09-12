@@ -60,6 +60,8 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+use Illuminate\Support\Facades\Schema;
+
 class GeneralController extends Controller
 {
 
@@ -1466,6 +1468,117 @@ public function GetBranchByType()
         ], 200);
     }
 
+     public function getTables()
+    {
+        try {
+            $driver = DB::getDriverName();
+            $tables = [];
+
+            switch ($driver) {
+                case 'mysql':
+                    $tables = DB::select('SHOW TABLES');
+                    $tables = array_map('current', $tables);
+                    break;
+
+                case 'pgsql':
+                    $tables = DB::table('pg_tables')
+                        ->where('schemaname', 'public')
+                        ->pluck('tablename')
+                        ->toArray();
+                    break;
+
+                case 'sqlite':
+                    $tables = DB::select("SELECT name FROM sqlite_master WHERE type='table'");
+                    $tables = array_map(fn($t) => $t->name, $tables);
+                    break;
+
+                case 'sqlsrv':
+                    $tables = DB::select("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'");
+                    $tables = array_map(fn($t) => $t->TABLE_NAME, $tables);
+                    break;
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'driver' => $driver,
+                'tables' => $tables
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
  
+public function getTableData(Request $request)
+{
+    // ✅ Validation
+    $validator = Validator::make($request->all(), [
+        'table'     => 'required|string',
+        'last_sync' => 'nullable|date',
+        'per_page'  => 'nullable|integer|min:1|max:1000',
+        'filters'   => 'nullable|array',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $validator->errors()
+        ], 422);
+    }
+
+    $table    = $request->input('table');
+    $lastSync = $request->input('last_sync');
+    $perPage  = $request->input('per_page', 500);
+    $filters  = $request->input('filters', []);
+
+    // ✅ Check if table exists
+    if (!Schema::hasTable($table)) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => "Table '{$table}' does not exist."
+        ], 404);
+    }
+
+    // ✅ Build query
+    $query = DB::table($table);
+
+    // Add last_sync condition (new + updated records)
+    if ($lastSync) {
+        $query->where(function ($q) use ($lastSync) {
+            $q->where('created_at', '>=', $lastSync)
+              ->orWhere('updated_at', '>=', $lastSync);
+        });
+    }
+
+    // ✅ Apply filters safely (only existing columns)
+    if (!empty($filters)) {
+        foreach ($filters as $column => $value) {
+            if (Schema::hasColumn($table, $column)) {
+                $query->where($column, $value);
+            }
+        }
+    }
+
+    // ✅ Pagination
+    $data = $query->paginate($perPage);
+
+    return response()->json([
+        'status'       => 'success',
+        'table'        => $table,
+        'last_sync'    => $lastSync,
+        'filters'      => $filters,
+        'total'        => $data->total(),
+        'per_page'     => $data->perPage(),
+        'current_page' => $data->currentPage(),
+        'last_page'    => $data->lastPage(),
+        'data'         => $data->items()
+    ]);
+}
+
 
 }

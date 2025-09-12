@@ -119,6 +119,8 @@ Route::get('/proxy-image', function (Request $request) {
     Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
     Route::get('/sendBirthdayAndAnniversaryEmails', [UserController::class, 'sendBirthdayAndAnniversaryEmails']);
     Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']); 
+    Route::post('/getTables', [GeneralController::class, 'getTables']); 
+    Route::post('/getTableData', [GeneralController::class, 'getTableData']); 
 
 Route::get('/AttendanceEmployeeCron_old', function () {
     $today = Carbon::today()->toDateString();

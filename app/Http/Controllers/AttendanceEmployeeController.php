@@ -1133,12 +1133,12 @@ public function getemplyee_monthly_attandance(Request $request)
 {
     try {
         // Authorization
-        if (!Auth::user()->can('manage attendance')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission denied.')
-            ], 403);
-        }
+        // if (!Auth::user()->can('manage attendance')) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => __('Permission denied.')
+        //     ], 403);
+        // }
 
         // Validation
         $validator = Validator::make($request->all(), [
@@ -1290,8 +1290,8 @@ public function getemplyee_monthly_attandance(Request $request)
                 'brand_name' => $record->brand_name,
                 'region_name' => $record->region_name,
                 'date' => $record->date ?? $startDate->format('Y-m-d'), // Fallback to start date if null
-                'clock_in' => $clockIn,
-                'clock_out' => $clockOut,
+                'clock_in' => $record->clock_in,
+                'clock_out' => $record->clock_out,
                 'earlyCheckOutReason' => $record->earlyCheckOutReason ?? null,
                 'worked_hours' => gmdate('H:i:s', $workedSeconds),
                 'status' => $status,
@@ -1457,9 +1457,20 @@ public function getemplyee_monthly_attandance(Request $request)
 
         // Sort by latest marked first, unmarked last
         $employeesQuery->orderByRaw("
-            CASE WHEN attendances.id IS NULL THEN 2 ELSE 1 END ASC,
-            attendances.id DESC
-        ");
+                CASE 
+                    WHEN attendances.id IS NULL THEN 3
+                    WHEN attendances.status = 'Absent' THEN 2
+                    ELSE 1 
+                END ASC,
+                CASE 
+                    WHEN attendances.status != 'Absent' THEN attendances.id 
+                    ELSE NULL 
+                END DESC,
+                CASE 
+                    WHEN attendances.status = 'Absent' THEN attendances.id 
+                    ELSE NULL 
+                END DESC
+            ");
 
        // Apply status filter after ordering
         if ($request->filled('status')) {
