@@ -49,7 +49,7 @@ class UserController extends Controller
     {
         $user = \Auth::user();
         if (\Auth::user()->can('manage employee')) {
-            $excludedTypes = ['super admin', 'company', 'team', 'client'];
+            $excludedTypes = ['company', 'team', 'client'];
             $usersQuery = User::select(['users.id', 'users.name'])->whereNotIn('type', $excludedTypes);
 
             if ($user->type == 'super admin') {
