@@ -84,7 +84,7 @@ class LoginRegisterController extends Controller
         // Fetch only permissions of this role
         $role = \Spatie\Permission\Models\Role::where('name', $currentRole)->first();
 
-        $data['roles'] = $currentRole;
+        $data['roles'] =  $role->name;
         $data['permissions'] = $role 
             ? $role->permissions()->pluck('name') 
             : collect(); // empty if role not found
@@ -206,7 +206,7 @@ class LoginRegisterController extends Controller
         // Fetch only permissions of this role
         $role = \Spatie\Permission\Models\Role::where('name', $currentRole)->first();
 
-        $data['roles'] = $currentRole;
+        $data['roles'] = $role->name;
         $data['permissions'] = $role 
             ? $role->permissions()->pluck('name') 
             : collect(); // empty if role not found
@@ -277,7 +277,8 @@ class LoginRegisterController extends Controller
     // Fetch only permissions of this role
     $role = \Spatie\Permission\Models\Role::where('name', $currentRole)->first();
 
-    $data['roles'] = $currentRole;
+     
+    $data['roles'] = $role->name;
     $data['permissions'] = $role 
         ? $role->permissions()->pluck('name') 
         : collect(); // empty if role not found
