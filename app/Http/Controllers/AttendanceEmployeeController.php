@@ -1599,6 +1599,22 @@ public function getemplyee_monthly_attandance(Request $request)
                     }
                 });
             });
+ 
+              // Apply user-specific restrictions
+        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
+            // Level 1 permissions
+        } elseif ($auth_user->type === 'company') {
+            $countsQuery->where('users.brand_id', $auth_user->id);
+        } elseif ($auth_user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $countsQuery->whereIn('users.brand_id', $brandIds);
+        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
+            $countsQuery->where('users.region_id', $auth_user->region_id);
+        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
+            $countsQuery->where('users.branch_id', $auth_user->branch_id);
+        } else {
+            $countsQuery->where('users.id', $auth_user->id);
+        }
 
         $statusCounts = $countsQuery->select(
             DB::raw("
