@@ -65,7 +65,7 @@ public function reassignUserData(Request $request)
                     'brand_id'    => $params['newBrandId'],
                     'region_id'   => $params['newRegionId'],
                     'assigned_to' => $params['newUserId'],
-                    'created_by'  => $params['newUserId'],
+                    // 'created_by'  => $params['newUserId'],
                 ]);
         }
 
@@ -83,7 +83,7 @@ public function reassignUserData(Request $request)
                     'brand_id'   => $params['newBrandId'],
                     'region_id'  => $params['newRegionId'],
                     'user_id'    => $params['newUserId'],
-                    'created_by' => $params['newUserId'],
+                    // 'created_by' => $params['newUserId'],
                 ]);
         }
 
@@ -101,7 +101,7 @@ public function reassignUserData(Request $request)
                     'brand_id'    => $params['newBrandId'],
                     'region_id'   => $params['newRegionId'],
                     'assigned_to' => $params['newUserId'],
-                    'created_by'  => $params['newUserId'],
+                    // 'created_by'  => $params['newUserId'],
                 ]);
         }
 
