@@ -521,7 +521,7 @@ class GeneralController extends Controller
     }
     public function getRolesPluck()
     {
-        $excludedTypes = ['super admin', 'company', 'team', 'client'];
+        $excludedTypes = ['company', 'team', 'client'];
         $roles = Role::whereNotIn('name', $excludedTypes)->get()->unique('name')->pluck('name', 'id');
         return response()->json([
             'status' => 'success',
