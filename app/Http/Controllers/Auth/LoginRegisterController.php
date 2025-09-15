@@ -76,8 +76,18 @@ class LoginRegisterController extends Controller
         unset($userArray['roles']);
 
         $data['user'] = $userArray;
-        $data['roles'] = $user->getRoleNames(); // Get user roles
-        $data['permissions'] = $user->getAllPermissions()->pluck('name'); // Get user permissions
+        // $data['roles'] = $user->getRoleNames(); // Get user roles
+        // $data['permissions'] = $user->getAllPermissions()->pluck('name'); // Get user permissions
+        
+        $currentRole = $user->type; // This is your DB column value
+
+        // Fetch only permissions of this role
+        $role = \Spatie\Permission\Models\Role::where('name', $currentRole)->first();
+
+        $data['roles'] = $currentRole;
+        $data['permissions'] = $role 
+            ? $role->permissions()->pluck('name') 
+            : collect(); // empty if role not found
         $data['encrptID'] =  encryptData($user->id);
 
         return response()->json([
