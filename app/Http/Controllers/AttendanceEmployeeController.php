@@ -1469,7 +1469,7 @@ public function getemplyee_monthly_attandance(Request $request)
         }
 
         // Get total before pagination
-        $total = $employeesQuery->count();
+       
 
         // Sort by latest marked first, unmarked last
         $employeesQuery->orderByRaw("
@@ -1499,6 +1499,8 @@ public function getemplyee_monthly_attandance(Request $request)
                 });
             }
         }
+
+         $total = $employeesQuery->count();
 
         // If CSV download requested, get all records without pagination
         if ($request->input('download_csv')) {
