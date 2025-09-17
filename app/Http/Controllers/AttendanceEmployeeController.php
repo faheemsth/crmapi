@@ -1364,29 +1364,31 @@ public function getemplyee_monthly_attandance2(Request $request)
         }
 
         $validator = Validator::make($request->all(), [
-            'emp_id' => 'nullable|integer|exists:users,id',
-            'perPage' => 'nullable|integer|min:1',
-            'page' => 'nullable|integer|min:1',
-            'search' => 'nullable|string',
-            'brand_id' => 'nullable|integer|exists:users,id',
-            'region_id' => 'nullable|integer|exists:regions,id',
-            'branch_id' => 'nullable|integer|exists:branches,id',
+            'emp_id'     => 'nullable|integer|exists:users,id',
+            'perPage'    => 'nullable|integer|min:1',
+            'page'       => 'nullable|integer|min:1',
+            'search'     => 'nullable|string',
+            'brand_id'   => 'nullable|integer|exists:brands,id',
+            'region_id'  => 'nullable|integer|exists:regions,id',
+            'branch_id'  => 'nullable|integer|exists:branches,id',
             'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'end_date'   => 'nullable|date',
             'download_csv' => 'nullable|boolean',
+            'date'       => 'nullable|date'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
         }
 
-        $date = Carbon::parse($request->date)->format('Y-m-d');
+        $today   = Carbon::today();
+        $date    = $request->filled('date') ? Carbon::parse($request->date)->format('Y-m-d') : $today->format('Y-m-d');
         $perPage = $request->input('perPage', 50);
-        $page = $request->input('page', 1);
-        $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+        $page    = $request->input('page', 1);
+        $tagIds  = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
         $excludedTypes = ['company', 'team', 'client', 'Agent'];
-        $today = Carbon::today();
-        // Date range handling
+
+        // Date range
         $startDate = $request->filled('start_date') 
             ? Carbon::parse($request->start_date)->startOfDay()
             : $today->copy()->subMonths(3)->startOfMonth();
@@ -1395,28 +1397,20 @@ public function getemplyee_monthly_attandance2(Request $request)
             ? Carbon::parse($request->end_date)->endOfDay()
             : $today->copy()->endOfMonth();
 
-        // Ensure we don't show future dates
         if ($endDate > $today) {
             $endDate = $today;
         }
-
-        // Validate date range order
         if ($startDate->gt($endDate)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Start date must be before end date'
-            ], 422);
+            return response()->json(['status' => 'error', 'message' => 'Start date must be before end date'], 422);
         }
+
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
             ->leftJoin('attendance_employees as attendances', function($join) use ($startDate, $endDate) {
                 $join->on('attendances.employee_id', '=', 'users.id')
-                     ->whereBetween('attendances.date', [
-                         $startDate->format('Y-m-d'),
-                         $endDate->format('Y-m-d')
-                     ]);
+                     ->whereBetween('attendances.date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
             })
             ->select([
                 'users.id as employee_id',
@@ -1447,16 +1441,11 @@ public function getemplyee_monthly_attandance2(Request $request)
             ])
             ->whereNotIn('users.type', $excludedTypes)
             ->where('users.is_attendance_required', 1)
-            ->when($request->filled('search'), fn($q) =>
-                $q->where('users.name', 'like', '%' . $request->search . '%'))
-            ->when($request->filled('emp_id'), fn($q) =>
-                $q->where('users.id', $request->emp_id))
-            ->when($request->filled('brand_id'), fn($q) =>
-                $q->where('users.brand_id', $request->brand_id))
-            ->when($request->filled('region_id'), fn($q) =>
-                $q->where('users.region_id', $request->region_id))
-            ->when($request->filled('branch_id'), fn($q) =>
-                $q->where('users.branch_id', $request->branch_id))
+            ->when($request->filled('search'), fn($q) => $q->where('users.name', 'like', "%{$request->search}%"))
+            ->when($request->filled('emp_id'), fn($q) => $q->where('users.id', $request->emp_id))
+            ->when($request->filled('brand_id'), fn($q) => $q->where('users.brand_id', $request->brand_id))
+            ->when($request->filled('region_id'), fn($q) => $q->where('users.region_id', $request->region_id))
+            ->when($request->filled('branch_id'), fn($q) => $q->where('users.branch_id', $request->branch_id))
             ->when(!empty($tagIds), function ($q) use ($tagIds) {
                 $q->where(function ($sub) use ($tagIds) {
                     foreach ($tagIds as $tagId) {
@@ -1464,15 +1453,14 @@ public function getemplyee_monthly_attandance2(Request $request)
                     }
                 });
             });
-         $auth_user = \Auth::user();
-              // Apply user-specific restrictions
+
+        $auth_user = Auth::user();
         if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
-            // Level 1 permissions
+            // no restriction
         } elseif ($auth_user->type === 'company') {
             $employeesQuery->where('users.brand_id', $auth_user->id);
         } elseif ($auth_user->can('level 2')) {
-            $brandIds = array_keys(FiltersBrands());
-            $employeesQuery->whereIn('users.brand_id', $brandIds);
+            $employeesQuery->whereIn('users.brand_id', array_keys(FiltersBrands()));
         } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
             $employeesQuery->where('users.region_id', $auth_user->region_id);
         } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
@@ -1481,53 +1469,33 @@ public function getemplyee_monthly_attandance2(Request $request)
             $employeesQuery->where('users.id', $auth_user->id);
         }
 
-        // Get total before pagination
         $total = $employeesQuery->count();
 
-        // Sort by latest marked first, unmarked last
         $employeesQuery->orderByRaw("
-                CASE 
-                    WHEN attendances.id IS NULL THEN 3
-                    WHEN attendances.status = 'Absent' THEN 2
-                    ELSE 1 
-                END ASC,
-                CASE 
-                    WHEN attendances.status != 'Absent' THEN attendances.id 
-                    ELSE NULL 
-                END DESC,
-                CASE 
-                    WHEN attendances.status = 'Absent' THEN attendances.id 
-                    ELSE NULL 
-                END DESC
-            ");
+            CASE 
+                WHEN attendances.id IS NULL THEN 3
+                WHEN attendances.status = 'Absent' THEN 2
+                ELSE 1 
+            END ASC,
+            attendances.id DESC
+        ");
 
-       // Apply status filter after ordering
         if ($request->filled('status')) {
-            if($request->status != 'Absent') {
+            if($request->status !== 'Absent') {
                 $employeesQuery->having('status', '=', $request->status);
             } else {
-                $employeesQuery->having(function($q) {
-                    $q->having('status', '=', 'Absent')
-                    ->orHaving('status', '=', 'Not Marked');
-                });
+                $employeesQuery->havingIn('status', ['Absent', 'Not Marked']);
             }
         }
 
-        // If CSV download requested, get all records without pagination
-        if ($request->input('download_csv')) {
+        // CSV export
+        if ($request->boolean('download_csv')) {
             $records = $employeesQuery->get()->map(function ($row) use ($date) {
                 $clockIn = $row->clock_in ?? '00:00:00';
                 $clockOut = $row->clock_out ?? '00:00:00';
                 $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
                     ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
                     : 0;
-
-                // $lateSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
-                //     ? Carbon::parse($clockIn )->diffInSeconds(Carbon::parse($row?->shift_start))
-                //     : 0;
-                $lateSeconds = ($clockIn !== '00:00:00')
-                ? Carbon::parse($clockIn)->diffInSeconds(Carbon::parse($row?->shift_start), false)
-                : 0;
 
                 return [
                     'employee_id' => $row->employee_id,
@@ -1537,8 +1505,8 @@ public function getemplyee_monthly_attandance2(Request $request)
                     'branch_name' => $row->branch_name,
                     'timezone' => $row->timezone,
                     'date' => $date,
-                    'shift_start' => $row?->shift_start,
-                    'shift_end' => $row?->shift_end,
+                    'shift_start' => $row->shift_start,
+                    'shift_end' => $row->shift_end,
                     'clock_in' => $clockIn,
                     'clock_out' => $clockOut,
                     'earlyCheckOutReason' => $row->earlyCheckOutReason,
@@ -1550,33 +1518,15 @@ public function getemplyee_monthly_attandance2(Request $request)
                 ];
             });
 
-            $filename = 'Attendance_' . $date . '_' . now()->timestamp . '.csv';
+            $filename = "Attendance_{$date}_" . now()->timestamp . ".csv";
             $headers = [
                 'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Content-Disposition' => "attachment; filename=\"$filename\"",
             ];
 
             return response()->stream(function () use ($records) {
                 $f = fopen('php://output', 'w');
-                // Write CSV headers
-                fputcsv($f, [
-                    'Employee ID', 
-                    'Employee Name', 
-                    'Brand', 
-                    'Region', 
-                    'Branch', 
-                    'Date', 
-                    'Clock In', 
-                    'Clock Out', 
-                    'Early Checkout Reason',
-                    'Worked Hours', 
-                    'Status', 
-                    'Late', 
-                    'Early Leaving', 
-                    'Overtime'
-                ]);
-                
-                // Write data rows
+                fputcsv($f, ['Employee ID','Employee Name','Brand','Region','Branch','Date','Clock In','Clock Out','Early Checkout Reason','Worked Hours','Status','Late','Early Leaving','Overtime']);
                 foreach ($records as $row) {
                     fputcsv($f, array_values($row));
                 }
@@ -1584,84 +1534,12 @@ public function getemplyee_monthly_attandance2(Request $request)
             }, 200, $headers);
         }
 
-        // Clone query before pagination for counts - FIXED VERSION
-        $countsQuery = DB::table('users')
-            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
-            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-            ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
-            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
-                $join->on('attendances.employee_id', '=', 'users.id')
-                     ->where('attendances.date', '=', $date);
-            })
-            ->whereNotIn('users.type', $excludedTypes)
-            ->where('users.is_attendance_required', 1)
-            ->when($request->filled('search'), fn($q) =>
-                $q->where('users.name', 'like', '%' . $request->search . '%'))
-            ->when($request->filled('emp_id'), fn($q) =>
-                $q->where('users.id', $request->emp_id))
-            ->when($request->filled('brand_id'), fn($q) =>
-                $q->where('users.brand_id', $request->brand_id))
-            ->when($request->filled('region_id'), fn($q) =>
-                $q->where('users.region_id', $request->region_id))
-            ->when($request->filled('branch_id'), fn($q) =>
-                $q->where('users.branch_id', $request->branch_id))
-            ->when(!empty($tagIds), function ($q) use ($tagIds) {
-                $q->where(function ($sub) use ($tagIds) {
-                    foreach ($tagIds as $tagId) {
-                        $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
-                    }
-                });
-            });
- 
-              // Apply user-specific restrictions
-        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
-            // Level 1 permissions
-        } elseif ($auth_user->type === 'company') {
-            $countsQuery->where('users.brand_id', $auth_user->id);
-        } elseif ($auth_user->can('level 2')) {
-            $brandIds = array_keys(FiltersBrands());
-            $countsQuery->whereIn('users.brand_id', $brandIds);
-        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
-            $countsQuery->where('users.region_id', $auth_user->region_id);
-        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
-            $countsQuery->where('users.branch_id', $auth_user->branch_id);
-        } else {
-            $countsQuery->where('users.id', $auth_user->id);
-        }
-
-        $statusCounts = $countsQuery->select(
-            DB::raw("
-                        SUM(
-                            CASE 
-                                WHEN attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
-                                THEN 1 ELSE 0 
-                            END
-                        ) as OnTime
-                    "),
-            DB::raw("
-                        SUM(
-                            CASE 
-                                WHEN attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
-                                THEN 1 ELSE 0 
-                            END
-                        ) as Late
-                    "),
-            DB::raw("SUM(CASE WHEN attendances.id IS NULL THEN 1 ELSE 0 END) as `Absent`"),
-            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
-            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
-            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as `Present`")
-        )->first();
-
-        // Regular paginated response
+        // Paginated
         $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
             $clockIn = $row->clock_in ?? '00:00:00';
             $clockOut = $row->clock_out ?? '00:00:00';
             $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
                 ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
-                : 0;
-
-                $lateSeconds = ($clockIn !== '00:00:00')
-                ? Carbon::parse($clockIn)->diffInSeconds(Carbon::parse($row?->shift_start), false)
                 : 0;
 
             return [
@@ -1675,17 +1553,15 @@ public function getemplyee_monthly_attandance2(Request $request)
                 'branch_name' => $row->branch_name,
                 'brand_name' => $row->brand_name,
                 'region_name' => $row->region_name,
-
                 'shift_start' => $row->shift_start,
                 'shift_end' => $row->shift_end,
-
                 'date' => $date,
                 'clock_in' => $clockIn,
                 'clock_out' => $clockOut,
                 'earlyCheckOutReason' => $row->earlyCheckOutReason,
                 'worked_hours' => gmdate('H:i:s', $workedSeconds),
                 'status' => $row->status,
-                'late' =>  $row->late ?? '00:00:00',
+                'late' => $row->late ?? '00:00:00',
                 'early_leaving' => $row->early_leaving ?? '00:00:00',
                 'overtime' => $row->overtime ?? '00:00:00',
             ];
@@ -1699,12 +1575,12 @@ public function getemplyee_monthly_attandance2(Request $request)
             'last_page' => ceil($total / $perPage),
             'total_records' => $total,
             'perPage' => (int) $perPage,
-            'count_summary' => $statusCounts,
         ]);
     } catch (\Exception $e) {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
 }
+
 
 
 
