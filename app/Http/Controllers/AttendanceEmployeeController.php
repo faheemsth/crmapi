@@ -1367,7 +1367,7 @@ public function getemplyee_monthly_attandance2(Request $request)
             'emp_id'     => 'nullable|integer|exists:users,id',
             'perPage'    => 'nullable|integer|min:1',
             'page'       => 'nullable|integer|min:1',
-            'brand_id'   => 'nullable|integer|exists:brands,id',
+            'brand_id'   => 'nullable|integer|exists:users,id',
             'region_id'  => 'nullable|integer|exists:regions,id',
             'branch_id'  => 'nullable|integer|exists:branches,id',
             'start_date' => 'nullable|date',
@@ -1414,7 +1414,7 @@ public function getemplyee_monthly_attandance2(Request $request)
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-            ->leftJoin('brands', 'brands.id', '=', 'users.brand_id')
+            ->leftJoin('users', 'users.id', '=', 'users.brand_id')
             ->leftJoin('attendance_employees as attendances', function($join) use ($startDate, $endDate) {
                 $join->on('attendances.employee_id', '=', 'users.id')
                      ->whereBetween('attendances.date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
