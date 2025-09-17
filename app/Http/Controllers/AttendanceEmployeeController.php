@@ -1432,6 +1432,7 @@ public function getemplyee_monthly_attandance(Request $request)
                 'attendances.early_leaving',
                 'attendances.overtime',
                 'attendances.id as attendance_id',
+                'attendances.date as attendance_date',
                 DB::raw("
                     CASE
                         WHEN attendances.id IS NULL THEN 'Not Marked' 
@@ -1683,7 +1684,7 @@ public function getemplyee_monthly_attandance(Request $request)
                 'shift_start' => $row->shift_start,
                 'shift_end' => $row->shift_end,
 
-                'date' => $date,
+                'date' => $row->attendance_date ?? $date,
                 'clock_in' => $clockIn,
                 'clock_out' => $clockOut,
                 'earlyCheckOutReason' => $row->earlyCheckOutReason,
