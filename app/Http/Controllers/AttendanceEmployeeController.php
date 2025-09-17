@@ -1365,15 +1365,14 @@ public function getemplyee_monthly_attandance2(Request $request)
 
         $validator = Validator::make($request->all(), [
             'emp_id' => 'nullable|integer|exists:users,id',
-            'date' => 'required|date',
             'perPage' => 'nullable|integer|min:1',
             'page' => 'nullable|integer|min:1',
             'search' => 'nullable|string',
             'brand_id' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
-            'tag_ids' => 'nullable|string',
-            'status' => 'nullable|string',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
             'download_csv' => 'nullable|boolean',
         ]);
 
@@ -1386,14 +1385,38 @@ public function getemplyee_monthly_attandance2(Request $request)
         $page = $request->input('page', 1);
         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
         $excludedTypes = ['company', 'team', 'client', 'Agent'];
+        $today = Carbon::today();
+        // Date range handling
+        $startDate = $request->filled('start_date') 
+            ? Carbon::parse($request->start_date)->startOfDay()
+            : $today->copy()->subMonths(3)->startOfMonth();
 
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)->endOfDay()
+            : $today->copy()->endOfMonth();
+
+        // Ensure we don't show future dates
+        if ($endDate > $today) {
+            $endDate = $today;
+        }
+
+        // Validate date range order
+        if ($startDate->gt($endDate)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Start date must be before end date'
+            ], 422);
+        }
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
-            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+            ->leftJoin('attendance_employees as attendances', function($join) use ($startDate, $endDate) {
                 $join->on('attendances.employee_id', '=', 'users.id')
-                     ->where('attendances.date', '=', $date);
+                     ->whereBetween('attendances.date', [
+                         $startDate->format('Y-m-d'),
+                         $endDate->format('Y-m-d')
+                     ]);
             })
             ->select([
                 'users.id as employee_id',
