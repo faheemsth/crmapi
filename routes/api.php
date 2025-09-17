@@ -342,6 +342,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getDashboardAttendances', [AttendanceEmployeeController::class, 'getDashboardAttendances']);
 
     Route::post('/getemplyee_monthly_attandance', [AttendanceEmployeeController::class, 'getemplyee_monthly_attandance']);
+    Route::post('/getemplyee_monthly_attandance2', [AttendanceEmployeeController::class, 'getemplyee_monthly_attandance2']);
     
     Route::post('/viewAttendance', [AttendanceEmployeeController::class, 'viewAttendance']);
     Route::post('/addAttendance', [AttendanceEmployeeController::class, 'addAttendance']);
