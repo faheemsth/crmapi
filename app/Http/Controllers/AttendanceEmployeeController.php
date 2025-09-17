@@ -1414,7 +1414,7 @@ public function getemplyee_monthly_attandance2(Request $request)
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-            ->leftJoin('users as brands', 'brands.id', '=', 'users.brand_id') // ✅ alias for brand
+            ->leftJoin('users as brands', 'brands.id', '=', 'users.brand_id') // alias for brand
             ->leftJoin('attendance_employees as attendances', function($join) use ($startDate, $endDate) {
                 $join->on('attendances.employee_id', '=', 'users.id')
                      ->whereBetween('attendances.date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
@@ -1426,7 +1426,7 @@ public function getemplyee_monthly_attandance2(Request $request)
                 'users.region_id',
                 'users.branch_id',
                 'branches.name as branch_name',
-                'brands.name as brand_name',   // ✅ correct alias usage
+                'brands.name as brand_name',
                 'regions.name as region_name',
                 DB::raw("DATE(attendances.date) as date"),
                 DB::raw("MAX(attendances.id) as attendance_id"),
@@ -1447,7 +1447,17 @@ public function getemplyee_monthly_attandance2(Request $request)
             ->when($request->filled('brand_id'), fn($q) => $q->where('users.brand_id', $request->brand_id))
             ->when($request->filled('region_id'), fn($q) => $q->where('users.region_id', $request->region_id))
             ->when($request->filled('branch_id'), fn($q) => $q->where('users.branch_id', $request->branch_id))
-            ->groupBy('users.id', 'attendances.date')
+            ->groupBy(
+                'users.id',
+                'users.name',
+                'users.brand_id',
+                'users.region_id',
+                'users.branch_id',
+                'branches.name',
+                'brands.name',
+                'regions.name',
+                'attendances.date'
+            )
             ->orderBy('attendances.date', 'desc');
 
         $attendanceRecords = $employeesQuery->get();
@@ -1463,7 +1473,6 @@ public function getemplyee_monthly_attandance2(Request $request)
             $record = $attendanceRecords->firstWhere('date', $day);
 
             if ($record) {
-                // Attendance exists
                 return [
                     'employee_id' => $record->employee_id,
                     'attendance_id' => $record->attendance_id,
@@ -1481,7 +1490,6 @@ public function getemplyee_monthly_attandance2(Request $request)
                     'status' => $record->status,
                 ];
             } elseif (in_array($day, $holidays)) {
-                // Holiday
                 return [
                     'employee_id' => null,
                     'attendance_id' => null,
@@ -1499,7 +1507,6 @@ public function getemplyee_monthly_attandance2(Request $request)
                     'status' => 'Holiday',
                 ];
             } else {
-                // Not Marked
                 return [
                     'employee_id' => null,
                     'attendance_id' => null,
