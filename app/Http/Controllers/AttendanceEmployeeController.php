@@ -1414,7 +1414,7 @@ public function getemplyee_monthly_attandance2(Request $request)
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-            ->leftJoin('users', 'users.id', '=', 'users.brand_id')
+            ->leftJoin('users as brands', 'brands.id', '=', 'users.brand_id') // ✅ alias for brand
             ->leftJoin('attendance_employees as attendances', function($join) use ($startDate, $endDate) {
                 $join->on('attendances.employee_id', '=', 'users.id')
                      ->whereBetween('attendances.date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
@@ -1426,7 +1426,7 @@ public function getemplyee_monthly_attandance2(Request $request)
                 'users.region_id',
                 'users.branch_id',
                 'branches.name as branch_name',
-                'brands.name as brand_name',
+                'brands.name as brand_name',   // ✅ correct alias usage
                 'regions.name as region_name',
                 DB::raw("DATE(attendances.date) as date"),
                 DB::raw("MAX(attendances.id) as attendance_id"),
@@ -1539,7 +1539,6 @@ public function getemplyee_monthly_attandance2(Request $request)
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
 }
-
 
 
 
