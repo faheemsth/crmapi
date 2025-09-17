@@ -1370,9 +1370,9 @@ public function getemplyee_monthly_attandance(Request $request)
  public function getCombinedAttendances(Request $request)
 {
     try {
-        if (!Auth::user()->can('manage attendance')) {
-            return response()->json(['status' => 'error', 'message' => __('Permission denied.')], 403);
-        }
+        // if (!Auth::user()->can('manage attendance')) {
+        //     return response()->json(['status' => 'error', 'message' => __('Permission denied.')], 403);
+        // }
 
         $validator = Validator::make($request->all(), [
             'date' => 'required|date',
@@ -1392,6 +1392,14 @@ public function getemplyee_monthly_attandance(Request $request)
         }
 
         $date = Carbon::parse($request->date)->format('Y-m-d');
+        $date = Carbon::parse($request->date)->format('Y-m-d');
+
+        if (!empty($request->enddate)) {
+            $enddate = Carbon::parse($request->enddate)->format('Y-m-d');
+        } else {
+            $enddate = $date; // fallback to same date if enddate not given
+        }
+
         $perPage = $request->input('perPage', 50);
         $page = $request->input('page', 1);
         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
@@ -1401,10 +1409,10 @@ public function getemplyee_monthly_attandance(Request $request)
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
-            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
-                $join->on('attendances.employee_id', '=', 'users.id')
-                     ->where('attendances.date', '=', $date);
-            })
+             ->leftJoin('attendance_employees as attendances', function ($join) use ($date, $enddate) {
+                    $join->on('attendances.employee_id', '=', 'users.id')
+                        ->whereBetween('attendances.date', [$date, $enddate]);
+                })
             ->select([
                 'users.id as employee_id',
                 'users.name as employee_name',
@@ -1472,7 +1480,9 @@ public function getemplyee_monthly_attandance(Request $request)
        
 
         // Sort by latest marked first, unmarked last
-        $employeesQuery->orderByRaw("
+        if ($enddate == $date){
+
+            $employeesQuery->orderByRaw("
                 CASE 
                     WHEN attendances.id IS NULL THEN 3
                     WHEN attendances.status = 'Absent' THEN 2
@@ -1487,6 +1497,9 @@ public function getemplyee_monthly_attandance(Request $request)
                     ELSE NULL 
                 END DESC
             ");
+
+        }
+        
 
        // Apply status filter after ordering
         if ($request->filled('status')) {
