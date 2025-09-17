@@ -1498,6 +1498,8 @@ public function getemplyee_monthly_attandance(Request $request)
                 END DESC
             ");
 
+        }else{
+            $employeesQuery->orderBy('attendances.date', 'DESC');
         }
         
 
