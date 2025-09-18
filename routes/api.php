@@ -595,6 +595,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('getpayslips/', [PaySlipController::class, 'index']);
     Route::get('payslips/{id}', [PaySlipController::class, 'show']);
     Route::post('payslips/', [PaySlipController::class, 'store']);
+    Route::post('CreatePaySlips/', [PaySlipController::class, 'CreatePaySlips']);
    
     
     Route::post('payslips-show', [PaySlipController::class, 'searchJson']);
