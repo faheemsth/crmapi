@@ -232,8 +232,7 @@ class UserController extends Controller
 
         $excludedTypes = ['company', 'team', 'client','Agent'];
 
-        $employeesQuery = User::with(['branch', 'brand'])->select('users.*')
-            ->whereNotIn('type', $excludedTypes);
+        $employeesQuery = User::with(['branch', 'brand'])->select('users.*');
 
         // Apply filters
         if ($request->filled('brand')) {
@@ -290,18 +289,18 @@ class UserController extends Controller
 
         // Apply user-specific restrictions
         if ($user->can('level 1') || $user->type === 'super admin') {
-            // Level 1 permissions
+            $employeesQuery->whereNotIn('type', ['company', 'team', 'client','Agent']);
         } elseif ($user->type === 'company') {
-            $employeesQuery->where('brand_id', $user->id);
+            $employeesQuery->where('brand_id', $user->id)->whereNotIn('type', ['company', 'team', 'client','Agent']);
         } elseif ($user->can('level 2')) {
             $brandIds = array_keys(FiltersBrands());
-            $employeesQuery->whereIn('brand_id', $brandIds);
+            $employeesQuery->whereIn('brand_id', $brandIds)->whereNotIn('type', ['company', 'team', 'client','Agent']);
         } elseif ($user->can('level 3') && $user->region_id) {
-            $employeesQuery->where('region_id', $user->region_id);
+            $employeesQuery->where('region_id', $user->region_id)->whereNotIn('type', ['company', 'team', 'client','Agent','Project Director','Project Manager']);
         } elseif ($user->can('level 4') && $user->branch_id) {
-            $employeesQuery->where('branch_id', $user->branch_id);
+            $employeesQuery->where('branch_id', $user->branch_id)->whereNotIn('type', ['company', 'team', 'client','Agent','Project Director','Project Manager','Region Manager']);
         } else {
-            $employeesQuery->where('id', $user->id);
+            $employeesQuery->where('id', $user->id)->whereNotIn('type', ['company', 'team', 'client','Agent']);
         }
 
           // Clone query before pagination for counts
