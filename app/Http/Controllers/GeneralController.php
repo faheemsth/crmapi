@@ -1514,7 +1514,7 @@ public function GetBranchByType()
 
 
  
-public function getTableData(Request $request)
+public function getTableData_old(Request $request)
 {
     // ✅ Validation
     $validator = Validator::make($request->all(), [
@@ -1579,6 +1579,8 @@ public function getTableData(Request $request)
         'data'         => $data->items()
     ]);
 }
+
+
 
 
 }
