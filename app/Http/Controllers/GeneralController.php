@@ -1630,13 +1630,19 @@ public function getTableData(Request $request)
     }
 
     // ✅ Apply filters safely
-    if (!empty($filters)) {
-        foreach ($filters as $column => $value) {
-            if (Schema::hasColumn($table, $column)) {
-                $query->where($column, $value);
+   // ✅ Apply filters safely
+        if (!empty($filters)) {
+            foreach ($filters as $column => $value) {
+                if (Schema::hasColumn($table, $column)) {
+                    if (is_array($value)) {
+                        $query->whereIn($column, $value);
+                    } else {
+                        $query->where($column, $value);
+                    }
+                }
             }
         }
-    }
+
 
     // ✅ Fetch with +1 trick to detect "has_more"
     $rows = $query->limit($perPage + 1)->get();
