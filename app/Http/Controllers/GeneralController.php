@@ -1581,6 +1581,80 @@ public function getTableData_old(Request $request)
 }
 
 
+public function getTableData(Request $request)
+{
+    // ✅ Validation
+    $validator = Validator::make($request->all(), [
+        'table'     => 'required|string',
+        'last_sync' => 'nullable|date',
+        'per_page'  => 'nullable|integer|min:1|max:1000',
+        'filters'   => 'nullable|array',
+        'last_id'   => 'nullable|integer|min:0', // keyset pagination cursor
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => $validator->errors()
+        ], 422);
+    }
+
+    $table    = $request->input('table');
+    $lastSync = $request->input('last_sync');
+    $perPage  = $request->input('per_page', 500);
+    $filters  = $request->input('filters', []);
+    $lastId   = $request->input('last_id', 0);
+
+    // ✅ Check if table exists
+    if (!Schema::hasTable($table)) {
+        return response()->json([
+            'status'  => 'error',
+            'message' => "Table '{$table}' does not exist."
+        ], 404);
+    }
+
+    // ✅ Build query
+    $query = DB::table($table)->orderBy('id', 'asc');
+
+    // Apply keyset pagination
+    if ($lastId > 0) {
+        $query->where('id', '>', $lastId);
+    }
+
+    // Add last_sync condition (new + updated records)
+    if ($lastSync) {
+        $query->where(function ($q) use ($lastSync) {
+            $q->where('created_at', '>=', $lastSync)
+              ->orWhere('updated_at', '>=', $lastSync);
+        });
+    }
+
+    // ✅ Apply filters safely
+    if (!empty($filters)) {
+        foreach ($filters as $column => $value) {
+            if (Schema::hasColumn($table, $column)) {
+                $query->where($column, $value);
+            }
+        }
+    }
+
+    // ✅ Fetch with +1 trick to detect "has_more"
+    $rows = $query->limit($perPage + 1)->get();
+
+    $hasMore = $rows->count() > $perPage;
+    $data    = $rows->take($perPage);
+
+    return response()->json([
+        'status'       => 'success',
+        'table'        => $table,
+        'last_sync'    => $lastSync,
+        'filters'      => $filters,
+        'per_page'     => $perPage,
+        'next_id'      => $hasMore ? $data->last()->id : null, // 👈 cursor
+        'has_more'     => $hasMore,
+        'data'         => $data,
+    ]);
+}
 
 
 }
