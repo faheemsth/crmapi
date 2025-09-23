@@ -193,193 +193,194 @@ class UserController extends Controller
     }
 
 
-public function getEmployees(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'page' => 'nullable|integer|min:1',
-        'perPage' => 'nullable|integer|min:1',
-        'brand' => 'nullable|integer|exists:users,id',
-        'region_id' => 'nullable|integer|exists:regions,id',
-        'branch_id' => 'nullable|integer|exists:branches,id',
-        'name' => 'nullable|string',
-        'type' => 'nullable|string',
-        'is_active' => 'nullable|string',
-        'tag_ids' => 'nullable|string',
-        'designation_id' => 'nullable|string',
-        'department_id' => 'nullable|string',
-        'phone' => 'nullable|string',
-        'search' => 'nullable|string',
-        'download_csv' => 'nullable|boolean',
-    ]);
+    public function getEmployees(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'page' => 'nullable|integer|min:1',
+            'perPage' => 'nullable|integer|min:1',
+            'brand' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'name' => 'nullable|string',
+            'type' => 'nullable|string',
+            'is_active' => 'nullable|string',
+            'tag_ids' => 'nullable|string',
+            'designation_id' => 'nullable|string',
+            'department_id' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'search' => 'nullable|string',
+            'download_csv' => 'nullable|boolean', // Add this parameter
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors()
-        ], 422);
-    }
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-    $user = \Auth::user();
-    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
-    $page = $request->input('page', 1);
+        $user = \Auth::user();
+        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+        $page = $request->input('page', 1);
 
-    if (!$user->can('manage employee')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Unauthorized access'
-        ], 403);
-    }
+        if (!$user->can('manage employee')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized access'
+            ], 403);
+        }
 
-    $excludedTypes = ['company', 'team', 'client','Agent'];
+        $excludedTypes = ['company', 'team', 'client','Agent'];
 
-    // Create base query for filtered list (this will be paginated)
-    $employeesQuery = User::with(['branch', 'brand'])->select('users.*');
+        $employeesQuery = User::with(['branch', 'brand'])->select('users.*');
 
-    // Create base query for total counts (without any filters)
-    $totalCountsQuery = User::select('users.*');
+        // Apply filters
+        if ($request->filled('brand')) {
+            $employeesQuery->where('brand_id', $request->brand);
+        }
+        if ($request->filled('region_id')) {
+            $employeesQuery->where('region_id', $request->region_id);
+        }
+        if ($request->filled('branch_id')) {
+            $employeesQuery->where('branch_id', $request->branch_id);
+        }
+        if ($request->filled('type')) {
+            $employeesQuery->where('type', 'like', '%' . $request->type . '%');
+        }
+        if ($request->filled('name')) {
+            $employeesQuery->where('name', 'like', '%' . $request->name . '%');
+        }
+        if ($request->filled('designation_id')) {
+            $employeesQuery->where('designation_id', $request->designation_id);
+        }
+        if ($request->filled('department_id')) {
+            $employeesQuery->where('department_id', $request->department_id);
+        }
+        if ($request->filled('tag_ids')) 
+        {
+            $tagIds = explode(',', $request->input('tag_ids')); // [6,4]
+            $employeesQuery->where(function($query) use ($tagIds) {
+                foreach ($tagIds as $tagId) {
+                    $query->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
+                }
+            });
+        }
 
-    // Apply user-specific restrictions to both queries
-    $applyUserRestrictions = function($query) use ($user, $excludedTypes) {
+        
+        if ($request->filled('phone')) {
+            $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
+        }
+        if ($request->filled('is_active')) {
+            $employeesQuery->where('is_active', $request->is_active);
+        }
+        
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $employeesQuery->where(function ($query) use ($search) {
+                $query->where('users.name', 'like', "%$search%")
+                    ->orWhere('users.email', 'like', "%$search%")
+                    ->orWhere('users.phone', 'like', "%$search%")
+                    ->orWhere('users.type', 'like', "%$search%")
+                    ->orWhere(DB::raw('(SELECT name FROM branches WHERE branches.id = users.branch_id)'), 'like', "%$search%")
+                    ->orWhere(DB::raw('(SELECT name FROM regions WHERE regions.id = users.region_id)'), 'like', "%$search%")
+                    ->orWhere(DB::raw('(SELECT name FROM users AS brands WHERE brands.id = users.brand_id)'), 'like', "%$search%");
+            });
+        }
+
+        // Apply user-specific restrictions
         if ($user->can('level 1') || $user->type === 'super admin') {
-            $query->whereNotIn('type', $excludedTypes);
+            $employeesQuery->whereNotIn('type', ['company', 'team', 'client','Agent']);
         } elseif ($user->type === 'company') {
-            $query->where('brand_id', $user->id)->whereNotIn('type', $excludedTypes);
+            $employeesQuery->where('brand_id', $user->id)->whereNotIn('type', ['company', 'team', 'client','Agent']);
         } elseif ($user->can('level 2')) {
             $brandIds = array_keys(FiltersBrands());
-            $query->whereIn('brand_id', $brandIds)->whereNotIn('type', $excludedTypes);
+            $employeesQuery->whereIn('brand_id', $brandIds)->whereNotIn('type', ['company', 'team', 'client','Agent']);
         } elseif ($user->can('level 3') && $user->region_id) {
-            $query->where('region_id', $user->region_id)->whereNotIn('type', array_merge($excludedTypes, ['Project Director','Project Manager']));
+            $employeesQuery->where('region_id', $user->region_id)->whereNotIn('type', ['company', 'team', 'client','Agent','Project Director','Project Manager']);
         } elseif ($user->can('level 4') && $user->branch_id) {
-            $query->where('branch_id', $user->branch_id)->whereNotIn('type', array_merge($excludedTypes, ['Project Director','Project Manager','Region Manager']));
+            $employeesQuery->where('branch_id', $user->branch_id)->whereNotIn('type', ['company', 'team', 'client','Agent','Project Director','Project Manager','Region Manager']);
         } else {
-            $query->where('id', $user->id)->whereNotIn('type', $excludedTypes);
+            $employeesQuery->where('id', $user->id)->whereNotIn('type', ['company', 'team', 'client','Agent']);
         }
-    };
 
-    // Apply user restrictions to both queries
-    $applyUserRestrictions($employeesQuery);
-    $applyUserRestrictions($totalCountsQuery);
+          // Clone query before pagination for counts
+           $countsQuery = clone $employeesQuery;
 
-    // APPLY FILTERS ONLY TO THE EMPLOYEES QUERY (for paginated list)
-    if ($request->filled('brand')) {
-        $employeesQuery->where('brand_id', $request->brand);
-    }
-    if ($request->filled('region_id')) {
-        $employeesQuery->where('region_id', $request->region_id);
-    }
-    if ($request->filled('branch_id')) {
-        $employeesQuery->where('branch_id', $request->branch_id);
-    }
-    if ($request->filled('type')) {
-        $employeesQuery->where('type', 'like', '%' . $request->type . '%');
-    }
-    if ($request->filled('name')) {
-        $employeesQuery->where('name', 'like', '%' . $request->name . '%');
-    }
-    if ($request->filled('designation_id')) {
-        $employeesQuery->where('designation_id', $request->designation_id);
-    }
-    if ($request->filled('department_id')) {
-        $employeesQuery->where('department_id', $request->department_id);
-    }
-    if ($request->filled('tag_ids')) {
-        $tagIds = explode(',', $request->input('tag_ids'));
-        $employeesQuery->where(function($query) use ($tagIds) {
-            foreach ($tagIds as $tagId) {
-                $query->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
-            }
-        });
-    }
-    if ($request->filled('phone')) {
-        $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
-    }
-    if ($request->filled('is_active')) {
-        $employeesQuery->where('is_active', $request->is_active);
-    }
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $employeesQuery->where(function ($query) use ($search) {
-            $query->where('users.name', 'like', "%$search%")
-                ->orWhere('users.email', 'like', "%$search%")
-                ->orWhere('users.phone', 'like', "%$search%")
-                ->orWhere('users.type', 'like', "%$search%")
-                ->orWhere(DB::raw('(SELECT name FROM branches WHERE branches.id = users.branch_id)'), 'like', "%$search%")
-                ->orWhere(DB::raw('(SELECT name FROM regions WHERE regions.id = users.region_id)'), 'like', "%$search%")
-                ->orWhere(DB::raw('(SELECT name FROM users AS brands WHERE brands.id = users.brand_id)'), 'like', "%$search%");
-        });
-    }
+            // Reset the original select
+            $countsQuery->getQuery()->columns = [];
 
-    // GET TOTAL COUNTS (without any request filters, only user restrictions)
-    $totalStatusCounts = $totalCountsQuery->select(
-        DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
-        DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
-        DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
-    )->first();
+            $statusCounts = $countsQuery->select(
+                DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
+                DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
+                DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
+            )->first();
+        //  dd($request->input('download_csv'));
+        // Check if CSV download is requested
+        if ($request->input('download_csv')) {
+            $employees = $employeesQuery->get(); // Fetch all records without pagination
 
-    // Prepare count summary with TOTAL counts (not filtered counts)
-    $countSummary = [
-        'active' => (string) ($totalStatusCounts->active ?? '0'),
-        'suspended' => (string) ($totalStatusCounts->suspended ?? '0'),
-        'terminated' => (string) ($totalStatusCounts->terminated ?? '0'),
-        'designation' => null,
-        'department' => null,
-        'branch' => null,
-        'brand' => null,
-    ];
 
-    // Check if CSV download is requested
-    if ($request->input('download_csv')) {
-        $employees = $employeesQuery->get();
 
-        $csvFileName = 'employees_' . time() . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
-        ];
+            // Generate CSV
+            $csvFileName = 'employees_' . time() . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+            ];
 
-        $callback = function () use ($employees) {
-            $file = fopen('php://output', 'w');
+            $callback = function () use ($employees) {
+                $file = fopen('php://output', 'w');
 
-            fputcsv($file, [
-                'ID', 'Name', 'Email', 'Phone', 'Brand', 'Branch', 'Designation', 'Status', 'Last Login'
-            ]);
-
-            foreach ($employees as $employee) {
+                // Add CSV headers
                 fputcsv($file, [
-                    $employee->id,
-                    $employee->name,
-                    $employee->email,
-                    $employee->phone,
-                    $employee->brand->name ?? '',
-                    $employee->branch->name ?? '',
-                    $employee->type,
-                    $employee->is_active == 1 ? 'Active' : 'Inactive',
-                    $employee->last_login_at,
+                    'ID',
+                    'Name',
+                    'Email',
+                    'Phone',
+                    'Brand',
+                    'Branch',
+                    'Designation',
+                    'Status',
+                    'Last Login'
                 ]);
-            }
 
-            fclose($file);
-        };
+                // Add rows
+                foreach ($employees as $employee) {
+                    fputcsv($file, [
+                        $employee->id,
+                        $employee->name,
+                        $employee->email,
+                        $employee->phone,
+                        $employee->brand->name ?? '',
+                        $employee->branch->name ?? '',
+                        $employee->type,
+                        $employee->is_active == 1 ? 'Active' : 'Inactive',
+                        $employee->last_login_at,
+                    ]);
+                }
 
-        return response()->stream($callback, 200, $headers);
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
+        // Paginate results
+        $employees = $employeesQuery
+            ->orderBy('users.name', 'ASC')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'status' => 'success',
+            'baseurl' =>  asset('/EmployeeDocument'),
+            'data' => $employees->items(),
+            'current_page' => $employees->currentPage(),
+            'last_page' => $employees->lastPage(),
+            'total_records' => $employees->total(),
+            'perPage' => $employees->perPage(),
+            'count_summary' =>$statusCounts
+        ], 200);
     }
-
-    // Paginate results (with filters applied)
-    $employees = $employeesQuery
-        ->orderBy('users.name', 'ASC')
-        ->paginate($perPage, ['*'], 'page', $page);
-
-    return response()->json([
-        'status' => 'success',
-        'baseurl' =>  asset('/EmployeeDocument'),
-        'data' => $employees->items(),
-        'current_page' => $employees->currentPage(),
-        'last_page' => $employees->lastPage(),
-        'total_records' => $employees->total(),
-        'perPage' => $employees->perPage(),
-        'count_summary' => $countSummary
-    ], 200);
-}
 public function getDashboardEmployeesCount(Request $request)
 {
     $user = \Auth::user();
