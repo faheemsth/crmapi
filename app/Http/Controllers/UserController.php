@@ -302,9 +302,9 @@ class UserController extends Controller
 
           // Clone query before pagination for counts
            $countsQuery = clone $employeesQuery;
-
+        // at last apply status filter
         if ($request->filled('is_active')) {
-          //  $employeesQuery->where('is_active', $request->is_active);
+            $employeesQuery->where('is_active', $request->is_active);
         }
         
 
