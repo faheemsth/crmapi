@@ -270,10 +270,7 @@ class UserController extends Controller
         if ($request->filled('phone')) {
             $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
         }
-        if ($request->filled('is_active')) {
-            $employeesQuery->where('is_active', $request->is_active);
-        }
-        
+    
         if ($request->filled('search')) {
             $search = $request->search;
             $employeesQuery->where(function ($query) use ($search) {
@@ -305,6 +302,11 @@ class UserController extends Controller
 
           // Clone query before pagination for counts
            $countsQuery = clone $employeesQuery;
+
+        if ($request->filled('is_active')) {
+            $employeesQuery->where('is_active', $request->is_active);
+        }
+        
 
             // Reset the original select
             $countsQuery->getQuery()->columns = [];
