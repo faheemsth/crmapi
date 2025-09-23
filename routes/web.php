@@ -18,8 +18,8 @@ Route::get('/', function () {
 });
 
 Route::get('/assignRole', function () {
-    // $user = \App\Models\User::find(0); // Replace 1 with the actual user ID
-    //  $user->assignRole('');
+    $user = \App\Models\User::find(3324); // Replace 1 with the actual user ID
+     $user->assignRole('super admin');
  });
 Route::get('/application', function () {
     // Prefetch data
