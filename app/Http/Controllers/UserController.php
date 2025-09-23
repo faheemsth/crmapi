@@ -209,7 +209,7 @@ class UserController extends Controller
             'department_id' => 'nullable|string',
             'phone' => 'nullable|string',
             'search' => 'nullable|string',
-            'download_csv' => 'nullable|boolean', // Add this parameter
+            'download_csv' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -233,18 +233,8 @@ class UserController extends Controller
         $excludedTypes = ['company', 'team', 'client','Agent'];
 
         $employeesQuery = User::with(['branch', 'brand'])->select('users.*');
-        // add counts
-        $countsQuery = clone $employeesQuery;
 
-            // Reset the original select
-        $countsQuery->getQuery()->columns = [];
-
-        $statusCounts = $countsQuery->select(
-                DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
-                DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
-                DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
-        )->first();
-        // Apply filters
+        // Apply filters (except is_active for now)
         if ($request->filled('brand')) {
             $employeesQuery->where('brand_id', $request->brand);
         }
@@ -266,24 +256,17 @@ class UserController extends Controller
         if ($request->filled('department_id')) {
             $employeesQuery->where('department_id', $request->department_id);
         }
-        if ($request->filled('tag_ids')) 
-        {
-            $tagIds = explode(',', $request->input('tag_ids')); // [6,4]
+        if ($request->filled('tag_ids')) {
+            $tagIds = explode(',', $request->input('tag_ids'));
             $employeesQuery->where(function($query) use ($tagIds) {
                 foreach ($tagIds as $tagId) {
                     $query->orWhereRaw("FIND_IN_SET(?, tag_ids)", [$tagId]);
                 }
             });
         }
-
-        
         if ($request->filled('phone')) {
             $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
         }
-        if ($request->filled('is_active')) {
-            $employeesQuery->where('is_active', $request->is_active);
-        }
-        
         if ($request->filled('search')) {
             $search = $request->search;
             $employeesQuery->where(function ($query) use ($search) {
@@ -299,39 +282,41 @@ class UserController extends Controller
 
         // Apply user-specific restrictions
         if ($user->can('level 1') || $user->type === 'super admin') {
-            $employeesQuery->whereNotIn('type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->whereNotIn('type', $excludedTypes);
         } elseif ($user->type === 'company') {
-            $employeesQuery->where('brand_id', $user->id)->whereNotIn('type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->where('brand_id', $user->id)->whereNotIn('type', $excludedTypes);
         } elseif ($user->can('level 2')) {
             $brandIds = array_keys(FiltersBrands());
-            $employeesQuery->whereIn('brand_id', $brandIds)->whereNotIn('type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->whereIn('brand_id', $brandIds)->whereNotIn('type', $excludedTypes);
         } elseif ($user->can('level 3') && $user->region_id) {
-            $employeesQuery->where('region_id', $user->region_id)->whereNotIn('type', ['company', 'team', 'client','Agent','Project Director','Project Manager']);
+            $employeesQuery->where('region_id', $user->region_id)
+                ->whereNotIn('type', array_merge($excludedTypes, ['Project Director','Project Manager']));
         } elseif ($user->can('level 4') && $user->branch_id) {
-            $employeesQuery->where('branch_id', $user->branch_id)->whereNotIn('type', ['company', 'team', 'client','Agent','Project Director','Project Manager','Region Manager']);
+            $employeesQuery->where('branch_id', $user->branch_id)
+                ->whereNotIn('type', array_merge($excludedTypes, ['Project Director','Project Manager','Region Manager']));
         } else {
-            $employeesQuery->where('id', $user->id)->whereNotIn('type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->where('id', $user->id)->whereNotIn('type', $excludedTypes);
         }
 
-          // Clone query before pagination for counts
-        //    $countsQuery = clone $employeesQuery;
+        // ✅ Clone query for counts BEFORE applying is_active
+        $countsQuery = clone $employeesQuery;
+        $countsQuery->getQuery()->columns = null;
 
-        //     // Reset the original select
-        //     $countsQuery->getQuery()->columns = [];
+        $statusCounts = $countsQuery->select([
+            DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active"),
+            DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as suspended"),
+            DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as terminated"),
+        ])->first();
 
-        //     $statusCounts = $countsQuery->select(
-        //         DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
-        //         DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
-        //         DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
-        //     )->first();
-        //  dd($request->input('download_csv'));
-        // Check if CSV download is requested
+        // ✅ Now apply is_active filter only for records
+        if ($request->filled('is_active')) {
+            $employeesQuery->where('is_active', $request->is_active);
+        }
+
+        // CSV Export
         if ($request->input('download_csv')) {
-            $employees = $employeesQuery->get(); // Fetch all records without pagination
+            $employees = $employeesQuery->get(); 
 
-
-
-            // Generate CSV
             $csvFileName = 'employees_' . time() . '.csv';
             $headers = [
                 'Content-Type' => 'text/csv',
@@ -341,20 +326,11 @@ class UserController extends Controller
             $callback = function () use ($employees) {
                 $file = fopen('php://output', 'w');
 
-                // Add CSV headers
+                // Headers
                 fputcsv($file, [
-                    'ID',
-                    'Name',
-                    'Email',
-                    'Phone',
-                    'Brand',
-                    'Branch',
-                    'Designation',
-                    'Status',
-                    'Last Login'
+                    'ID','Name','Email','Phone','Brand','Branch','Designation','Status','Last Login'
                 ]);
 
-                // Add rows
                 foreach ($employees as $employee) {
                     fputcsv($file, [
                         $employee->id,
@@ -364,7 +340,7 @@ class UserController extends Controller
                         $employee->brand->name ?? '',
                         $employee->branch->name ?? '',
                         $employee->type,
-                        $employee->is_active == 1 ? 'Active' : 'Inactive',
+                        $employee->is_active == 1 ? 'Active' : ($employee->is_active == 2 ? 'Suspended' : 'Terminated'),
                         $employee->last_login_at,
                     ]);
                 }
@@ -375,7 +351,7 @@ class UserController extends Controller
             return response()->stream($callback, 200, $headers);
         }
 
-        // Paginate results
+        // Paginate
         $employees = $employeesQuery
             ->orderBy('users.name', 'ASC')
             ->paginate($perPage, ['*'], 'page', $page);
@@ -388,7 +364,7 @@ class UserController extends Controller
             'last_page' => $employees->lastPage(),
             'total_records' => $employees->total(),
             'perPage' => $employees->perPage(),
-            'count_summary' =>$statusCounts
+            'count_summary' => $statusCounts
         ], 200);
     }
 public function getDashboardEmployeesCount(Request $request)
