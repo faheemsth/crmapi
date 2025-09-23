@@ -233,7 +233,17 @@ class UserController extends Controller
         $excludedTypes = ['company', 'team', 'client','Agent'];
 
         $employeesQuery = User::with(['branch', 'brand'])->select('users.*');
+        // add counts
+        $countsQuery = clone $employeesQuery;
 
+            // Reset the original select
+        $countsQuery->getQuery()->columns = [];
+
+        $statusCounts = $countsQuery->select(
+                DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
+                DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
+                DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
+        )->first();
         // Apply filters
         if ($request->filled('brand')) {
             $employeesQuery->where('brand_id', $request->brand);
@@ -304,16 +314,16 @@ class UserController extends Controller
         }
 
           // Clone query before pagination for counts
-           $countsQuery = clone $employeesQuery;
+        //    $countsQuery = clone $employeesQuery;
 
-            // Reset the original select
-            $countsQuery->getQuery()->columns = [];
+        //     // Reset the original select
+        //     $countsQuery->getQuery()->columns = [];
 
-            $statusCounts = $countsQuery->select(
-                DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
-                DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
-                DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
-            )->first();
+        //     $statusCounts = $countsQuery->select(
+        //         DB::raw("SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as `active`"),
+        //         DB::raw("SUM(CASE WHEN is_active = 2 THEN 1 ELSE 0 END) as `suspended`"),
+        //         DB::raw("SUM(CASE WHEN is_active = 3 THEN 1 ELSE 0 END) as `terminated`")
+        //     )->first();
         //  dd($request->input('download_csv'));
         // Check if CSV download is requested
         if ($request->input('download_csv')) {
