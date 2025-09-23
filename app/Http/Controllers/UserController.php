@@ -304,7 +304,7 @@ class UserController extends Controller
            $countsQuery = clone $employeesQuery;
 
         if ($request->filled('is_active')) {
-            $employeesQuery->where('is_active', $request->is_active);
+          //  $employeesQuery->where('is_active', $request->is_active);
         }
         
 
