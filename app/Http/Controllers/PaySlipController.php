@@ -42,7 +42,7 @@ class PaySlipController extends Controller
         ->leftJoin('users', 'users.id', '=', 'employees.user_id') // Corrected column relation
         ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id') // Referring to employees' brand_id
         ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id') ;  
+        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id') ;
 
 
 
@@ -77,7 +77,7 @@ class PaySlipController extends Controller
                 });
             }
 
-            
+
            if ($request->filled('tag_ids')) {
                 $tagIds = explode(',', $request->input('tag_ids')); // "6,4"
 
@@ -174,11 +174,11 @@ class PaySlipController extends Controller
         }
 
         $formattedMonthYear = $request->year . '-' . $request->month;
-        $employeeID = $request->singleUserID 
-            ? User::findOrFail($request->singleUserID)->employee->id 
+        $employeeID = $request->singleUserID
+            ? User::findOrFail($request->singleUserID)->employee->id
             : 0;
 
-        // 🔹 Inline getExistingPayslips
+        // ðŸ”¹ Inline getExistingPayslips
         $existingPayslipsQuery = PaySlip::where('salary_month', $formattedMonthYear);
         if ($request->has(['brand_id', 'region_id', 'branch_id'])) {
             $existingPayslipsQuery->where('brand_id', $request->brand_id)
@@ -190,7 +190,7 @@ class PaySlipController extends Controller
         }
         $existingPayslips = $existingPayslipsQuery->pluck('employee_id');
 
-        // 🔹 Inline getEligibleEmployees
+        // ðŸ”¹ Inline getEligibleEmployees
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
         $usersQuery = User::whereNotIn('type', $excludedTypes);
 
@@ -231,7 +231,7 @@ class PaySlipController extends Controller
                 ->get();
         }
 
-        // ✅ FIX: Correct error messages
+        // âœ… FIX: Correct error messages
         if ($eligibleEmployees->isEmpty()) {
             if (!empty($request->singleUserID)) {
                 if ($existingPayslips->isEmpty()) {
@@ -260,7 +260,7 @@ class PaySlipController extends Controller
             }
         }
 
-        // 🔹 Inline generatePayslips
+        // ðŸ”¹ Inline generatePayslips
         $anyNewCreated = false; // track if any new record was created
 
         foreach ($eligibleEmployees as $employee) {
@@ -284,7 +284,7 @@ class PaySlipController extends Controller
                 'overtime' => Employee::overtime($employee->id),
             ]);
 
-            // 🔹 check if new created
+            // ðŸ”¹ check if new created
             if ($payslip->wasRecentlyCreated) {
                 $anyNewCreated = true;
             }
@@ -330,7 +330,7 @@ class PaySlipController extends Controller
             ]);
         }
 
-        // 🔹 Inline sendNotifications
+        // ðŸ”¹ Inline sendNotifications
         $settings = Utility::settings(Auth::id());
         if (!empty($settings['payslip_notification'])) {
             Utility::send_slack_msg("Payslip generated for $formattedMonthYear.");
@@ -383,17 +383,17 @@ class PaySlipController extends Controller
     //     }else{
     //         $employeeID = 0;
     //     }
-        
-        
+
+
     //     // Check for existing payslips
     //     $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID);
 
-      
+
 
     //     // Get eligible employees
     //     $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0));
 
-          
+
     //     if ($eligibleEmployees->isEmpty()) {
     //         return response()->json([
     //             'status' => 'error',
@@ -446,11 +446,11 @@ class PaySlipController extends Controller
         }
 
         $formattedMonthYear = $request->year . '-' . $request->month;
-        $employeeID = $request->singleUserID 
-            ? User::findOrFail($request->singleUserID)->employee->id 
+        $employeeID = $request->singleUserID
+            ? User::findOrFail($request->singleUserID)->employee->id
             : 0;
 
-        // 🔹 Inline getExistingPayslips
+        // ðŸ”¹ Inline getExistingPayslips
         $existingPayslipsQuery = PaySlip::where('salary_month', $formattedMonthYear);
         if ($request->has(['brand_id', 'region_id', 'branch_id'])) {
             $existingPayslipsQuery->where('brand_id', $request->brand_id)
@@ -462,7 +462,7 @@ class PaySlipController extends Controller
         }
         $existingPayslips = $existingPayslipsQuery->pluck('employee_id');
 
-        // 🔹 Inline getEligibleEmployees
+        // ðŸ”¹ Inline getEligibleEmployees
         $excludedTypes = ['super admin', 'company', 'team', 'client'];
         $usersQuery = User::whereNotIn('type', $excludedTypes);
 
@@ -503,7 +503,7 @@ class PaySlipController extends Controller
                 ->get();
         }
 
-        // ✅ FIX: Correct error messages
+        // âœ… FIX: Correct error messages
         if ($eligibleEmployees->isEmpty()) {
             if (!empty($request->singleUserID)) {
                 if ($existingPayslips->isEmpty()) {
@@ -532,7 +532,7 @@ class PaySlipController extends Controller
             }
         }
 
-        // 🔹 Inline generatePayslips
+        // ðŸ”¹ Inline generatePayslips
         $anyNewCreated = false; // track if any new record was created
 
         foreach ($eligibleEmployees as $employee) {
@@ -556,7 +556,7 @@ class PaySlipController extends Controller
                 'overtime' => Employee::overtime($employee->id),
             ]);
 
-            // 🔹 check if new created
+            // ðŸ”¹ check if new created
             if ($payslip->wasRecentlyCreated) {
                 $anyNewCreated = true;
             }
@@ -602,7 +602,7 @@ class PaySlipController extends Controller
             ]);
         }
 
-        // 🔹 Inline sendNotifications
+        // ðŸ”¹ Inline sendNotifications
         $settings = Utility::settings(Auth::id());
         if (!empty($settings['payslip_notification'])) {
             Utility::send_slack_msg("Payslip generated for $formattedMonthYear.");
@@ -667,17 +667,17 @@ class PaySlipController extends Controller
     //     }else{
     //         $employeeID = 0;
     //     }
-        
-        
+
+
     //     // Check for existing payslips
     //     $existingPayslips = $this->getExistingPayslips($formattedMonthYear,$employeeID,$request->input('singleUserID', 0),$request->input('brand_id', 0),$request->input('region_id', 0),$request->input('branch_id', 0));
 
-      
+
 
     //     // Get eligible employees
     //     $eligibleEmployees = $this->getEligibleEmployees($formattedMonthYear, $existingPayslips, $request->input('singleUserID', 0),$request->input('brand_id', 0),$request->input('region_id', 0),$request->input('branch_id', 0));
 
-          
+
     //     if ($eligibleEmployees->isEmpty()) {
     //         if (!empty($request->input('singleUserID'))) {
     //             if ($existingPayslips->isEmpty()) {
@@ -737,32 +737,32 @@ class PaySlipController extends Controller
 
          //    =================== delete ===========
 
-            $employee = Employee::find($payslip->employee_id);  
+            $employee = Employee::find($payslip->employee_id);
             $typeoflog = 'payslip';
                 addLogActivity([
                     'type' => 'warning',
                     'note' => json_encode([
                         'title' => $employee->user->name .  ' '.$typeoflog.'  deleted ',
-                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted ' 
+                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted '
                     ]),
                     'module_id' => $payslip->id,
                     'module_type' => 'payslip',
                     'notification_type' =>  ' '.$typeoflog.'  deleted'
                 ]);
-            
 
-                
+
+
                 addLogActivity([
                     'type' => 'warning',
                     'note' => json_encode([
                         'title' => $employee->user->name .  ' '.$typeoflog.'  deleted ',
-                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted ' 
+                        'message' => $employee->user->name .  ' '.$typeoflog.'  deleted '
                     ]),
                     'module_id' => $employee->user->id,
                     'module_type' => 'employeeprofile',
                     'notification_type' =>  ' '.$typeoflog.'  deleted'
                 ]);
-            
+
 
         $payslip->delete();
         return response()->json([
@@ -902,29 +902,29 @@ class PaySlipController extends Controller
     // Get the filtered user IDs
     $userIds = $usersQuery->pluck('id');
 
-     
+
 
 
      if ($singleUserID!= 0) {
-       
-         
+
+
           // Fetch employees with conditions and related users
-    return Employee::whereNotNull('salary') 
+    return Employee::whereNotNull('salary')
         ->whereIn('user_id', $userIds)
         ->with('user') // Load related user data
         ->get();
 
-    
+
     }else{
            // Fetch employees with conditions and related users
     return Employee::where('company_doj', '<=', now()->endOfMonth())
         ->whereNotIn('id', $existingPayslips)
-        ->whereNotNull('salary') 
+        ->whereNotNull('salary')
         ->whereIn('user_id', $userIds)
         ->with('user') // Load related user data
         ->get();
 
-    
+
     }
 
 }
@@ -956,7 +956,7 @@ class PaySlipController extends Controller
                 $user = User::find($employee->user_id);
 
                  $additionalTags = [
-                        'salary_month' => $formattedMonthYear, 
+                        'salary_month' => $formattedMonthYear,
                     ];
 
         $templateId = null;
@@ -973,7 +973,7 @@ class PaySlipController extends Controller
                 $templateId,
                 $ccchecklist,
                 array() ,
-                $additionalTags 
+                $additionalTags
             );
                 $typeoflog = 'payslip';
                 addLogActivity([
@@ -1054,11 +1054,11 @@ class PaySlipController extends Controller
         $employee->save();
 
 
-        
+
      // ============ edit ============
 
 
-   
+
 
 
            // Log changed fields only
@@ -1078,7 +1078,7 @@ class PaySlipController extends Controller
         }
         $user = User::find($employee->user_id);
          $typeoflog = 'set salary';
-           
+
         if (!empty($changes)) {
                 addLogActivity([
                     'type' => 'info',
@@ -1093,7 +1093,7 @@ class PaySlipController extends Controller
                 ]);
             }
 
-             
+
         if (!empty($changes)) {
                 addLogActivity([
                     'type' => 'info',
@@ -1166,7 +1166,7 @@ class PaySlipController extends Controller
             ], 500);
         }
     }
-    
+
     public function deleteBulkPayslip(Request $request)
     {
         $user = \Auth::user();
@@ -1259,7 +1259,7 @@ class PaySlipController extends Controller
     $userIds = $usersQuery->pluck('id');
     return Employee::where('company_doj', '<=', now()->endOfMonth())
         ->whereNotIn('id', $existingPayslips)
-        ->whereNotNull('salary') 
+        ->whereNotNull('salary')
         ->whereIn('user_id', $userIds)
         ->with('user') // Load related user data
         ->get();
@@ -1273,9 +1273,9 @@ class PaySlipController extends Controller
             $formattedMonthYear,
             0,
             0,
-            0, 
-            0, 
-            0 
+            0,
+            0,
+            0
         );
 
         // Get eligible employees (no brand/region/branch filter)
@@ -1283,13 +1283,13 @@ class PaySlipController extends Controller
             $formattedMonthYear,
             $existingPayslips,
             0,
-            0, 
-            0, 
-            0 
+            0,
+            0,
+            0
         );
 
         if ($eligibleEmployees->isEmpty()) {
-            
+
         }
         $this->generatePayslips($eligibleEmployees, $formattedMonthYear, 0, 0, 0);
         return true;

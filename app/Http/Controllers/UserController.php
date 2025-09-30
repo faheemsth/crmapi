@@ -256,7 +256,7 @@ class UserController extends Controller
         if ($request->filled('department_id')) {
             $employeesQuery->where('department_id', $request->department_id);
         }
-        if ($request->filled('tag_ids')) 
+        if ($request->filled('tag_ids'))
         {
             $tagIds = explode(',', $request->input('tag_ids')); // [6,4]
             $employeesQuery->where(function($query) use ($tagIds) {
@@ -266,11 +266,11 @@ class UserController extends Controller
             });
         }
 
-        
+
         if ($request->filled('phone')) {
             $employeesQuery->where('phone', 'like', '%' . $request->phone . '%');
         }
-    
+
         if ($request->filled('search')) {
             $search = $request->search;
             $employeesQuery->where(function ($query) use ($search) {
@@ -306,7 +306,7 @@ class UserController extends Controller
         if ($request->filled('is_active')) {
             $employeesQuery->where('is_active', $request->is_active);
         }
-        
+
 
             // Reset the original select
             $countsQuery->getQuery()->columns = [];
@@ -464,11 +464,11 @@ public function getDashboardLastLogin(Request $request)
         $employeesQuery->where('users.id', $user->id);
     }
 
-    // Filter for today’s login
+    // Filter for todayâ€™s login
     $today = now()->toDateString();
     $employeesQuery->whereDate('users.last_login_at', $today);
 
-    // ✅ Paginate properly
+    // âœ… Paginate properly
     $employees = $employeesQuery->orderBy('users.last_login_at', 'DESC')
         ->paginate($perPage, ['*'], 'page', $page);
 
@@ -488,7 +488,7 @@ public function getDashboardBrandLastLogin(Request $request)
 
     $excludedTypes = ['company', 'team', 'client', 'Agent'];
 
-    // 📅 Date ranges
+    // ðŸ“… Date ranges
     $today        = now()->toDateString();
     $startOfWeek  = now()->startOfWeek()->toDateString();
     $endOfWeek    = now()->endOfWeek()->toDateString();
@@ -517,7 +517,7 @@ public function getDashboardBrandLastLogin(Request $request)
         $employeesBaseQuery->where('users.id', $user->id);
     }
 
-    // ✅ Single query with conditional aggregation
+    // âœ… Single query with conditional aggregation
     $brandData = $employeesBaseQuery
         ->select(
             'companies.name as company',
@@ -569,11 +569,11 @@ public function getDashboardBirthday(Request $request)
         $employeesQuery->where('users.id', $user->id);
     }
 
-    // Filter for today’s login
+    // Filter for todayâ€™s login
     $today = now()->toDateString();
     $employeesQuery->whereDate('users.date_of_birth', $today);
 
-    // ✅ Paginate properly
+    // âœ… Paginate properly
     $employees = $employeesQuery->orderBy('users.date_of_birth', 'DESC')
         ->paginate($perPage, ['*'], 'page', $page);
 
@@ -618,14 +618,14 @@ public function getDashboardCurrentMonthexpiredDocument(Request $request)
         $employeesQuery->where('users.id', $user->id);
     }
 
-      // 🔹 Expired documents within current month
+      // ðŸ”¹ Expired documents within current month
     $startOfMonth = now()->startOfMonth()->toDateString();
     $endOfMonth   = now()->endOfMonth()->toDateString();
 
     $employeesQuery->whereBetween('employee_documents.renewal_date', [$startOfMonth, $endOfMonth])
                    ->where('employee_documents.set_is_renewable', 1);
 
-    // ✅ Paginate properly
+    // âœ… Paginate properly
     $employees = $employeesQuery->orderBy('users.date_of_birth', 'DESC')
         ->paginate($perPage, ['*'], 'page', $page);
 
@@ -659,7 +659,7 @@ public function sendexpiredDocumentEmail(Request $request)
         ->leftJoin('document_types', 'document_types.id', '=', 'employee_documents.documenttypeID')
         ->where('employee_documents.set_is_renewable', 1);
 
-    // 🔹 Handle duration
+    // ðŸ”¹ Handle duration
     $duration = $request->input('duration', 'this_month'); // allowed: 1 week, 1 month, etc.
     $today    = now();
     switch ($duration) {
@@ -695,7 +695,7 @@ public function sendexpiredDocumentEmail(Request $request)
     //dd($employeesQuery->toSql(), $employeesQuery->getBindings());
     $employees = $employeesQuery->get();
 
-    $expiredTemplateId = Utility::getValByName('expired_document_email_template'); 
+    $expiredTemplateId = Utility::getValByName('expired_document_email_template');
     $expiredTemplate   = EmailTemplate::find($expiredTemplateId);
 
     $insertData = [];
@@ -743,14 +743,14 @@ public function sendexpiredDocumentEmail(Request $request)
 
     return response()->json([
         'status' => 'success',
-        'data'   => 'Emails queued for sending. ' . count($insertData) . ' emails added to the queue.', 
+        'data'   => 'Emails queued for sending. ' . count($insertData) . ' emails added to the queue.',
     ], 200);
 }
 
 
 public function getDashboardholiday(Request $request)
 {
-     
+
     $startOfMonth = now()->startOfMonth()->toDateString();
     $endOfMonth   = now()->endOfMonth()->toDateString();
 
@@ -766,7 +766,7 @@ public function getDashboardholiday(Request $request)
         ->get();
 
 
-   
+
 
     return response()->json([
         'status'         => 'success',
@@ -1264,7 +1264,7 @@ public function getDashboardholiday(Request $request)
                 }
                     fclose($f);
                 }, 200, $headers);
-            } 
+            }
 
             $total_records = $user_query->count();
             $users = $user_query->orderBy('users.name', 'ASC')
@@ -1582,7 +1582,7 @@ public function getDashboardholiday(Request $request)
             }
 
 
-             
+
 
             //    =================== delete ===========
 
@@ -1719,9 +1719,9 @@ public function getDashboardholiday(Request $request)
         // dd($request->all(), $request->file());
 
         // Validation rules
-        $validator = \Validator::make($request->all(), [ 
+        $validator = \Validator::make($request->all(), [
             'avatar' => 'required|file|mimes:jpg,jpeg,png|max:4096',
-            'id' => 'required|exists:users,id', // Ensure employee exists 
+            'id' => 'required|exists:users,id', // Ensure employee exists
         ]);
 
         if ($validator->fails()) {
@@ -1740,7 +1740,7 @@ public function getDashboardholiday(Request $request)
                 // Generate unique file name
                 $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
                 $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
-                $uploadedFiles[$fileType] = $filename; // ✅ Correct assignment
+                $uploadedFiles[$fileType] = $filename; // âœ… Correct assignment
             } else {
                 $uploadedFiles[$fileType] = null;
             }
@@ -1749,9 +1749,9 @@ public function getDashboardholiday(Request $request)
         // Debugging output
         // dd($uploadedFiles);
 
-        // Retrieve or create the EmployeeDocument record 
+        // Retrieve or create the EmployeeDocument record
         $user = User::find($request->id);
- 
+
 
 
 
@@ -1760,13 +1760,13 @@ public function getDashboardholiday(Request $request)
             $user->avatar = $uploadedFiles['avatar'];
         }
         $user->save();
- 
+
 
 
         // Log changed fields only
         $changes =['avatar'];
         $updatedFields = ['avatar'];
-         
+
         $typeoflog = 'employee document';
 
         if (!empty($changes)) {
@@ -1858,7 +1858,7 @@ public function getDashboardholiday(Request $request)
             }
         }
 
-        // Load employee and document 
+        // Load employee and document
         $employeeDocument = new EmployeeDocument();
         $employeeDocument->employee_id = $request->id;
         $user = User::find($request->id);
@@ -1895,17 +1895,17 @@ public function getDashboardholiday(Request $request)
         $employeeDocument->renewal_date = $request->renewal_date;
         $employeeDocument->comments = $request->comments;
         $employeeDocument->set_as_reminder = $request->set_as_reminder;
-        $employeeDocument->reminder_date = $request->reminder_date; 
-        $employeeDocument->issue_date = $request->issue_date; 
-        $employeeDocument->set_is_renewable = $request->set_is_renewable; 
+        $employeeDocument->reminder_date = $request->reminder_date;
+        $employeeDocument->issue_date = $request->issue_date;
+        $employeeDocument->set_is_renewable = $request->set_is_renewable;
         $user->save();
 
-      
+
 
         $employeeDocument->save();
 
         // Log updated fields
-              //  ========== add ============ 
+              //  ========== add ============
                 $typeoflog = $employeeDocument->documentType->name ?? 'document';
                 addLogActivity([
                     'type' => 'success',
@@ -1946,8 +1946,8 @@ public function getDashboardholiday(Request $request)
         }
 
         // Validation
-        $validator = \Validator::make($request->all(), [ 
-            'id' => 'required|exists:employee_documents,id' 
+        $validator = \Validator::make($request->all(), [
+            'id' => 'required|exists:employee_documents,id'
         ]);
 
         if ($validator->fails()) {
@@ -1958,7 +1958,7 @@ public function getDashboardholiday(Request $request)
             ]);
         }
 
-        
+
 
         $EmployeeDocument = EmployeeDocument::find($request->id);
         if (!$EmployeeDocument) {
@@ -1973,12 +1973,12 @@ public function getDashboardholiday(Request $request)
 
 
 
- 
+
 
 
         // Log updated fields
-              //  ========== add ============ 
-              
+              //  ========== add ============
+
                 addLogActivity([
                     'type' => 'warning',
                     'note' => json_encode([
@@ -2414,7 +2414,7 @@ public function getDashboardholiday(Request $request)
             'designation_id' => 'required|exists:designations,id',
             'department_id' => 'required|exists:departments,id',
         ], [
-            // 💡 Custom messages
+            // ðŸ’¡ Custom messages
             'passport_number.required' => 'Passport/CNIC number is required.',
             'passport_number.unique' => 'This passportCNIC number is already in use.',
         ]);
@@ -2502,20 +2502,20 @@ public function getDashboardholiday(Request $request)
             $employee->save();
 
 
-             
+
              $new_employee_email_template = Utility::getValByName('new_employee_email_template');
 
-             
+
 
             $new_employee_email_template = EmailTemplate::find($new_employee_email_template);
 
-        
-             $insertData = [];
-          
-            $insertData[] = $this->buildEmailData($new_employee_email_template, $user);
-        
 
-                
+             $insertData = [];
+
+            $insertData[] = $this->buildEmailData($new_employee_email_template, $user);
+
+
+
             //dd($insertData);
                 // --- Batch Insert ---
                 if (!empty($insertData)) {
@@ -2576,8 +2576,8 @@ public function getDashboardholiday(Request $request)
             ], 403);
         }
 
-        $validator = \Validator::make($request->all(), [ 
-            'emp_id' => 'required|exists:users,id', 
+        $validator = \Validator::make($request->all(), [
+            'emp_id' => 'required|exists:users,id',
         ]);
 
 
@@ -2586,31 +2586,31 @@ public function getDashboardholiday(Request $request)
                 'status' => false,
                 'message' => $validator->errors(),
             ], 400);
-        } 
-        
+        }
+
             $user = User::find($request->emp_id);
 
-            
+
              $new_employee_email_template = Utility::getValByName('new_employee_email_template');
 
-             
+
 
             $new_employee_email_template = EmailTemplate::find($new_employee_email_template);
 
-        
-             $insertData = [];
-          
-            $insertData[] = $this->buildEmailData($new_employee_email_template, $user);
-        
 
-                
+             $insertData = [];
+
+            $insertData[] = $this->buildEmailData($new_employee_email_template, $user);
+
+
+
             //dd($insertData);
                 // --- Batch Insert ---
                 if (!empty($insertData)) {
                     EmailSendingQueue::insert($insertData);
                 }
 
-                
+
             // Log Activity
             addLogActivity([
                 'type' => 'info',
@@ -2639,11 +2639,11 @@ public function getDashboardholiday(Request $request)
                 'status' => true,
                 'message' => 'New employee email  sent.',
                 'data' => [
-                    'user' => $user, 
+                    'user' => $user,
                 ],
             ]);
 
-         
+
     }
 
     public function UpdateEmployee(Request $request)
@@ -2678,7 +2678,7 @@ public function getDashboardholiday(Request $request)
             'designation_id' => 'required|exists:designations,id',
             'department_id' => 'required|exists:departments,id',
         ], [
-            // 🔽 Custom error messages
+            // ðŸ”½ Custom error messages
             'passport_number.required' => 'Passport/CNIC number is required.',
             'passport_number.unique'   => 'This passport/CNIC number already exists.',
         ]);
@@ -3271,7 +3271,7 @@ public function getDashboardholiday(Request $request)
         if (!empty($project_manager_detail?->email)) $ccList[] = $project_manager_detail->email;
         $ccList[] = 'scorp-erp_attendance@convosoft.com';
 
-       
+
         // update status
         $user->is_active = $request->is_active;
         $user->save();
@@ -3342,12 +3342,12 @@ public function getDashboardholiday(Request $request)
         }
 
         // Validation rules
-        $validator = \Validator::make($request->all(), [ 
+        $validator = \Validator::make($request->all(), [
             'avatar' => 'nullable|file|mimes:jpg,jpeg,png|max:4096',
             'id' => 'required|exists:users,id', // Ensure employee exists
             'project_director_id' => 'nullable|exists:users,id', // Ensure employee exists
             'project_manager_id' => 'nullable|exists:users,id', // Ensure employee exists
-             
+
         ]);
 
         if ($validator->fails()) {
@@ -3364,11 +3364,11 @@ public function getDashboardholiday(Request $request)
                 // Generate unique file name
                 $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
                 $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
-                $uploadedFiles[$fileType] = $filename; // ✅ Correct assignment
+                $uploadedFiles[$fileType] = $filename; // âœ… Correct assignment
             } else {
                 $uploadedFiles[$fileType] = null;
             }
-        } 
+        }
         $user = User::find($request->id);
 
         if (!empty($uploadedFiles['avatar'])) {
@@ -3380,7 +3380,7 @@ public function getDashboardholiday(Request $request)
 
         $changes =['avatar'];
         $updatedFields = ['avatar'];
-         
+
         $typeoflog = 'Brand Profile';
 
         if (!empty($changes)) {
@@ -3396,7 +3396,7 @@ public function getDashboardholiday(Request $request)
                 'notification_type' =>  ' ' . $typeoflog . ' Updated'
             ]);
         }
- 
+
 
 
         return response()->json([
@@ -3419,13 +3419,13 @@ public function getDashboardholiday(Request $request)
              $birthday_email_template = Utility::getValByName('birthday_email_template');
              $anniversary_email_template = Utility::getValByName('anniversary_email_template');
 
-             
+
 
         $birthdayTemplate = EmailTemplate::find($birthday_email_template);
 
         foreach ($birthdayUsers as $user) {
 
-          
+
             $insertData[] = $this->buildEmailData($birthdayTemplate, $user);
         }
 
@@ -3459,7 +3459,7 @@ public function getDashboardholiday(Request $request)
 
         $subject = $this->replaceTags($template->subject, $user);
         $content = $this->replaceTags($template->template, $user);
-       
+
         return [
             'to'           => $user->email,
             'cc'           => $cc,
@@ -3507,7 +3507,7 @@ public function getDashboardholiday(Request $request)
                 case 'DOB':
                     $value = $user->date_of_birth;
                     break;
-                
+
                 case 'branch_manager_name':
                     $value = optional(optional($user->branch)->manager)->name ?? '';
                     break;
@@ -3526,7 +3526,7 @@ public function getDashboardholiday(Request $request)
                         $user->employeeMetas->where('meta_key', 'commencedDate')->first()
                     )->meta_value ?? '';
                     break;
-                        // 🔹 Document info
+                        // ðŸ”¹ Document info
                     case 'document_name':
                         $value = $user->document_name ?? '';
                         break;
@@ -3534,7 +3534,7 @@ public function getDashboardholiday(Request $request)
                         $value = $user->document_expiry ?? '';
                         break;
 
-                    // 🔹 Managers
+                    // ðŸ”¹ Managers
                     case 'project_manager_name':
                         $value = $user->project_manager?->name ?? '';
                         break;
