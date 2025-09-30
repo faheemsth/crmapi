@@ -597,7 +597,7 @@ public function getDashboardCurrentMonthexpiredDocument(Request $request)
     $perPage = 200; // fixed per your requirement
     $page = $request->input('page', 1);
 
-    $employeesQuery = User::select('users.name', 'employee_documents.renewal_date', 'employee_documents.description','document_types.name as document_type_name')
+    $employeesQuery = User::select('users.id as user_id','users.name', 'employee_documents.renewal_date', 'employee_documents.description','document_types.name as document_type_name')
         ->whereNotIn('users.type', $excludedTypes)
          ->leftJoin('employee_documents', 'users.id', '=', 'employee_documents.employee_id')
          ->leftJoin('document_types', 'document_types.id', '=', 'employee_documents.documenttypeID');
