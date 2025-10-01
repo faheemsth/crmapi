@@ -1421,6 +1421,8 @@ public function getemplyee_monthly_attandance(Request $request)
                     'branches.name as branch_name',
                     'branches.timezone as timezone',
                     'regions.name as region_name',
+                    'branches.start_time as branch_shift_start',
+                    'branches.end_time as branch_shift_end',
                     'attendances.shift_start',
                     'attendances.shift_end',
                     'attendances.clock_in',
