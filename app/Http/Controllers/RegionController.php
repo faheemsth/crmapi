@@ -58,7 +58,10 @@ class RegionController extends Controller
             $query->where('regions.name', 'like', "%{$search}%")
                 ->orWhereHas('brand', function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%");
-                });
+                })
+                ->orWhereHas('manager', function ($q) use ($search) {
+                        $q->where('name', 'like', "%$search%");
+                    });
         }
 
         // Brand filter
