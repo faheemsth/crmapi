@@ -107,15 +107,15 @@ class UserReassignController extends Controller
                 // Get all related application IDs
                 $applicationIds = DB::table('deal_applications')
                     ->join('deals', 'deals.id', '=', 'deal_applications.deal_id')
-                    ->where('deals.branch_id', $params['newBranchId'])
-                    ->where('deals.brand_id', $params['newBrandId'])
-                    ->where('deals.region_id', $params['newRegionId'])
+                    ->where('deals.branch_id', $params['oldBranchId'])
+                    ->where('deals.brand_id', $params['oldBrandId'])
+                    ->where('deals.region_id', $params['oldRegionId'])
                     ->where(function ($query) use ($params) {
                         $query->where('deals.created_by', $params['oldUserId'])
                             ->orWhere('deals.assigned_to', $params['oldUserId']);
                     })
                     ->pluck('deal_applications.id');
-
+                    
                 // Batch update in one query
                 if ($applicationIds->isNotEmpty()) {
                     DB::table('deal_tasks')
