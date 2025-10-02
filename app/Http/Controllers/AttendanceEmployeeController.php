@@ -1549,6 +1549,8 @@ public function getemplyee_monthly_attandance(Request $request)
                         'earlyCheckOutReason' => $row->earlyCheckOutReason,
                         'worked_hours' => gmdate('H:i:s', $workedSeconds),
                         'status' => $row->status,
+                        'branch_shift_start' => $row->branch_shift_start,
+                        'branch_shift_end' => $row->branch_shift_end,
                         'late' => ($clockIn !== '00:00:00' && $row?->branch_shift_start)
                         ? ($clockIn > $row->branch_shift_start
                             ? gmdate('H:i:s', Carbon::parse($row->branch_shift_start)->diffInSeconds(Carbon::parse($clockIn)))
