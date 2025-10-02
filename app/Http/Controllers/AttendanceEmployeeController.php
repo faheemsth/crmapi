@@ -1552,10 +1552,10 @@ public function getemplyee_monthly_attandance(Request $request)
                         'branch_shift_start' => $row->branch_shift_start,
                         'branch_shift_end' => $row->branch_shift_end,
                         'late' => ($clockIn !== '00:00:00' && $row?->branch_shift_start)
-                        ? ($clockIn > $row->branch_shift_start
-                            ? gmdate('H:i:s', Carbon::parse($row->branch_shift_start)->diffInSeconds(Carbon::parse($clockIn)))
-                            : '00:00:00')
-                        : '00:00:00',
+                            ? ($clockIn > $row->branch_shift_start
+                                ? gmdate('H:i:s', Carbon::parse($row->branch_shift_start)->diffInSeconds(Carbon::parse($clockIn)))
+                                : '00:00:00')
+                            : '00:00:00',
                         'early_leaving' => $row->early_leaving ?? '00:00:00',
                         'overtime' => $row->overtime ?? '00:00:00',
                     ];
@@ -1696,7 +1696,11 @@ public function getemplyee_monthly_attandance(Request $request)
                     'earlyCheckOutReason' => $row->earlyCheckOutReason,
                     'worked_hours' => gmdate('H:i:s', $workedSeconds),
                     'status' => $row->status,
-                    'late' =>  $row->late ?? '00:00:00',
+                    'late' => ($clockIn !== '00:00:00' && $row?->branch_shift_start)
+                            ? ($clockIn > $row->branch_shift_start
+                                ? gmdate('H:i:s', Carbon::parse($row->branch_shift_start)->diffInSeconds(Carbon::parse($clockIn)))
+                                : '00:00:00')
+                            : '00:00:00',
                     'early_leaving' => $row->early_leaving ?? '00:00:00',
                     'overtime' => $row->overtime ?? '00:00:00',
                 ];
