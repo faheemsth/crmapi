@@ -1356,366 +1356,368 @@ public function getemplyee_monthly_attandance(Request $request)
     }
 }
 
+public function backuplist(Request $request)
+{
+    try {
+        $validator = Validator::make($request->all(), [
+            'date' => 'required|date',
+            'perPage' => 'nullable|integer|min:1',
+            'page' => 'nullable|integer|min:1',
+            'search' => 'nullable|string',
+            'brand_id' => 'nullable|integer|exists:users,id',
+            'region_id' => 'nullable|integer|exists:regions,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'tag_ids' => 'nullable|string',
+            'status' => 'nullable|string',
+            'download_csv' => 'nullable|boolean',
+            'enddate' => 'nullable|date'
+        ]);
 
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+        }
 
+        $date = Carbon::parse($request->date)->format('Y-m-d');
+        $enddate = !empty($request->enddate) ? Carbon::parse($request->enddate)->format('Y-m-d') : $date;
 
+        $perPage = $request->input('perPage', 50);
+        $page = $request->input('page', 1);
+        $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+        $excludedTypes = ['company', 'team', 'client', 'Agent'];
 
-
-
-
-
-
-   public function backuplist(Request $request)
-    {
-        try {
-            // if (!Auth::user()->can('manage attendance')) {
-            //     return response()->json(['status' => 'error', 'message' => __('Permission denied.')], 403);
-            // }
-
-            $validator = Validator::make($request->all(), [
-                'date' => 'required|date',
-                'perPage' => 'nullable|integer|min:1',
-                'page' => 'nullable|integer|min:1',
-                'search' => 'nullable|string',
-                'brand_id' => 'nullable|integer|exists:users,id',
-                'region_id' => 'nullable|integer|exists:regions,id',
-                'branch_id' => 'nullable|integer|exists:branches,id',
-                'tag_ids' => 'nullable|string',
-                'status' => 'nullable|string',
-                'download_csv' => 'nullable|boolean',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
-            }
-
-            $date = Carbon::parse($request->date)->format('Y-m-d');
-            $date = Carbon::parse($request->date)->format('Y-m-d');
-
-            if (!empty($request->enddate)) {
-                $enddate = Carbon::parse($request->enddate)->format('Y-m-d');
-            } else {
-                $enddate = $date; // fallback to same date if enddate not given
-            }
-
-            $perPage = $request->input('perPage', 50);
-            $page = $request->input('page', 1);
-            $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
-            $excludedTypes = ['company', 'team', 'client', 'Agent'];
-
-            $employeesQuery = DB::table('users')
-                ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
-                ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-                ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
-                ->leftJoin('attendance_employees as attendances', function ($join) use ($date, $enddate) {
-                        $join->on('attendances.employee_id', '=', 'users.id')
-                            ->whereBetween('attendances.date', [$date, $enddate]);
-                    })
-                ->select([
-                    'users.id as employee_id',
-                    'users.name as employee_name',
-                    'brand.name as brand_name',
-                    'users.brand_id',
-                    'users.region_id',
-                    'users.branch_id',
-                    'branches.name as branch_name',
-                    'branches.timezone as timezone',
-                    'regions.name as region_name',
-                    'attendances.shift_start',
-                    'attendances.shift_end',
-                    'attendances.clock_in',
-                    'attendances.clock_out',
-                    'attendances.earlyCheckOutReason',
-                    'attendances.late',
-                    'attendances.early_leaving',
-                    'attendances.overtime',
-                    'attendances.id as attendance_id',
-                    'attendances.date as attendance_date',
-                    DB::raw("
-                        CASE
-                            WHEN attendances.id IS NULL THEN 'Not Marked' 
-                            WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
-                            ELSE attendances.status
-                        END as status
-                    ")
-                ])
-                ->whereNotIn('users.type', $excludedTypes)
-                ->where('users.is_attendance_required', 1)
-                ->when($request->filled('search'), fn($q) =>
-                    $q->where('users.name', 'like', '%' . $request->search . '%'))
-                ->when($request->filled('emp_id'), fn($q) =>
-                    $q->where('users.id', $request->emp_id))
-                ->when($request->filled('brand_id'), fn($q) =>
-                    $q->where('users.brand_id', $request->brand_id))
-                ->when($request->filled('region_id'), fn($q) =>
-                    $q->where('users.region_id', $request->region_id))
-                ->when($request->filled('branch_id'), fn($q) =>
-                    $q->where('users.branch_id', $request->branch_id))
-                ->when(!empty($tagIds), function ($q) use ($tagIds) {
-                    $q->where(function ($sub) use ($tagIds) {
-                        foreach ($tagIds as $tagId) {
-                            $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
-                        }
-                    });
-                });
-            $auth_user = \Auth::user();
-                // Apply user-specific restrictions
-            if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
-                // Level 1 permissions
-            } elseif ($auth_user->type === 'company') {
-                $employeesQuery->where('users.brand_id', $auth_user->id);
-            } elseif ($auth_user->can('level 2')) {
-                $brandIds = array_keys(FiltersBrands());
-                $employeesQuery->whereIn('users.brand_id', $brandIds);
-            } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
-                $employeesQuery->where('users.region_id', $auth_user->region_id);
-            } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
-                $employeesQuery->where('users.branch_id', $auth_user->branch_id);
-            } else {
-                $employeesQuery->where('users.id', $auth_user->id);
-            }
-
-            // Get total before pagination
-        
-
-            // Sort by latest marked first, unmarked last
-            if ($enddate == $date){
-
-                $employeesQuery->orderByRaw("
-                    CASE 
-                        WHEN attendances.id IS NULL THEN 3
-                        WHEN attendances.status = 'Absent' THEN 2
-                        ELSE 1 
-                    END ASC,
-                    CASE 
-                        WHEN attendances.status != 'Absent' THEN attendances.id 
-                        ELSE NULL 
-                    END DESC,
-                    CASE 
-                        WHEN attendances.status = 'Absent' THEN attendances.id 
-                        ELSE NULL 
-                    END DESC
-                ");
-
-            }else{
-                $employeesQuery->orderBy('attendances.date', 'DESC');
-            }
-            
-
-        // Apply status filter after ordering
-            if ($request->filled('status')) {
-                if($request->status != 'Absent') {
-                    $employeesQuery->having('status', '=', $request->status);
-                } else {
-                    $employeesQuery->having(function($q) {
-                        $q->having('status', '=', 'Absent')
-                        ->orHaving('status', '=', 'Not Marked');
-                    });
-                }
-            }
-
-            $total = $employeesQuery->count();
-
-            // If CSV download requested, get all records without pagination
-            if ($request->input('download_csv')) {
-                $records = $employeesQuery->get()->map(function ($row) use ($date) {
-                    $clockIn = $row->clock_in ?? '00:00:00';
-                    $clockOut = $row->clock_out ?? '00:00:00';
-                    $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
-                        ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
-                        : 0;
-
-                    // $lateSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
-                    //     ? Carbon::parse($clockIn )->diffInSeconds(Carbon::parse($row?->shift_start))
-                    //     : 0;
-                    $lateSeconds = ($clockIn !== '00:00:00')
-                    ? Carbon::parse($clockIn)->diffInSeconds(Carbon::parse($row?->shift_start), false)
-                    : 0;
-
-                    return [
-                        'employee_id' => $row->employee_id,
-                        'employee_name' => $row->employee_name,
-                        'brand_name' => $row->brand_name,
-                        'region_name' => $row->region_name,
-                        'branch_name' => $row->branch_name,
-                        'timezone' => $row->timezone,
-                        'date' => $date,
-                        'shift_start' => $row?->shift_start,
-                        'shift_end' => $row?->shift_end,
-                        'clock_in' => $clockIn,
-                        'clock_out' => $clockOut,
-                        'earlyCheckOutReason' => $row->earlyCheckOutReason,
-                        'worked_hours' => gmdate('H:i:s', $workedSeconds),
-                        'status' => $row->status,
-                        'late' => ($clockIn !== '00:00:00' && $row?->shift_start)
-                            ? ($clockIn > $row->shift_start
-                                ? gmdate('H:i:s', Carbon::parse($row->shift_start)->diffInSeconds(Carbon::parse($clockIn)))
-                                : '00:00:00')
-                            : '00:00:00',
-                        'early_leaving' => $row->early_leaving ?? '00:00:00',
-                        'overtime' => $row->overtime ?? '00:00:00',
-                    ];
-                });
-
-                $filename = 'Attendance_' . $date . '_' . now()->timestamp . '.csv';
-                $headers = [
-                    'Content-Type' => 'text/csv',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-                ];
-
-                return response()->stream(function () use ($records) {
-                    $f = fopen('php://output', 'w');
-                    // Write CSV headers
-                    fputcsv($f, [
-                        'Employee ID', 
-                        'Employee Name', 
-                        'Brand', 
-                        'Region', 
-                        'Branch', 
-                        'Date', 
-                        'Clock In', 
-                        'Clock Out', 
-                        'Early Checkout Reason',
-                        'Worked Hours', 
-                        'Status', 
-                        'Late', 
-                        'Early Leaving', 
-                        'Overtime'
-                    ]);
-                    
-                    // Write data rows
-                    foreach ($records as $row) {
-                        fputcsv($f, array_values($row));
+        $employeesQuery = DB::table('users')
+            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+            ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+            ->leftJoin('attendance_employees as attendances', function ($join) use ($date, $enddate) {
+                $join->on('attendances.employee_id', '=', 'users.id')
+                    ->whereBetween('attendances.date', [$date, $enddate]);
+            })
+            ->select([
+                'users.id as employee_id',
+                'users.name as employee_name',
+                'brand.name as brand_name',
+                'users.brand_id',
+                'users.region_id',
+                'users.branch_id',
+                'branches.name as branch_name',
+                'branches.timezone as timezone',
+                'regions.name as region_name',
+                'attendances.shift_start',
+                'attendances.shift_end',
+                'attendances.clock_in',
+                'attendances.clock_out',
+                'attendances.earlyCheckOutReason',
+                'attendances.late',
+                'attendances.early_leaving',
+                'attendances.overtime',
+                'attendances.id as attendance_id',
+                'attendances.date as attendance_date',
+                DB::raw("
+                    CASE
+                        WHEN attendances.id IS NULL THEN 'Not Marked' 
+                        WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
+                        ELSE attendances.status
+                    END as status
+                ")
+            ])
+            ->whereNotIn('users.type', $excludedTypes)
+            ->where('users.is_attendance_required', 1)
+            ->when($request->filled('search'), fn($q) =>
+                $q->where('users.name', 'like', '%' . $request->search . '%'))
+            ->when($request->filled('emp_id'), fn($q) =>
+                $q->where('users.id', $request->emp_id))
+            ->when($request->filled('brand_id'), fn($q) =>
+                $q->where('users.brand_id', $request->brand_id))
+            ->when($request->filled('region_id'), fn($q) =>
+                $q->where('users.region_id', $request->region_id))
+            ->when($request->filled('branch_id'), fn($q) =>
+                $q->where('users.branch_id', $request->branch_id))
+            ->when(!empty($tagIds), function ($q) use ($tagIds) {
+                $q->where(function ($sub) use ($tagIds) {
+                    foreach ($tagIds as $tagId) {
+                        $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
                     }
-                    fclose($f);
-                }, 200, $headers);
-            }
-
-            // Clone query before pagination for counts - FIXED VERSION
-            $countsQuery = DB::table('users')
-                ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
-                ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
-                ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
-                ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
-                    $join->on('attendances.employee_id', '=', 'users.id')
-                        ->where('attendances.date', '=', $date);
-                })
-                ->whereNotIn('users.type', $excludedTypes)
-                ->where('users.is_attendance_required', 1)
-                ->when($request->filled('search'), fn($q) =>
-                    $q->where('users.name', 'like', '%' . $request->search . '%'))
-                ->when($request->filled('emp_id'), fn($q) =>
-                    $q->where('users.id', $request->emp_id))
-                ->when($request->filled('brand_id'), fn($q) =>
-                    $q->where('users.brand_id', $request->brand_id))
-                ->when($request->filled('region_id'), fn($q) =>
-                    $q->where('users.region_id', $request->region_id))
-                ->when($request->filled('branch_id'), fn($q) =>
-                    $q->where('users.branch_id', $request->branch_id))
-                ->when(!empty($tagIds), function ($q) use ($tagIds) {
-                    $q->where(function ($sub) use ($tagIds) {
-                        foreach ($tagIds as $tagId) {
-                            $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
-                        }
-                    });
                 });
-    
-                // Apply user-specific restrictions
-            if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
-                // Level 1 permissions
-            } elseif ($auth_user->type === 'company') {
-                $countsQuery->where('users.brand_id', $auth_user->id);
-            } elseif ($auth_user->can('level 2')) {
-                $brandIds = array_keys(FiltersBrands());
-                $countsQuery->whereIn('users.brand_id', $brandIds);
-            } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
-                $countsQuery->where('users.region_id', $auth_user->region_id);
-            } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
-                $countsQuery->where('users.branch_id', $auth_user->branch_id);
+            });
+
+        $auth_user = \Auth::user();
+        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
+            // nothing
+        } elseif ($auth_user->type === 'company') {
+            $employeesQuery->where('users.brand_id', $auth_user->id);
+        } elseif ($auth_user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $employeesQuery->whereIn('users.brand_id', $brandIds);
+        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
+            $employeesQuery->where('users.region_id', $auth_user->region_id);
+        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
+            $employeesQuery->where('users.branch_id', $auth_user->branch_id);
+        } else {
+            $employeesQuery->where('users.id', $auth_user->id);
+        }
+
+        if ($enddate == $date) {
+            $employeesQuery->orderByRaw("
+                CASE 
+                    WHEN attendances.id IS NULL THEN 3
+                    WHEN attendances.status = 'Absent' THEN 2
+                    ELSE 1 
+                END ASC,
+                CASE 
+                    WHEN attendances.status != 'Absent' THEN attendances.id 
+                    ELSE NULL 
+                END DESC,
+                CASE 
+                    WHEN attendances.status = 'Absent' THEN attendances.id 
+                    ELSE NULL 
+                END DESC
+            ");
+        } else {
+            $employeesQuery->orderBy('attendances.date', 'DESC');
+        }
+
+        if ($request->filled('status')) {
+            if ($request->status == 'Absent') {
+                $employeesQuery->having(function ($q) {
+                    $q->having('status', '=', 'Absent')
+                      ->orHaving('status', '=', 'Not Marked');
+                });
+            } elseif ($request->status == 'OnTime' || $request->status == 'Late') {
+                $employeesQuery->having('status', 'NOT LIKE', 'Absent')
+                              ->having('status', 'NOT LIKE', 'Not Marked');
             } else {
-                $countsQuery->where('users.id', $auth_user->id);
+                $employeesQuery->having('status', '=', $request->status);
             }
+        }
 
-            $statusCounts = $countsQuery->select(
-                DB::raw("
-                            SUM(
-                                CASE 
-                                    WHEN attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
-                                    THEN 1 ELSE 0 
-                                END
-                            ) as OnTime
-                        "),
-                DB::raw("
-                            SUM(
-                                CASE 
-                                    WHEN attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) 
-                                    THEN 1 ELSE 0 
-                                END
-                            ) as Late
-                        "),
-                DB::raw("SUM(CASE WHEN attendances.id IS NULL THEN 1 ELSE 0 END) as `Absent`"),
-                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
-                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
-                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as `Present`")
-            )->first();
+        $total = $employeesQuery->count();
 
-            // Regular paginated response
-            $records = $employeesQuery->forPage($page, $perPage)->get()->map(function ($row) use ($date) {
-                $clockIn = $row->clock_in ?? '00:00:00';
-                $clockOut = $row->clock_out ?? '00:00:00';
-                $workedSeconds = ($clockIn !== '00:00:00' && $clockOut !== '00:00:00')
+        if ($request->input('download_csv')) {
+            $all = $employeesQuery->get()->map(function ($row) use ($date) {
+                $clockIn = $row->clock_in ?? null;
+                $clockOut = $row->clock_out ?? null;
+
+                $workedSeconds = ($clockIn && $clockOut && $clockIn !== '00:00:00' && $clockOut !== '00:00:00')
                     ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
                     : 0;
 
-                    $lateSeconds = ($clockIn !== '00:00:00')
-                    ? Carbon::parse($clockIn)->diffInSeconds(Carbon::parse($row?->shift_start), false)
-                    : 0;
+                $lateSeconds = 0;
+                if ($clockIn && $clockIn !== '00:00:00' && $row->shift_start && $row->shift_start !== '00:00:00') {
+                    $ci = Carbon::parse($clockIn);
+                    $ss = Carbon::parse($row->shift_start)->addMinutes(30);
+                    if ($ci->gt($ss)) {
+                        $lateSeconds = $ci->diffInSeconds($ss);
+                    }
+                }
+
+                $computedStatus = 'Present';
+                if (!$row->attendance_id) {
+                    $computedStatus = 'Not Marked';
+                } elseif ($row->status === 'Leave') {
+                    $computedStatus = 'Leave';
+                } elseif (!empty($row->earlyCheckOutReason)) {
+                    $computedStatus = 'Early Clock Out';
+                } elseif ($clockIn && $row->shift_start) {
+                    $shiftStartWithMargin = Carbon::parse($row->shift_start)->addMinutes(30);
+                    if ($clockIn->lte($shiftStartWithMargin)) {
+                        $computedStatus = 'OnTime';
+                    } else {
+                        $computedStatus = 'Late';
+                    }
+                } else {
+                    $computedStatus = $row->status ?? 'Present';
+                }
 
                 return [
                     'employee_id' => $row->employee_id,
-                    'attendance_id' => $row->attendance_id,
                     'employee_name' => $row->employee_name,
-                    'timezone' => $row->timezone,
-                    'brand_id' => $row->brand_id,
-                    'region_id' => $row->region_id,
-                    'branch_id' => $row->branch_id,
-                    'branch_name' => $row->branch_name,
                     'brand_name' => $row->brand_name,
                     'region_name' => $row->region_name,
-
+                    'branch_name' => $row->branch_name,
+                    'timezone' => $row->timezone,
+                    'date' => $date,
                     'shift_start' => $row->shift_start,
                     'shift_end' => $row->shift_end,
-
-                    'date' => $row->attendance_date ?? $date,
-                    'clock_in' => $clockIn,
-                    'clock_out' => $clockOut,
+                    'clock_in' => $clockIn ?? '00:00:00',
+                    'clock_out' => $clockOut ?? '00:00:00',
                     'earlyCheckOutReason' => $row->earlyCheckOutReason,
                     'worked_hours' => gmdate('H:i:s', $workedSeconds),
-                    'status' => $row->status,
-                    'late' => ($clockIn !== '00:00:00' && $row?->shift_start)
-                            ? ($clockIn > $row->shift_start
-                                ? gmdate('H:i:s', Carbon::parse($row->shift_start)->diffInSeconds(Carbon::parse($clockIn)))
-                                : '00:00:00')
-                            : '00:00:00',
+                    'status' => $computedStatus,
+                    'late' => $lateSeconds ? gmdate('H:i:s', $lateSeconds) : '00:00:00',
                     'early_leaving' => $row->early_leaving ?? '00:00:00',
                     'overtime' => $row->overtime ?? '00:00:00',
                 ];
             });
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $records,
-                'date' => $date,
-                'current_page' => $page,
-                'last_page' => ceil($total / $perPage),
-                'total_records' => $total,
-                'perPage' => (int) $perPage,
-                'count_summary' => $statusCounts,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            $filename = 'Attendance_' . $date . '_' . now()->timestamp . '.csv';
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            return response()->stream(function () use ($all) {
+                $f = fopen('php://output', 'w');
+                fputcsv($f, [
+                    'Employee ID',
+                    'Employee Name',
+                    'Brand',
+                    'Region',
+                    'Branch',
+                    'Date',
+                    'Shift Start',
+                    'Shift End',
+                    'Clock In',
+                    'Clock Out',
+                    'Early Checkout Reason',
+                    'Worked Hours',
+                    'Status',
+                    'Late',
+                    'Early Leaving',
+                    'Overtime'
+                ]);
+                foreach ($all as $row) {
+                    fputcsv($f, array_values($row));
+                }
+                fclose($f);
+            }, 200, $headers);
         }
+
+        $countsQuery = DB::table('users')
+            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+            ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+                $join->on('attendances.employee_id', '=', 'users.id')
+                    ->where('attendances.date', '=', $date);
+            })
+            ->whereNotIn('users.type', $excludedTypes)
+            ->where('users.is_attendance_required', 1)
+            ->when($request->filled('search'), fn($q) =>
+                $q->where('users.name', 'like', '%' . $request->search . '%'))
+            ->when($request->filled('emp_id'), fn($q) =>
+                $q->where('users.id', $request->emp_id))
+            ->when($request->filled('brand_id'), fn($q) =>
+                $q->where('users.brand_id', $request->brand_id))
+            ->when($request->filled('region_id'), fn($q) =>
+                $q->where('users.region_id', $request->region_id))
+            ->when($request->filled('branch_id'), fn($q) =>
+                $q->where('users.branch_id', $request->branch_id))
+            ->when(!empty($tagIds), function ($q) use ($tagIds) {
+                $q->where(function ($sub) use ($tagIds) {
+                    foreach ($tagIds as $tagId) {
+                        $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+                    }
+                });
+            });
+
+        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
+        } elseif ($auth_user->type === 'company') {
+            $countsQuery->where('users.brand_id', $auth_user->id);
+        } elseif ($auth_user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $countsQuery->whereIn('users.brand_id', $brandIds);
+        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
+            $countsQuery->where('users.region_id', $auth_user->region_id);
+        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
+            $countsQuery->where('users.branch_id', $auth_user->branch_id);
+        } else {
+            $countsQuery->where('users.id', $auth_user->id);
+        }
+
+        $statusCounts = $countsQuery->select(
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) THEN 1 ELSE 0 END) as OnTime"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in < attendances.shift_start THEN 1 ELSE 0 END) as Early_Clock_In"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) THEN 1 ELSE 0 END) as Late"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NULL THEN 1 ELSE 0 END) as `Absent`"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as `Present`")
+        )->first();
+
+        // --- FIXED PAGINATION: filter first, then slice ---
+        $allRecordsQuery = $employeesQuery->get();
+        $filteredRecords = collect();
+
+        foreach ($allRecordsQuery as $row) {
+            $clockInRaw = $row->clock_in ?? null;
+            $clockOutRaw = $row->clock_out ?? null;
+            $shiftStartRaw = $row->shift_start ?? null;
+
+            $clockIn = ($clockInRaw && $clockInRaw !== '00:00:00') ? Carbon::parse($clockInRaw) : null;
+            $clockOut = ($clockOutRaw && $clockOutRaw !== '00:00:00') ? Carbon::parse($clockOutRaw) : null;
+            $shiftStart = ($shiftStartRaw && $shiftStartRaw !== '00:00:00') ? Carbon::parse($shiftStartRaw) : null;
+
+            $workedSeconds = ($clockIn && $clockOut) ? $clockOut->diffInSeconds($clockIn) : 0;
+            $lateSeconds = 0;
+            if ($clockIn && $shiftStart) {
+                $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+                if ($clockIn->gt($shiftStartWithMargin)) {
+                    $lateSeconds = $clockIn->diffInSeconds($shiftStartWithMargin);
+                }
+            }
+
+            if (!$row->attendance_id) {
+                $computedStatus = 'Not Marked';
+            } elseif ($row->status === 'Leave') {
+                $computedStatus = 'Leave';
+            } elseif (!empty($row->earlyCheckOutReason)) {
+                $computedStatus = 'Early Clock Out';
+            } elseif ($clockIn && $shiftStart) {
+                $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+                $computedStatus = $clockIn->lte($shiftStartWithMargin) ? 'OnTime' : 'Late';
+            } else {
+                $computedStatus = $row->status ?? 'Present';
+            }
+
+            if ($request->filled('status')) {
+                if ($request->status == 'OnTime' && $computedStatus !== 'OnTime') continue;
+                if ($request->status == 'Late' && $computedStatus !== 'Late') continue;
+            }
+
+            $filteredRecords->push([
+                'employee_id' => $row->employee_id,
+                'attendance_id' => $row->attendance_id,
+                'employee_name' => $row->employee_name,
+                'timezone' => $row->timezone,
+                'brand_id' => $row->brand_id,
+                'region_id' => $row->region_id,
+                'branch_id' => $row->branch_id,
+                'branch_name' => $row->branch_name,
+                'brand_name' => $row->brand_name,
+                'region_name' => $row->region_name,
+                'shift_start' => $row->shift_start,
+                'shift_end' => $row->shift_end,
+                'date' => $row->attendance_date ?? $date,
+                'clock_in' => $clockInRaw ?? '00:00:00',
+                'clock_out' => $clockOutRaw ?? '00:00:00',
+                'earlyCheckOutReason' => $row->earlyCheckOutReason,
+                'worked_hours' => gmdate('H:i:s', $workedSeconds),
+                'status' => $computedStatus,
+                'late' => $lateSeconds ? gmdate('H:i:s', $lateSeconds) : '00:00:00',
+                'early_leaving' => $row->early_leaving ?? '00:00:00',
+                'overtime' => $row->overtime ?? '00:00:00',
+            ]);
+        }
+
+        $filteredTotal = $filteredRecords->count();
+        $paginatedRecords = $filteredRecords->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $paginatedRecords,
+            'date' => $date,
+            'current_page' => $page,
+            'last_page' => ceil($filteredTotal / $perPage),
+            'total_records' => $filteredTotal,
+            'perPage' => (int) $perPage,
+            'count_summary' => $statusCounts,
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
+}
 
  public function getCombinedAttendances(Request $request)
 {
