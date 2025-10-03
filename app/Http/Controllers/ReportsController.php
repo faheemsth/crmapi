@@ -36,6 +36,8 @@ class ReportsController extends Controller
 
 public function visaAnalysis(Request $request)
 {
+    DB::enableQueryLog(); // ✅ Enable query logging
+
     $brandIds          = $request->input('brand_ids', []);
     $regionIds         = $request->input('region_ids', []);
     $branchIds         = $request->input('branch_ids', []);
@@ -43,7 +45,7 @@ public function visaAnalysis(Request $request)
     $intake            = $request->input('intake');
     $intakeYear        = $request->input('intakeYear');
 
-    $visaStages        = $request->input('visa_stage_ids', [10, 11]);       // Visa Granted + Enrolled
+    $visaStages        = $request->input('visa_stage_ids', [10, 11]);
     $depositVisaStages = $request->input('deposit_visa_stage_ids', [10, 11]);
 
     $startDate         = $request->input('start_date');
@@ -96,75 +98,50 @@ public function visaAnalysis(Request $request)
     }
 
     // -------------------------------
-    // Total distinct brands
+    // Queries
     // -------------------------------
-    $totalBrands = (clone $query)->distinct('brand_id')->count('brand_id');
-
-    // -------------------------------
-    // Total visas
-    // -------------------------------
-    $totalVisas = (clone $query)->distinct('id')->count('id');
-
-    // -------------------------------
-    // Brand-wise visa counts
-    // -------------------------------
-    $brandVisaCounts = (clone $query)
+    $totalBrands      = (clone $query)->distinct('brand_id')->count('brand_id');
+    $totalVisas       = (clone $query)->distinct('id')->count('id');
+    $brandVisaCounts  = (clone $query)
         ->select('brand_name', DB::raw('COUNT(DISTINCT id) as visa_count'))
         ->groupBy('brand_id', 'brand_name')
         ->get();
 
-    // -------------------------------
-    // Intake-wise visa counts
-    // -------------------------------
     $intakeVisaCounts = (clone $query)
         ->select('intake', 'intakeYear', DB::raw('COUNT(DISTINCT id) as visa_count'))
         ->groupBy('intake', 'intakeYear')
         ->get();
 
-    // -------------------------------
-    // Institute-wise visa counts
-    // -------------------------------
-    $instituteCounts = (clone $query)
+    $instituteCounts  = (clone $query)
         ->select('university_name', DB::raw('COUNT(DISTINCT id) as application_count'))
         ->groupBy('university_name')
         ->having('application_count', '>', 0)
         ->get();
 
-    // -------------------------------
-    // Month-wise visas
-    // -------------------------------
-    $monthWiseVisas = (clone $query)
+    $monthWiseVisas   = (clone $query)
         ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"), DB::raw('COUNT(DISTINCT id) as visa_count'))
         ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
         ->orderBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
         ->get();
 
     // -------------------------------
-    // Final response
+    // Print All Queries
     // -------------------------------
+    $queries = DB::getQueryLog(); // ✅ get all executed queries
+    // You can dd() to see them or include them in response
+    // dd($queries);
+
     return response()->json([
-        'total_brands'      => $totalBrands,
-        'total_visas'       => $totalVisas,
-        'brand_visa_counts' => $brandVisaCounts,
-        'institutes'        => $instituteCounts,
-        'intakeVisaCounts'  => $intakeVisaCounts,
-        'month_wise_visas'  => $monthWiseVisas,
-        'filters' => [
-            'brands'                 => $brandIds,
-            'regions'                => $regionIds,
-            'branches'               => $branchIds,
-            'institute_ids'          => $instituteIds,
-            'visa_stage_ids'         => $visaStages,
-            'deposit_visa_stage_ids' => $depositVisaStages,
-            'start_date'             => $startDate,
-            'end_date'               => $endDate,
-            'deposit_start_date'     => $depositStartDate,
-            'deposit_end_date'       => $depositEndDate,
-            'intake'                 => $intake,
-            'intakeYear'             => $intakeYear,
-        ]
+        'queries'          => $queries,   // 👈 include executed SQL queries
+        'total_brands'     => $totalBrands,
+        'total_visas'      => $totalVisas,
+        'brand_visa_counts'=> $brandVisaCounts,
+        'institutes'       => $instituteCounts,
+        'intakeVisaCounts' => $intakeVisaCounts,
+        'month_wise_visas' => $monthWiseVisas,
     ]);
 }
+
 
 
 
