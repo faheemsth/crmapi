@@ -45,8 +45,8 @@ public function visaAnalysis(Request $request)
     $intake            = $request->input('intake');
     $intakeYear        = $request->input('intakeYear');
 
-    $visaStages        = $request->input('visa_stage_ids', [10, 11]);
-    $depositVisaStages = $request->input('deposit_visa_stage_ids', [10, 11]);
+    $visaStages        = $request->input('visa_stage_ids');
+    $depositVisaStages = $request->input('deposit_visa_stage_ids');
 
     $startDate         = $request->input('start_date');
     $endDate           = $request->input('end_date');
