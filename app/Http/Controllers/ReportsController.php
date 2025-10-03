@@ -104,10 +104,10 @@ class ReportsController extends Controller
         
 
         if ($startDate) {
-            $totalVisasQuery->whereDate('deposit_created_at', '>=', $startDate);
+            $totalVisasQuery->whereDate('created_at', '>=', $startDate);
         }
         if ($endDate) {
-            $totalVisasQuery->whereDate('deposit_created_at', '<=', $endDate);
+            $totalVisasQuery->whereDate('created_at', '<=', $endDate);
         }
     
     $totalVisas = $totalVisasQuery->distinct('id')->count('id');
