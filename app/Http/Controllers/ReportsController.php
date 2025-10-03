@@ -33,24 +33,27 @@ class ReportsController extends Controller
     /**
      * Visa Analysis Report
      */
-   public function visaAnalysis(Request $request)
+
+public function visaAnalysis(Request $request)
 {
-    $brandIds           = $request->input('brand_ids', []);
-    $regionIds          = $request->input('region_ids', []);
-    $branchIds          = $request->input('branch_ids', []);
-    $instituteIds       = $request->input('institute_ids', []);
-    $intake             = $request->input('intake');
-    $intakeYear         = $request->input('intakeYear');
+    $brandIds          = $request->input('brand_ids', []);
+    $regionIds         = $request->input('region_ids', []);
+    $branchIds         = $request->input('branch_ids', []);
+    $instituteIds      = $request->input('institute_ids', []);
+    $intake            = $request->input('intake');
+    $intakeYear        = $request->input('intakeYear');
 
-    $visaStages         = $request->input('visa_stage_ids', [10, 11]);       // Visa Granted + Enrolled
-    $depositVisaStages  = $request->input('deposit_visa_stage_ids', [10, 11]);
+    $visaStages        = $request->input('visa_stage_ids', [10, 11]);       // Visa Granted + Enrolled
+    $depositVisaStages = $request->input('deposit_visa_stage_ids', [10, 11]);
 
-    $startDate          = $request->input('start_date');
-    $endDate            = $request->input('end_date');
-    $depositStartDate   = $request->input('deposit_start_date');
-    $depositEndDate     = $request->input('deposit_end_date');
+    $startDate         = $request->input('start_date');
+    $endDate           = $request->input('end_date');
+    $depositStartDate  = $request->input('deposit_start_date');
+    $depositEndDate    = $request->input('deposit_end_date');
 
-    // Base query with filters
+    // -------------------------------
+    // Base query with all filters
+    // -------------------------------
     $query = ApplicationReport::query();
 
     if (!empty($brandIds)) {
@@ -72,116 +75,69 @@ class ReportsController extends Controller
         $query->where('intake', $intake);
     }
 
-     
-    // -------------------------------
-    // Total distinct brands (with filters)
-    // -------------------------------
-    $totalBrandsQuery = clone $query;
-    $totalBrands = $totalBrandsQuery->distinct('brand_id')->count('brand_id');
+    if (!empty($depositVisaStages)) {
+        $query->whereIn('deposit_stage_id', $depositVisaStages);
+    }
+    if ($depositStartDate) {
+        $query->whereDate('deposit_created_at', '>=', $depositStartDate);
+    }
+    if ($depositEndDate) {
+        $query->whereDate('deposit_created_at', '<=', $depositEndDate);
+    }
+
+    if (!empty($visaStages)) {
+        $query->whereIn('stage_id', $visaStages);
+    }
+    if ($startDate) {
+        $query->whereDate('created_at', '>=', $startDate);
+    }
+    if ($endDate) {
+        $query->whereDate('created_at', '<=', $endDate);
+    }
 
     // -------------------------------
-    // Total visa count
+    // Total distinct brands
     // -------------------------------
-    $totalVisasQuery = clone $query;
-        if(!empty($depositVisaStages)){
-             $totalVisasQuery->whereIn('deposit_stage_id', $depositVisaStages);
-        }
-       
+    $totalBrands = (clone $query)->distinct('brand_id')->count('brand_id');
 
-        if ($depositStartDate) {
-            $totalVisasQuery->whereDate('deposit_created_at', '>=', $depositStartDate);
-        }
-        if ($depositEndDate) {
-            $totalVisasQuery->whereDate('deposit_created_at', '<=', $depositEndDate);
-        }
-
-
-         if(!empty($visaStages)){
-            $totalVisasQuery->whereIn('stage_id', $visaStages);
-        }
-       
-    
-        
-
-        if ($startDate) {
-            $totalVisasQuery->whereDate('created_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $totalVisasQuery->whereDate('created_at', '<=', $endDate);
-        }
-    
-    $totalVisas = $totalVisasQuery->distinct('id')->count('id');
+    // -------------------------------
+    // Total visas
+    // -------------------------------
+    $totalVisas = (clone $query)->distinct('id')->count('id');
 
     // -------------------------------
     // Brand-wise visa counts
     // -------------------------------
-    $brandVisaCounts = clone $query; 
-        $brandVisaCounts = $brandVisaCounts
-            ->select('brand_name', DB::raw('count(distinct id) as visa_count'))
-            ->whereIn('deposit_stage_id', $depositVisaStages)
-            ->whereIn('stage_id', $visaStages)
-            ->groupBy('brand_id', 'brand_name');
-     
-    $brandVisaCounts = $brandVisaCounts->get();
+    $brandVisaCounts = (clone $query)
+        ->select('brand_name', DB::raw('COUNT(DISTINCT id) as visa_count'))
+        ->groupBy('brand_id', 'brand_name')
+        ->get();
 
     // -------------------------------
     // Intake-wise visa counts
     // -------------------------------
-    $intakeVisaCounts = clone $query; 
-        $intakeVisaCounts = $intakeVisaCounts
-            ->select('intake', 'intakeYear', DB::raw('count(distinct id) as visa_count'))
-            ->whereIn('deposit_stage_id', $depositVisaStages)
-             ->whereIn('stage_id', $visaStages)
-            ->groupBy('intake', 'intakeYear');
-     
-    $intakeVisaCounts = $intakeVisaCounts->get();
+    $intakeVisaCounts = (clone $query)
+        ->select('intake', 'intakeYear', DB::raw('COUNT(DISTINCT id) as visa_count'))
+        ->groupBy('intake', 'intakeYear')
+        ->get();
 
     // -------------------------------
     // Institute-wise visa counts
     // -------------------------------
-    $instituteCounts = clone $query; 
-        $instituteCounts = $instituteCounts
-            ->select('university_name', DB::raw('count(distinct id) as application_count'))
-            ->whereIn('deposit_stage_id', $depositVisaStages)
-            ->whereIn('stage_id', $visaStages)
-            ->groupBy('university_name')
-            ->having('application_count', '>', 0);
-    
-    $instituteCounts = $instituteCounts->get();
+    $instituteCounts = (clone $query)
+        ->select('university_name', DB::raw('COUNT(DISTINCT id) as application_count'))
+        ->groupBy('university_name')
+        ->having('application_count', '>', 0)
+        ->get();
 
     // -------------------------------
     // Month-wise visas
     // -------------------------------
-    $monthWiseVisas = clone $query; 
-
-        if(!empty($depositVisaStages)){
-             $monthWiseVisas = $monthWiseVisas
-            ->whereIn('deposit_stage_id', $depositVisaStages);
-        }
-        
-
-        if ($depositStartDate) {
-            $monthWiseVisas->whereDate('deposit_created_at', '>=', $depositStartDate);
-        }
-        if ($depositEndDate) {
-            $monthWiseVisas->whereDate('deposit_created_at', '<=', $depositEndDate);
-        }
-   
-        if(!empty($visaStages)){
-             $monthWiseVisas = $monthWiseVisas
-            ->whereIn('stage_id', $visaStages);
-        }
-        
-       
-
-        if ($startDate) {
-            $monthWiseVisas->whereDate('deposit_created_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $monthWiseVisas->whereDate('deposit_created_at', '<=', $endDate);
-        }
-     
-    $monthWiseVisas = $monthWiseVisas->distinct('id')->count('id');
+    $monthWiseVisas = (clone $query)
+        ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"), DB::raw('COUNT(DISTINCT id) as visa_count'))
+        ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
+        ->orderBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
+        ->get();
 
     // -------------------------------
     // Final response
@@ -194,21 +150,22 @@ class ReportsController extends Controller
         'intakeVisaCounts'  => $intakeVisaCounts,
         'month_wise_visas'  => $monthWiseVisas,
         'filters' => [
-            'brands'                => $brandIds,
-            'regions'               => $regionIds,
-            'branches'              => $branchIds,
-            'institute_ids'         => $instituteIds,
-            'visa_stage_ids'        => $visaStages,
-            'deposit_visa_stage_ids'=> $depositVisaStages,
-            'start_date'            => $startDate,
-            'end_date'              => $endDate,
-            'deposit_start_date'    => $depositStartDate,
-            'deposit_end_date'      => $depositEndDate,
-            'intake'                => $intake,
-            'intakeYear'            => $intakeYear,
+            'brands'                 => $brandIds,
+            'regions'                => $regionIds,
+            'branches'               => $branchIds,
+            'institute_ids'          => $instituteIds,
+            'visa_stage_ids'         => $visaStages,
+            'deposit_visa_stage_ids' => $depositVisaStages,
+            'start_date'             => $startDate,
+            'end_date'               => $endDate,
+            'deposit_start_date'     => $depositStartDate,
+            'deposit_end_date'       => $depositEndDate,
+            'intake'                 => $intake,
+            'intakeYear'             => $intakeYear,
         ]
     ]);
 }
+
 
 
     /**
