@@ -33,135 +33,114 @@ class ReportsController extends Controller
     /**
      * Visa Analysis Report
      */
-    public function visaAnalysis(Request $request)
-    {
-        // dd($request);
-        $brandIds = $request->input('brand_ids', []);
-        $regionIds = $request->input('region_ids', []);
-        $branchIds = $request->input('branch_ids', []);
-        $institute_ids = $request->input('institute_ids', []);
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
-        $intake = $request->input('intake');
-        $intakeYear = $request->input('intakeYear');
-        $visaStages = $request->input('visa_stage_ids', [10, 11]); // Visa Granted + Enrolled
 
-        // Base application query
-        $query = ApplicationReport::query();
+public function visaAnalysis(Request $request)
+{
+    DB::enableQueryLog(); // ✅ Enable query logging
 
-        if (!empty($brandIds)) {
-            $query->whereIn('brand_id', $brandIds);
-        }
-        if (!empty($regionIds)) {
-            $query->whereIn('region_id', $regionIds);
-        }
-        if (!empty($branchIds)) {
-            $query->whereIn('branch_id', $branchIds);
-        }
-        if (!empty($institute_ids)) {
-            $query->whereIn('university_id', $institute_ids);
-        }
-        if (!empty($intakeYear)) {
-            $query->where('intakeYear', $intakeYear);
-        }
-        if (!empty($intake)) {
-            $query->where('intake', $intake);
-        }
+    $brandIds          = $request->input('brand_ids', []);
+    $regionIds         = $request->input('region_ids', []);
+    $branchIds         = $request->input('branch_ids', []);
+    $instituteIds      = $request->input('institute_ids', []);
+    $intake            = $request->input('intake');
+    $intakeYear        = $request->input('intakeYear');
 
-        if ($startDate) {
-            $query->whereDate('deposit_created_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $query->whereDate('deposit_created_at', '<=', $endDate);
-        }
+    $visaStages        = $request->input('visa_stage_ids');
+    $depositVisaStages = $request->input('deposit_visa_stage_ids');
 
-        // Total distinct brands
-        $totalBrands = ApplicationReport::distinct('brand_id')->count('brand_id');
+    $startDate         = $request->input('start_date');
+    $endDate           = $request->input('end_date');
+    $depositStartDate  = $request->input('deposit_start_date');
+    $depositEndDate    = $request->input('deposit_end_date');
 
-        // Total visa count (Visa Granted or Enrolled)
+    // -------------------------------
+    // Base query with all filters
+    // -------------------------------
+    $query = ApplicationReport::query();
 
-
-        if ($startDate) {
-            $totalVisas = (clone $query)->whereIn('deposit_stage_id', $visaStages)->count();
-        } else {
-            $totalVisas = (clone $query)->whereIn('stage_id', $visaStages)->count();
-        }
-
-        // Brand-wise visa count
-        $brandVisaCounts = (clone $query)->select('brand_name', DB::raw('count(*) as visa_count'))
-            ->whereIn('stage_id', $visaStages)
-            ->groupBy('brand_id')
-            ->get();
-
-        // Intake-wise visa count (grouped by intake + intakeYear)
-        $intakeVisaCounts = (clone $query)->select(
-            'intake',
-            'intakeYear',
-            DB::raw('count(*) as visa_count')
-        )
-            ->whereIn('stage_id', $visaStages)
-            ->groupBy('intake', 'intakeYear')
-            ->get();
-
-        // Institute-wise application count (>0)
-        $instituteCounts = (clone $query)->select('university_name', DB::raw('count(*) as application_count'))
-            ->whereIn('stage_id', $visaStages)
-            ->groupBy('university_name')
-            ->having('application_count', '>', 0)
-            ->get();
-        if ($startDate) {
-            // Month-wise visa counts from ApplicationReport
-            $monthWiseVisas = ApplicationReport::whereIn('deposit_stage_id', $visaStages);
-
-            if (!empty($brandIds)) {
-                $monthWiseVisas->whereIn('brand_id', $brandIds);
-            }
-            if (!empty($regionIds)) {
-                $monthWiseVisas->whereIn('region_id', $regionIds);
-            }
-            if (!empty($branchIds)) {
-                $monthWiseVisas->whereIn('branch_id', $branchIds);
-            }
-            if (!empty($institute_ids)) {
-                $query->whereIn('university_id', $institute_ids);
-            }
-
-            if (!empty($intakeYear)) {
-                $monthWiseVisas->where('intakeYear', $intakeYear);
-            }
-            if (!empty($intake)) {
-                $monthWiseVisas->where('intake', $intake);
-            }
-
-            if ($startDate) {
-                $monthWiseVisas->whereDate('deposit_created_at', '>=', $startDate);
-            }
-            if ($endDate) {
-                $monthWiseVisas->whereDate('deposit_created_at', '<=', $endDate);
-            }
-
-            $monthWiseVisas = $monthWiseVisas->count();
-        } else {
-            $monthWiseVisas = 0;
-        }
-
-        return response()->json([
-            'total_brands' => $totalBrands,
-            'total_visas' => $totalVisas,
-            'brand_visa_counts' => $brandVisaCounts,
-            'institutes' => $instituteCounts,
-            'intakeVisaCounts' => $intakeVisaCounts,
-            'month_wise_visas' => $monthWiseVisas,
-            'filters' => [
-                'brands' => $brandIds,
-                'regions' => $regionIds,
-                'branches' => $branchIds,
-                'visa_stage_ids' => $visaStages,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
-            ]
-        ]);
+    if (!empty($brandIds)) {
+        $query->whereIn('brand_id', $brandIds);
     }
+    if (!empty($regionIds)) {
+        $query->whereIn('region_id', $regionIds);
+    }
+    if (!empty($branchIds)) {
+        $query->whereIn('branch_id', $branchIds);
+    }
+    if (!empty($instituteIds)) {
+        $query->whereIn('university_id', $instituteIds);
+    }
+    if (!empty($intakeYear)) {
+        $query->where('intakeYear', $intakeYear);
+    }
+    if (!empty($intake)) {
+        $query->where('intake', $intake);
+    }
+
+    if (!empty($depositVisaStages)) {
+        $query->whereIn('deposit_stage_id', $depositVisaStages);
+    }
+    if ($depositStartDate) {
+        $query->whereDate('deposit_created_at', '>=', $depositStartDate);
+    }
+    if ($depositEndDate) {
+        $query->whereDate('deposit_created_at', '<=', $depositEndDate);
+    }
+
+    if (!empty($visaStages)) {
+        $query->whereIn('stage_id', $visaStages);
+    }
+    if ($startDate) {
+        $query->whereDate('created_at', '>=', $startDate);
+    }
+    if ($endDate) {
+        $query->whereDate('created_at', '<=', $endDate);
+    }
+
+    // -------------------------------
+    // Queries
+    // -------------------------------
+    $totalBrands      = (clone $query)->distinct('brand_id')->count('brand_id');
+    $totalVisas       = (clone $query)->distinct('id')->count('id');
+    $brandVisaCounts  = (clone $query)
+        ->select('brand_name', DB::raw('COUNT(DISTINCT id) as visa_count'))
+        ->groupBy('brand_id', 'brand_name')
+        ->get();
+
+    $intakeVisaCounts = (clone $query)
+        ->select('intake', 'intakeYear', DB::raw('COUNT(DISTINCT id) as visa_count'))
+        ->groupBy('intake', 'intakeYear')
+        ->get();
+
+    $instituteCounts  = (clone $query)
+        ->select('university_name', DB::raw('COUNT(DISTINCT id) as application_count'))
+        ->groupBy('university_name')
+        ->having('application_count', '>', 0)
+        ->get();
+
+    $monthWiseVisas   = (clone $query)
+        ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month"), DB::raw('COUNT(DISTINCT id) as visa_count'))
+        ->groupBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
+        ->orderBy(DB::raw("DATE_FORMAT(created_at, '%Y-%m')"))
+        ->get();
+
+    // -------------------------------
+    // Print All Queries
+    // -------------------------------
+    $queries = DB::getQueryLog(); // ✅ get all executed queries
+    // You can dd() to see them or include them in response
+    // dd($queries);
+
+    return response()->json([
+        'queries'          => $queries,   // 👈 include executed SQL queries
+        'total_brands'     => $totalBrands,
+        'total_visas'      => $totalVisas,
+        'brand_visa_counts'=> $brandVisaCounts,
+        'institutes'       => $instituteCounts,
+        'intakeVisaCounts' => $intakeVisaCounts,
+        'month_wise_visas' => $monthWiseVisas,
+    ]);
+}
 
 
 
@@ -171,16 +150,16 @@ class ReportsController extends Controller
      */
     public function depositAnalysis(Request $request)
     {
-        $brandIds = $request->input('brand_ids', []);
+        $brandIds  = $request->input('brand_ids', []);
         $regionIds = $request->input('region_ids', []);
         $branchIds = $request->input('branch_ids', []);
         $startDate = $request->input('start_date', '2025-01-01');
-        $endDate = $request->input('end_date', now()->toDateString());
+        $endDate   = $request->input('end_date', now()->toDateString());
 
-        // Deposit stage IDs as per formula
-        $depositStages = [5, 6, 7, 8, 9, 10, 11]; // Deposited, Compliance Checks, CAS Approved, CAS Received, VISA Applied, VISA Granted, Enrolled
+        // Deposit stage IDs
+        $depositStages = [5, 6, 7, 8, 9, 10, 11];
 
-        // Filter applications on brand, region, branch if provided
+        // Base query
         $query = ApplicationReport::query();
 
         if (!empty($brandIds)) {
@@ -193,8 +172,8 @@ class ReportsController extends Controller
             $query->whereIn('branch_id', $branchIds);
         }
 
-        // Get application ids that have moved to Deposited stage (5) within date range
-        $depositStageApplications = StageHistory::select('type_id', 'created_at')
+        // Get unique application IDs that moved to deposit stages
+        $depositStageApplications = StageHistory::select('type_id')
             ->where('type', 'application')
             ->whereIn('stage_id', $depositStages)
             ->whereDate('created_at', '>=', $startDate)
@@ -205,23 +184,24 @@ class ReportsController extends Controller
 
         $query->whereIn('id', $depositStageApplications);
 
-        // Total deposits count
-        $totalDeposits = $query->count();
+        // Total deposits
+        $totalDeposits = $query->distinct('id')->count('id');
 
-        // Brand-wise deposits count
-        $brandDepositCounts = $query->select('brand_id', DB::raw('count(*) as deposit_count'))
+        // Brand-wise deposits
+        $brandDepositCounts = (clone $query)
+            ->select('brand_id', DB::raw('count(distinct id) as deposit_count'))
             ->groupBy('brand_id')
             ->get();
 
         return response()->json([
-            'total_deposits' => $totalDeposits,
+            'total_deposits'       => $totalDeposits,
             'brand_deposit_counts' => $brandDepositCounts,
             'filters' => [
-                'brands' => $brandIds,
-                'regions' => $regionIds,
-                'branches' => $branchIds,
-                'start_date' => $startDate,
-                'end_date' => $endDate,
+                'brands'    => $brandIds,
+                'regions'   => $regionIds,
+                'branches'  => $branchIds,
+                'start_date'=> $startDate,
+                'end_date'  => $endDate,
             ]
         ]);
     }
