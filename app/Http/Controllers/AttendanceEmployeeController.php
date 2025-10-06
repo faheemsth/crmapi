@@ -1710,9 +1710,9 @@ public function backuplist(Request $request)
         }
 
         $statusCounts = $countsQuery->select(
-            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) THEN 1 ELSE 0 END) as OnTime"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL  THEN 1 ELSE 0 END) as OnTime"),
             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in < attendances.shift_start THEN 1 ELSE 0 END) as Early_Clock_In"),
-            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) THEN 1 ELSE 0 END) as Late"),
+            DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as Late"),
             DB::raw("SUM(CASE WHEN attendances.id IS NULL OR attendances.status = 'Absent' THEN 1 ELSE 0 END ) as `Absent`"),
             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
@@ -1790,7 +1790,32 @@ public function backuplist(Request $request)
 
         $filteredTotal = $filteredRecords->count();
         $paginatedRecords = $filteredRecords->slice(($page - 1) * $perPage, $perPage)->values();
+                $OnlyCount = DB::table('users')
+            ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+            ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+            ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+                $join->on('attendances.employee_id', '=', 'users.id')
+                    ->where('attendances.date', '=', $date);
+            })
+            ->whereNotIn('users.type', $excludedTypes)
+            ->where('users.is_attendance_required', 1);
 
+        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
+        } elseif ($auth_user->type === 'company') {
+            $OnlyCount->where('users.brand_id', $auth_user->id);
+        } elseif ($auth_user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $OnlyCount->whereIn('users.brand_id', $brandIds);
+        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
+            $OnlyCount->where('users.region_id', $auth_user->region_id);
+        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
+            $OnlyCount->where('users.branch_id', $auth_user->branch_id);
+        } else {
+            $OnlyCount->where('users.id', $auth_user->id);
+        }
+
+        $OnlyFullCount = $OnlyCount->count();
         return response()->json([
             'status' => 'success',
             'data' => $paginatedRecords,
@@ -1798,6 +1823,7 @@ public function backuplist(Request $request)
             'current_page' => $page,
             'last_page' => ceil($filteredTotal / $perPage),
             'total_records' => $filteredTotal,
+            'FullCounts' => $OnlyFullCount,
             'perPage' => (int) $perPage,
             'count_summary' => $statusCounts,
         ]);
