@@ -218,6 +218,8 @@ public function getLeaves(Request $request)
     // Apply role-based filtering
     $query = RoleBaseTableGet($query, 'leaves.brand_id', 'leaves.region_id', 'leaves.branch_id', 'leaves.created_by');
 
+    $CountyCount = $query->count();
+    
     // Apply search filter if provided
     if ($request->filled('search')) {
         $search = $request->input('search');
@@ -318,6 +320,7 @@ public function getLeaves(Request $request)
         'current_page' => $leaves->currentPage(),
         'last_page' => $leaves->lastPage(),
         'total_records' => $leaves->total(),
+        'CountyCount' => $CountyCount,
         'per_page' => $leaves->perPage(),
         'count_summary' => $statusCounts
     ], 200);
