@@ -48,22 +48,30 @@ class UserController extends Controller
     public function Pluck_All_Users(Request $request)
     {
         $user = \Auth::user();
-        if (\Auth::user()->can('manage employee')) {
+
+        if ($user->can('manage employee')) {
             $excludedTypes = ['company', 'team', 'client'];
-            $usersQuery = User::select(['users.id', 'users.name'])->whereNotIn('type', $excludedTypes);
+            $usersQuery = User::select(['users.id', 'users.name'])
+                ->whereNotIn('type', $excludedTypes);
 
             if ($user->type == 'super admin') {
-                // No need to redeclare the query, we just need to exclude types here
+                // For super admin, fetch all except excluded types
                 $usersQuery->whereNotIn('type', $excludedTypes);
-            } else if ($user->type == 'company') {
+            } elseif ($user->type == 'company') {
+                // For company users, filter by brand_id = user->id
                 $usersQuery->where('brand_id', $user->id);
             } else {
+                // For other users, filter by brand_id = user's brand_id
                 $usersQuery->where('brand_id', $user->brand_id);
             }
 
-            $users = $usersQuery->pluck('name', 'id');
+            // Fetch users
+            $users = $usersQuery->pluck('name', 'id')->toArray();
+
+            // Add static record if needed
             $extraUser = ["3257" => "Shahzad Anwar"];
             $users = $users + $extraUser; // merge arrays
+
             return response()->json([
                 'status' => 'success',
                 'data' => $users
