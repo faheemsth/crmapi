@@ -55,22 +55,21 @@ class UserController extends Controller
                 ->whereNotIn('type', $excludedTypes);
 
             if ($user->type == 'super admin') {
-                // For super admin, fetch all except excluded types
                 $usersQuery->whereNotIn('type', $excludedTypes);
             } elseif ($user->type == 'company') {
-                // For company users, filter by brand_id = user->id
                 $usersQuery->where('brand_id', $user->id);
             } else {
-                // For other users, filter by brand_id = user's brand_id
                 $usersQuery->where('brand_id', $user->brand_id);
             }
 
-            // Fetch users
+            // Fetch users as array
             $users = $usersQuery->pluck('name', 'id')->toArray();
 
-            // Add static record if needed
-            $extraUser = ["3257" => "Shahzad Anwar"];
-            $users = $users + $extraUser; // merge arrays
+            // Add extra user only if not already in array
+            $extraUserId = "3257";
+            if (!array_key_exists($extraUserId, $users)) {
+                $users[$extraUserId] = "Shahzad Anwar";
+            }
 
             return response()->json([
                 'status' => 'success',
