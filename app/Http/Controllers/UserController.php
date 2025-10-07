@@ -61,9 +61,9 @@ class UserController extends Controller
                 $usersQuery->where('brand_id', $user->brand_id);
             }
 
+            $users = $usersQuery->pluck('name', 'id');
             $extraUser = ["3257" => "Shahzad Anwar"];
             $users = $users + $extraUser; // merge arrays
-
             return response()->json([
                 'status' => 'success',
                 'data' => $users
