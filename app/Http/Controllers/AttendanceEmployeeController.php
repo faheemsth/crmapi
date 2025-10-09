@@ -1468,6 +1468,7 @@ public function backuplist(Request $request)
         $page = $request->input('page', 1);
         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
         $excludedTypes = ['company', 'team', 'client', 'Agent'];
+        $auth_user = auth()->user(); // Added missing auth user
 
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
@@ -1525,21 +1526,85 @@ public function backuplist(Request $request)
                 });
             });
 
-        $auth_user = \Auth::user();
-        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
-            // nothing
-        } elseif ($auth_user->type === 'company') {
-            $employeesQuery->where('users.brand_id', $auth_user->id);
-        } elseif ($auth_user->can('level 2')) {
-            $brandIds = array_keys(FiltersBrands());
-            $employeesQuery->whereIn('users.brand_id', $brandIds);
-        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
-            $employeesQuery->where('users.region_id', $auth_user->region_id);
-        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
-            $employeesQuery->where('users.branch_id', $auth_user->branch_id);
-        } else {
-            $employeesQuery->where('users.id', $auth_user->id);
-        }
+        // Apply role-based access control to main query
+        $applyRoleAccess = function ($query) use ($auth_user) {
+            switch (strtolower($auth_user->type)) {
+                case 'super admin':
+                    // Full access
+                    break;
+
+                case 'HR':
+                case 'admin team':
+                case 'project director':
+                    // Can see everyone except Super Admin
+                    $query->whereNotIn('users.type', ['super admin']);
+                    break;
+
+                case 'project manager':
+                    // Can see all below: Region Manager → Receptionist
+                    $query->whereIn('users.type', [
+                        'region manager',
+                        'branch manager',
+                        'finance officer',
+                        'product coordinator manager',
+                        'product coordinator',
+                        'careers consultant',
+                        'admissions officer',
+                        'marketing officer',
+                        'agent',
+                        'support team',
+                        'receptionist'
+                    ]);
+                    break;
+
+                case 'region manager':
+                    // Can see all below: Branch Manager → Receptionist
+                    $query->whereIn('users.type', [
+                        'branch manager',
+                        'finance officer',
+                        'product coordinator manager',
+                        'product coordinator',
+                        'careers consultant',
+                        'admissions officer',
+                        'marketing officer',
+                        'agent',
+                        'support team',
+                        'receptionist'
+                    ]);
+                    break;
+
+                case 'branch manager':
+                    // Can see all below: Finance Officer → Receptionist
+                    $query->whereIn('users.type', [
+                        'finance officer',
+                        'product coordinator manager',
+                        'product coordinator',
+                        'careers consultant',
+                        'admissions officer',
+                        'marketing officer',
+                        'agent',
+                        'support team',
+                        'receptionist'
+                    ]);
+                    break;
+
+                case 'product coordinator manager':
+                    // Can see Product Coordinator only
+                    $query->where('users.type', 'product coordinator');
+                    break;
+
+                case 'product coordinator':
+                    // Can see only itself
+                    $query->where('users.id', $auth_user->id);
+                    break;
+
+                default:
+                    // All other roles see only their own data
+                    $query->where('users.id', $auth_user->id);
+                    break;
+            }
+        };
+        $applyRoleAccess($employeesQuery);
 
         if ($enddate == $date) {
             $employeesQuery->orderByRaw("
@@ -1695,19 +1760,7 @@ public function backuplist(Request $request)
                 });
             });
 
-        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
-        } elseif ($auth_user->type === 'company') {
-            $countsQuery->where('users.brand_id', $auth_user->id);
-        } elseif ($auth_user->can('level 2')) {
-            $brandIds = array_keys(FiltersBrands());
-            $countsQuery->whereIn('users.brand_id', $brandIds);
-        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
-            $countsQuery->where('users.region_id', $auth_user->region_id);
-        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
-            $countsQuery->where('users.branch_id', $auth_user->branch_id);
-        } else {
-            $countsQuery->where('users.id', $auth_user->id);
-        }
+        $applyRoleAccess($countsQuery);
 
         $statusCounts = $countsQuery->select(
             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL  THEN 1 ELSE 0 END) as OnTime"),
@@ -1790,7 +1843,7 @@ public function backuplist(Request $request)
 
         $filteredTotal = $filteredRecords->count();
         $paginatedRecords = $filteredRecords->slice(($page - 1) * $perPage, $perPage)->values();
-                $OnlyCount = DB::table('users')
+        $OnlyCount = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
@@ -1801,20 +1854,7 @@ public function backuplist(Request $request)
             ->whereNotIn('users.type', $excludedTypes)
             ->where('users.is_attendance_required', 1);
 
-        if ($auth_user->can('level 1') || $auth_user->type === 'super admin') {
-        } elseif ($auth_user->type === 'company') {
-            $OnlyCount->where('users.brand_id', $auth_user->id);
-        } elseif ($auth_user->can('level 2')) {
-            $brandIds = array_keys(FiltersBrands());
-            $OnlyCount->whereIn('users.brand_id', $brandIds);
-        } elseif ($auth_user->can('level 3') && $auth_user->region_id) {
-            $OnlyCount->where('users.region_id', $auth_user->region_id);
-        } elseif ($auth_user->can('level 4') && $auth_user->branch_id) {
-            $OnlyCount->where('users.branch_id', $auth_user->branch_id);
-        } else {
-            $OnlyCount->where('users.id', $auth_user->id);
-        }
-
+        $applyRoleAccess($OnlyCount);
         $OnlyFullCount = $OnlyCount->count();
         return response()->json([
             'status' => 'success',
