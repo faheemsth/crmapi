@@ -60,6 +60,12 @@ use App\Http\Controllers\SalaryappriasalController;
 use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TerminationTypeController;
+use App\Http\Controllers\ToolkitApplicableFeeController;
+use App\Http\Controllers\ToolkitChannelController;
+use App\Http\Controllers\ToolkitInstallmentPayOutController;
+use App\Http\Controllers\ToolkitLevelController;
+use App\Http\Controllers\ToolkitPaymentTypeController;
+use App\Http\Controllers\ToolkitTeamController;
 use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\UniversityController;
@@ -672,6 +678,49 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getPermissionTypes', [PermissionTypeController::class, 'getPermissionTypes']);
      Route::post('/updatePermissionType', [PermissionTypeController::class, 'updatePermissionType']);
      Route::post('/deletePermissionType', [PermissionTypeController::class, 'deletePermissionType']);
+
+      //   ToolkitLevel
+     Route::post('/addToolkitLevel', [ToolkitLevelController::class, 'addToolkitLevel']);
+     Route::post('/getToolkitLevelPluck', [ToolkitLevelController::class, 'getToolkitLevelPluck']);
+     Route::get('/getToolkitLevels', [ToolkitLevelController::class, 'getToolkitLevels']);
+     Route::post('/updateToolkitLevel', [ToolkitLevelController::class, 'updateToolkitLevel']);
+     Route::post('/deleteToolkitLevel', [ToolkitLevelController::class, 'deleteToolkitLevel']);
+
+      //   ToolkitTeam
+     Route::post('/addToolkitTeam', [ToolkitTeamController::class, 'addToolkitTeam']);
+     Route::post('/getToolkitTeamPluck', [ToolkitTeamController::class, 'getToolkitTeamPluck']);
+     Route::get('/getToolkitTeams', [ToolkitTeamController::class, 'getToolkitTeams']);
+     Route::post('/updateToolkitTeam', [ToolkitTeamController::class, 'updateToolkitTeam']);
+     Route::post('/deleteToolkitTeam', [ToolkitTeamController::class, 'deleteToolkitTeam']);
+
+      //   ToolkitChannel
+     Route::post('/addToolkitChannel', [ToolkitChannelController::class, 'addToolkitChannel']);
+     Route::post('/getToolkitChannelPluck', [ToolkitChannelController::class, 'getToolkitChannelPluck']);
+     Route::get('/getToolkitChannels', [ToolkitChannelController::class, 'getToolkitChannels']);
+     Route::post('/updateToolkitChannel', [ToolkitChannelController::class, 'updateToolkitChannel']);
+     Route::post('/deleteToolkitChannel', [ToolkitChannelController::class, 'deleteToolkitChannel']);
+
+
+      //   ToolkitApplicableFee
+     Route::post('/addToolkitApplicableFee', [ToolkitApplicableFeeController::class, 'addToolkitApplicableFee']);
+     Route::post('/getToolkitApplicableFeePluck', [ToolkitApplicableFeeController::class, 'getToolkitApplicableFeePluck']);
+     Route::get('/getToolkitApplicableFees', [ToolkitApplicableFeeController::class, 'getToolkitApplicableFees']);
+     Route::post('/updateToolkitApplicableFee', [ToolkitApplicableFeeController::class, 'updateToolkitApplicableFee']);
+     Route::post('/deleteToolkitApplicableFee', [ToolkitApplicableFeeController::class, 'deleteToolkitApplicableFee']);
+
+      //   ToolkitPaymentType
+     Route::post('/addToolkitPaymentType', [ToolkitPaymentTypeController::class, 'addToolkitPaymentType']);
+     Route::post('/getToolkitPaymentTypePluck', [ToolkitPaymentTypeController::class, 'getToolkitPaymentTypePluck']);
+     Route::get('/getToolkitPaymentTypes', [ToolkitPaymentTypeController::class, 'getToolkitPaymentTypes']);
+     Route::post('/updateToolkitPaymentType', [ToolkitPaymentTypeController::class, 'updateToolkitPaymentType']);
+     Route::post('/deleteToolkitPaymentType', [ToolkitPaymentTypeController::class, 'deleteToolkitPaymentType']);
+
+      //   ToolkitInstallmentPayOut
+     Route::post('/addToolkitInstallmentPayOut', [ToolkitInstallmentPayOutController::class, 'addToolkitInstallmentPayOut']);
+     Route::post('/getToolkitInstallmentPayOutPluck', [ToolkitInstallmentPayOutController::class, 'getToolkitInstallmentPayOutPluck']);
+     Route::get('/getToolkitInstallmentPayOuts', [ToolkitInstallmentPayOutController::class, 'getToolkitInstallmentPayOuts']);
+     Route::post('/updateToolkitInstallmentPayOut', [ToolkitInstallmentPayOutController::class, 'updateToolkitInstallmentPayOut']);
+     Route::post('/deleteToolkitInstallmentPayOut', [ToolkitInstallmentPayOutController::class, 'deleteToolkitInstallmentPayOut']);
 
         //   PermissionType
      Route::post('/addPermission', [PermissionController::class, 'addPermission']);

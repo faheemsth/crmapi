@@ -256,7 +256,7 @@ if ($request->filled('intake_months')) {
             'territory' => 'required|array|min:1',
             'territory.*' => 'required|string',
             'company_id' => 'nullable|exists:users,id',
-            'rank_id' => 'required|exists:university_ranks,id',
+           // 'rank_id' => 'required|exists:university_ranks,id',
             'phone' => 'nullable|max:20',
             'note' => 'nullable|string',
             'institution_link' => 'nullable|string',
@@ -279,7 +279,7 @@ if ($request->filled('intake_months')) {
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         $university->campuses = $request->campuses;
-        $university->rank_id = $request->rank_id;
+      //  $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
@@ -318,7 +318,7 @@ if ($request->filled('intake_months')) {
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
-            'rank_id' => 'required|exists:university_ranks,id',
+           // 'rank_id' => 'required|exists:university_ranks,id',
             'name' => 'required|max:200',
             'country' => 'required|array|min:1',
             'country.*' => 'required|string|max:200',
@@ -358,7 +358,7 @@ if ($request->filled('intake_months')) {
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         // $university->campuses = $request->city;
-        $university->rank_id = $request->rank_id;
+       // $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
