@@ -128,6 +128,8 @@ Route::get('/proxy-image', function (Request $request) {
     Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']);
     Route::post('/getTables', [GeneralController::class, 'getTables']);
     Route::post('/getTableData', [GeneralController::class, 'getTableData']);
+    
+    Route::post('/generateSop', [OpenAIController::class, 'generateSop']);
 
 Route::get('/AttendanceEmployeeCron_old', function () {
     $today = Carbon::today()->toDateString();
@@ -795,9 +797,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/getMIOList', [MoiAcceptedController::class, 'getMIOList']);
      Route::post('/updateMOIInstitutes', [MoiAcceptedController::class, 'updateMOIInstitutes']);
     //  Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
-
-    // reports
-    Route::post('/generateSop', [OpenAIController::class, 'generateSop']);
+ 
     // reports
     Route::post('/reports/visa-analysis', [ReportsController::class, 'visaAnalysis']);
     Route::get('/reports/deposit-analysis', [ReportsController::class, 'depositAnalysis']);
