@@ -50,6 +50,7 @@ use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\ModuleTypeController;
 use App\Http\Controllers\MoiAcceptedController;
+use App\Http\Controllers\OpenAIController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PermissionTypeController;
@@ -795,6 +796,8 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/updateMOIInstitutes', [MoiAcceptedController::class, 'updateMOIInstitutes']);
     //  Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
 
+    // reports
+    Route::post('/generateSop', [OpenAIController::class, 'generateSop']);
     // reports
     Route::post('/reports/visa-analysis', [ReportsController::class, 'visaAnalysis']);
     Route::get('/reports/deposit-analysis', [ReportsController::class, 'depositAnalysis']);
