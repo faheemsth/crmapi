@@ -1274,105 +1274,105 @@ public function GetBranchByType()
     }
 
     public function getAttendanceReport(Request $request)
-{
-   
-       $validator = Validator::make($request->all(), [ 
-                'user_id' => 'required|exists:users,id',   
-            ]);
+    {
+    
+        $validator = Validator::make($request->all(), [ 
+                    'user_id' => 'required|exists:users,id',   
+                ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $validator->errors()
-                ], 422);
-            }
+                if ($validator->fails()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $validator->errors()
+                    ], 422);
+                }
 
-        $from = $request->input('from', date('Y-m-1'));
-        $to = $request->input('to', date('Y-m-31'));
-        $employeeId = $request->input('user_id');
+            $from = $request->input('from', date('Y-m-1'));
+            $to = $request->input('to', date('Y-m-31'));
+            $employeeId = $request->input('user_id');
 
-    $records = DB::table('attendance_employees')
-        ->where('employee_id', $request->user_id)
-        ->whereBetween('date', [$from, $to])
-        ->orderBy('date', 'desc')
-        ->get();
+        $records = DB::table('attendance_employees')
+            ->where('employee_id', $request->user_id)
+            ->whereBetween('date', [$from, $to])
+            ->orderBy('date', 'desc')
+            ->get();
 
-   $data = $records->map(function ($record) {
-    $shiftStart = strtotime($record->shift_start);
-    $shiftEnd   = strtotime($record->shift_end);
-    $shiftDuration = $shiftEnd - $shiftStart;
+        $data = $records->map(function ($record) {
+                $shiftStart = strtotime($record->shift_start);
+                $shiftEnd   = strtotime($record->shift_end);
+                $shiftDuration = $shiftEnd - $shiftStart;
 
-    $clockIn  = ($record->clock_in && $record->clock_in !== "00:00:00")
-        ? strtotime($record->clock_in)
-        : null;
+                $clockIn  = ($record->clock_in && $record->clock_in !== "00:00:00")
+                    ? strtotime($record->clock_in)
+                    : null;
 
-    $clockOut = ($record->clock_out && $record->clock_out !== "00:00:00")
-        ? strtotime($record->clock_out)
-        : null;
+                $clockOut = ($record->clock_out && $record->clock_out !== "00:00:00")
+                    ? strtotime($record->clock_out)
+                    : null;
 
-    $graceShiftStart = strtotime("+30 minutes", $shiftStart);
+                $graceShiftStart = strtotime("+30 minutes", $shiftStart);
 
-    $clockInStatus = $clockOutStatus = $overallStatus = null;
+                $clockInStatus = $clockOutStatus = $overallStatus = null;
 
-    // --- If both clockin and clockout missing ---
-    if (!$clockIn && !$clockOut) {
-        $clockInStatus = ['label' => $record->status, 'badge' => 'blue'];
-        $clockOutStatus = ['label' => $record->status, 'badge' => 'blue'];
-        $overallStatus = ['label' => $record->status, 'badge' => 'blue'];
-    } else {
-        // Clock In Status
-        if (!$clockIn) {
-            $clockInStatus = ['label' => $record->status, 'badge' => 'gray'];
-        } elseif ($clockIn <= $graceShiftStart) {
-            $clockInStatus = ['label' => 'On Time', 'badge' => 'green'];
-        } else {
-            $clockInStatus = ['label' => 'Late', 'badge' => 'red'];
-        }
+                // --- If both clockin and clockout missing ---
+                if (!$clockIn && !$clockOut) {
+                    $clockInStatus = ['label' => $record->status, 'badge' => 'blue'];
+                    $clockOutStatus = ['label' => $record->status, 'badge' => 'blue'];
+                    $overallStatus = ['label' => $record->status, 'badge' => 'blue'];
+                } else {
+                    // Clock In Status
+                    if (!$clockIn) {
+                        $clockInStatus = ['label' => $record->status, 'badge' => 'gray'];
+                    } elseif ($clockIn <= $graceShiftStart) {
+                        $clockInStatus = ['label' => 'On Time', 'badge' => 'green'];
+                    } else {
+                        $clockInStatus = ['label' => 'Late', 'badge' => 'red'];
+                    }
 
-        // Clock Out Status
-        if (!$clockOut || !$clockIn) {
-            $clockOutStatus = ['label' => $record->status, 'badge' => 'gray'];
-        } else {
-            $workedDuration = $clockOut - $clockIn;
-            if ($workedDuration >= $shiftDuration) {
-                $clockOutStatus = ['label' => 'Completed Shift', 'badge' => 'green'];
-            } else {
-                $minutes = round(($shiftDuration - $workedDuration) / 60);
-                $clockOutStatus = ['label' => $minutes . ' min Short', 'badge' => 'red'];
-            }
-        }
+                    // Clock Out Status
+                    if (!$clockOut || !$clockIn) {
+                        $clockOutStatus = ['label' => $record->status, 'badge' => 'gray'];
+                    } else {
+                        $workedDuration = $clockOut - $clockIn;
+                        if ($workedDuration >= $shiftDuration) {
+                            $clockOutStatus = ['label' => 'Completed Shift', 'badge' => 'green'];
+                        } else {
+                            $minutes = round(($shiftDuration - $workedDuration) / 60);
+                            $clockOutStatus = ['label' => $minutes . ' min Short', 'badge' => 'red'];
+                        }
+                    }
 
-        // --- Overall Status ---
-        if (
-            isset($clockInStatus['label'], $clockOutStatus['label']) &&
-            $clockInStatus['label'] === 'On Time' &&
-            $clockOutStatus['label'] === 'Completed Shift'
-        ) {
-            $overallStatus = ['label' => 'Good', 'badge' => 'green'];
-        } else {
-            $overallStatus = ['label' => 'Bad', 'badge' => 'red'];
-        }
+                    // --- Overall Status ---
+                    if (
+                        isset($clockInStatus['label'], $clockOutStatus['label']) &&
+                        $clockInStatus['label'] === 'On Time' &&
+                        $clockOutStatus['label'] === 'Completed Shift'
+                    ) {
+                        $overallStatus = ['label' => 'Good', 'badge' => 'green'];
+                    } else {
+                        $overallStatus = ['label' => 'Bad', 'badge' => 'red'];
+                    }
+                }
+
+                return [
+                    'date' => $record->date,
+                    'clock_in' => $record->clock_in,
+                    'clock_in_status' => $clockInStatus,
+                    'clock_out' => $record->clock_out,
+                    'clock_out_status' => $clockOutStatus,
+                    'status' => $record->status,
+                    'overall_status' => $overallStatus,
+                ];
+            });
+
+
+        return response()->json([
+            'employee_id' => $employeeId,
+            'from' => $from,
+            'to' => $to,
+            'attendance' => $data,
+        ]);
     }
-
-    return [
-        'date' => $record->date,
-        'clock_in' => $record->clock_in,
-        'clock_in_status' => $clockInStatus,
-        'clock_out' => $record->clock_out,
-        'clock_out_status' => $clockOutStatus,
-        'status' => $record->status,
-        'overall_status' => $overallStatus,
-    ];
-});
-
-
-    return response()->json([
-        'employee_id' => $employeeId,
-        'from' => $from,
-        'to' => $to,
-        'attendance' => $data,
-    ]);
-}
 
 
  
