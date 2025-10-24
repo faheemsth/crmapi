@@ -1325,6 +1325,8 @@ public function GetBranchByType()
                         $clockInStatus = ['label' => $record->status, 'badge' => 'gray'];
                     } elseif ($clockIn <= $graceShiftStart) {
                         $clockInStatus = ['label' => 'On Time', 'badge' => 'green'];
+                    } elseif ($record->status === "Present") {
+                        $clockInStatus = ['label' => 'Present', 'badge' => 'green'];
                     } else {
                         $clockInStatus = ['label' => 'Late', 'badge' => 'red'];
                     }
