@@ -504,7 +504,7 @@ class AppraisalController extends Controller
 
         $rating = !empty($appraisal->rating) ? json_decode($appraisal->rating, true) : [];
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
-
+ 
         return response()->json([
             'status' => 'success',
             'created_by' => $created_by,
