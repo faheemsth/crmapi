@@ -470,11 +470,13 @@ class AppraisalController extends Controller
             'assigned_to.name as created_user',
             'branches.id as branch_id',
             'assigned_to.id as created_id',
+            'createduser.name as created_By'
         )
             ->with('employees')
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
+            ->leftJoin('users as createduser', 'createduser.id', '=', 'appraisals.created_by')
             ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'appraisals.employee')
             ->where('appraisals.id', $request->id)
             ->first();
