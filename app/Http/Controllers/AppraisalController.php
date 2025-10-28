@@ -454,6 +454,7 @@ class AppraisalController extends Controller
 
     public function appraisalDetails(Request $request)
     {
+        // sheeraaz
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:appraisals,id',
         ]);
