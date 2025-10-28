@@ -256,7 +256,7 @@ if ($request->filled('intake_months')) {
             'territory' => 'required|array|min:1',
             'territory.*' => 'required|string',
             'company_id' => 'nullable|exists:users,id',
-            'rank_id' => 'required|exists:university_ranks,id',
+           // 'rank_id' => 'required|exists:university_ranks,id',
             'phone' => 'nullable|max:20',
             'note' => 'nullable|string',
             'institution_link' => 'nullable|string',
@@ -279,7 +279,7 @@ if ($request->filled('intake_months')) {
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         $university->campuses = $request->campuses;
-        $university->rank_id = $request->rank_id;
+      //  $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
@@ -318,7 +318,7 @@ if ($request->filled('intake_months')) {
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
-            'rank_id' => 'required|exists:university_ranks,id',
+           // 'rank_id' => 'required|exists:university_ranks,id', // 
             'name' => 'required|max:200',
             'country' => 'required|array|min:1',
             'country.*' => 'required|string|max:200',
@@ -358,7 +358,7 @@ if ($request->filled('intake_months')) {
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         // $university->campuses = $request->city;
-        $university->rank_id = $request->rank_id;
+       // $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
@@ -387,18 +387,18 @@ if ($request->filled('intake_months')) {
         }
 
         if (!empty($changes)) {
-        addLogActivity([
-            'type' => 'info',
-            'note' => json_encode([
-                'title' => $university->name . ' updated ',
-                'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                'changes' => $changes
-            ]),
-            'module_id' => $university->id,
-            'module_type' => 'university',
-            'notification_type' => 'University Updated'
-        ]);
-    }
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $university->name . ' updated ',
+                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                    'changes' => $changes
+                ]),
+                'module_id' => $university->id,
+                'module_type' => 'university',
+                'notification_type' => 'University Updated'
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',
@@ -406,6 +406,97 @@ if ($request->filled('intake_months')) {
             'data' => $university
         ]);
     }
+
+    
+   public function updateUniversitiesByKey(Request $request)
+        {
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'id' => 'required|exists:universities,id'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $validator->errors()
+                ], 422);
+            }
+
+            // Permission check
+            if (!Auth::user()->can('edit university')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Permission Denied.'
+                ], 403);
+            }
+
+            // Get university
+            $university = University::findOrFail($request->id);
+            $originalData = $university->toArray();
+
+            // Exclude ID from update
+            $metaData = $request->except('id');
+
+            // Update each field dynamically
+            foreach ($metaData as $key => $newValue) {
+
+                // Handle array fields
+                if (in_array($key, ['country', 'territory'])) {
+                    $newValue = implode(',', (array) $newValue);
+                }
+
+                if ($key === 'months') {
+                    $key = 'intake_months';
+                    $newValue = implode(',', (array) $newValue);
+                }
+
+                // Assign only if column exists in table
+                if (\Schema::hasColumn('universities', $key)) {
+                    $university->$key = $newValue;
+                }
+            }
+
+            // Save updated university
+            $university->save();
+
+            // Detect changes
+            $changes = [];
+            $updatedFields = [];
+            foreach ($originalData as $field => $oldValue) {
+                if (in_array($field, ['created_at', 'updated_at'])) {
+                    continue;
+                }
+                if ($university->$field != $oldValue) {
+                    $changes[$field] = [
+                        'old' => $oldValue,
+                        'new' => $university->$field
+                    ];
+                    $updatedFields[] = $field;
+                }
+            }
+
+            // Log changes if any
+            if (!empty($changes)) {
+                addLogActivity([
+                    'type' => 'info',
+                    'note' => json_encode([
+                        'title' => $university->name . ' updated',
+                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
+                        'changes' => $changes
+                    ]),
+                    'module_id' => $university->id,
+                    'module_type' => 'university',
+                    'notification_type' => 'University Updated'
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'University updated successfully.',
+                'data' => $university
+            ]);
+        }
+
 
 
     public function updateAboutUniversity(Request $request)

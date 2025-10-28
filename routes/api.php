@@ -50,6 +50,7 @@ use App\Http\Controllers\OvertimeController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\ModuleTypeController;
 use App\Http\Controllers\MoiAcceptedController;
+use App\Http\Controllers\OpenAIController;
 use App\Http\Controllers\PerformanceTypeController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PermissionTypeController;
@@ -60,6 +61,12 @@ use App\Http\Controllers\SalaryappriasalController;
 use App\Http\Controllers\SetSalaryController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TerminationTypeController;
+use App\Http\Controllers\ToolkitApplicableFeeController;
+use App\Http\Controllers\ToolkitChannelController;
+use App\Http\Controllers\ToolkitInstallmentPayOutController;
+use App\Http\Controllers\ToolkitLevelController;
+use App\Http\Controllers\ToolkitPaymentTypeController;
+use App\Http\Controllers\ToolkitTeamController;
 use App\Http\Controllers\TrainerController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\UniversityController;
@@ -121,6 +128,8 @@ Route::get('/proxy-image', function (Request $request) {
     Route::get('/convertToBase64', [GeneralController::class, 'convertToBase64']);
     Route::post('/getTables', [GeneralController::class, 'getTables']);
     Route::post('/getTableData', [GeneralController::class, 'getTableData']);
+    
+    Route::post('/generateSop', [OpenAIController::class, 'generateSop']);
 
 Route::get('/AttendanceEmployeeCron_old', function () {
     $today = Carbon::today()->toDateString();
@@ -630,6 +639,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateUniversities', [UniversityController::class, 'updateUniversities']);
     Route::post('/deleteUniversities', [UniversityController::class, 'deleteUniversities']);
     Route::post('/universityDetail', [UniversityController::class, 'universityDetail']);
+    Route::post('/updateUniversitiesByKey', [UniversityController::class, 'updateUniversitiesByKey']);
     Route::post('/addUpdateUniversityMeta', [UniversityMetaController::class, 'storeOrUpdateMetas']);
     Route::post('/getUniversityMeta', [UniversityMetaController::class, 'getUniversityMeta']);
     Route::post('/updateUniversityStatus', [UniversityController::class, 'updateUniversityStatus']);
@@ -672,6 +682,49 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getPermissionTypes', [PermissionTypeController::class, 'getPermissionTypes']);
      Route::post('/updatePermissionType', [PermissionTypeController::class, 'updatePermissionType']);
      Route::post('/deletePermissionType', [PermissionTypeController::class, 'deletePermissionType']);
+
+      //   ToolkitLevel
+     Route::post('/addToolkitLevel', [ToolkitLevelController::class, 'addToolkitLevel']);
+     Route::post('/getToolkitLevelPluck', [ToolkitLevelController::class, 'getToolkitLevelPluck']);
+     Route::get('/getToolkitLevels', [ToolkitLevelController::class, 'getToolkitLevels']);
+     Route::post('/updateToolkitLevel', [ToolkitLevelController::class, 'updateToolkitLevel']);
+     Route::post('/deleteToolkitLevel', [ToolkitLevelController::class, 'deleteToolkitLevel']);
+
+      //   ToolkitTeam
+     Route::post('/addToolkitTeam', [ToolkitTeamController::class, 'addToolkitTeam']);
+     Route::post('/getToolkitTeamPluck', [ToolkitTeamController::class, 'getToolkitTeamPluck']);
+     Route::get('/getToolkitTeams', [ToolkitTeamController::class, 'getToolkitTeams']);
+     Route::post('/updateToolkitTeam', [ToolkitTeamController::class, 'updateToolkitTeam']);
+     Route::post('/deleteToolkitTeam', [ToolkitTeamController::class, 'deleteToolkitTeam']);
+
+      //   ToolkitChannel
+     Route::post('/addToolkitChannel', [ToolkitChannelController::class, 'addToolkitChannel']);
+     Route::post('/getToolkitChannelPluck', [ToolkitChannelController::class, 'getToolkitChannelPluck']);
+     Route::get('/getToolkitChannels', [ToolkitChannelController::class, 'getToolkitChannels']);
+     Route::post('/updateToolkitChannel', [ToolkitChannelController::class, 'updateToolkitChannel']);
+     Route::post('/deleteToolkitChannel', [ToolkitChannelController::class, 'deleteToolkitChannel']);
+
+
+      //   ToolkitApplicableFee
+     Route::post('/addToolkitApplicableFee', [ToolkitApplicableFeeController::class, 'addToolkitApplicableFee']);
+     Route::post('/getToolkitApplicableFeePluck', [ToolkitApplicableFeeController::class, 'getToolkitApplicableFeePluck']);
+     Route::get('/getToolkitApplicableFees', [ToolkitApplicableFeeController::class, 'getToolkitApplicableFees']);
+     Route::post('/updateToolkitApplicableFee', [ToolkitApplicableFeeController::class, 'updateToolkitApplicableFee']);
+     Route::post('/deleteToolkitApplicableFee', [ToolkitApplicableFeeController::class, 'deleteToolkitApplicableFee']);
+
+      //   ToolkitPaymentType
+     Route::post('/addToolkitPaymentType', [ToolkitPaymentTypeController::class, 'addToolkitPaymentType']);
+     Route::post('/getToolkitPaymentTypePluck', [ToolkitPaymentTypeController::class, 'getToolkitPaymentTypePluck']);
+     Route::get('/getToolkitPaymentTypes', [ToolkitPaymentTypeController::class, 'getToolkitPaymentTypes']);
+     Route::post('/updateToolkitPaymentType', [ToolkitPaymentTypeController::class, 'updateToolkitPaymentType']);
+     Route::post('/deleteToolkitPaymentType', [ToolkitPaymentTypeController::class, 'deleteToolkitPaymentType']);
+
+      //   ToolkitInstallmentPayOut
+     Route::post('/addToolkitInstallmentPayOut', [ToolkitInstallmentPayOutController::class, 'addToolkitInstallmentPayOut']);
+     Route::post('/getToolkitInstallmentPayOutPluck', [ToolkitInstallmentPayOutController::class, 'getToolkitInstallmentPayOutPluck']);
+     Route::get('/getToolkitInstallmentPayOuts', [ToolkitInstallmentPayOutController::class, 'getToolkitInstallmentPayOuts']);
+     Route::post('/updateToolkitInstallmentPayOut', [ToolkitInstallmentPayOutController::class, 'updateToolkitInstallmentPayOut']);
+     Route::post('/deleteToolkitInstallmentPayOut', [ToolkitInstallmentPayOutController::class, 'deleteToolkitInstallmentPayOut']);
 
         //   PermissionType
      Route::post('/addPermission', [PermissionController::class, 'addPermission']);
@@ -744,7 +797,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('/getMIOList', [MoiAcceptedController::class, 'getMIOList']);
      Route::post('/updateMOIInstitutes', [MoiAcceptedController::class, 'updateMOIInstitutes']);
     //  Route::post('/deleteUniversityRule', [UniversityRuleController::class, 'deleteUniversityRule']);
-
+ 
     // reports
     Route::post('/reports/visa-analysis', [ReportsController::class, 'visaAnalysis']);
     Route::get('/reports/deposit-analysis', [ReportsController::class, 'depositAnalysis']);
