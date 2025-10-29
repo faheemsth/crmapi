@@ -105,7 +105,9 @@ class CourseController extends Controller
                 'message' => 'Permission Denied.'
             ], 403);
         }
-
+        $request->merge([
+            'OfferletterDownloadenabled' => filter_var($request->OfferletterDownloadenabled, FILTER_VALIDATE_BOOLEAN),
+        ]);
         $validator = Validator::make($request->all(), [
             'name' => 'required|max:150',
             'university_id' => 'required|exists:universities,id',
@@ -122,6 +124,7 @@ class CourseController extends Controller
             'final_instalment' => 'nullable|numeric|min:0',
             'installments' => 'nullable|array',
             'installments.*' => 'nullable|numeric|min:0',
+            'OfferletterDownloadenabled' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -146,6 +149,7 @@ class CourseController extends Controller
         $course->third_instalment = $request->third_instalment;
         $course->final_instalment = $request->final_instalment;
         $course->created_by = Auth::user()->id;
+        $course->OfferletterDownloadenabled = $request->OfferletterDownloadenabled ? 1 : 0;
         $course->save();
 
         if (!empty($request->installments)) {
@@ -494,7 +498,9 @@ class CourseController extends Controller
             'message' => 'Permission Denied.'
         ], 403);
     }
-
+    $request->merge([
+        'OfferletterDownloadenabled' => filter_var($request->OfferletterDownloadenabled, FILTER_VALIDATE_BOOLEAN),
+    ]);
     $validator = Validator::make($request->all(), [
         'name' => 'required|max:150',
         'university_id' => 'required|exists:universities,id',
@@ -513,6 +519,7 @@ class CourseController extends Controller
         'installments' => 'required|array',
         'installments.*.id' => 'sometimes|integer',
         'installments.*.fee' => 'required|numeric',
+        'OfferletterDownloadenabled' => 'nullable|boolean',
     ]);
 
     if ($validator->fails()) {
@@ -551,7 +558,7 @@ class CourseController extends Controller
             $course->$field = $newValue;
         }
     }
-
+    $course->OfferletterDownloadenabled = $request->OfferletterDownloadenabled ? 1 : 0;
     $course->save();
 
     // Handle Installments
