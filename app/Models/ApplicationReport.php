@@ -5,7 +5,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ApplicationReport extends Model
 {
-    protected $table = 'application_report_view';
+    protected $table = 'deal_applications_view_v2';
     public $timestamps = false; // since view may not have updated_at
 
     protected $casts = [
