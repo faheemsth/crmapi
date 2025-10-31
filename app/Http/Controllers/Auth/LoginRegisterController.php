@@ -300,14 +300,16 @@ class LoginRegisterController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function logout(Request $request)
-    {
-        auth()->user()->tokens()->delete();
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User is logged out successfully'
-            ], 200);
-    }
+ public function logout(Request $request)
+{
+    $request->user()->currentAccessToken()->delete();
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'User logged out from current device successfully'
+    ], 200);
+}
+
 
     /**
      * Send a password reset link to the given user.

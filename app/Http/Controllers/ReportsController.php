@@ -80,21 +80,24 @@ public function visaAnalysis(Request $request)
     if (!empty($depositVisaStages)) {
         $query->whereIn('deposit_stage_id', $depositVisaStages);
     }
-    if ($depositStartDate) {
-        $query->whereDate('deposit_created_at', '>=', $depositStartDate);
-    }
-    if ($depositEndDate) {
-        $query->whereDate('deposit_created_at', '<=', $depositEndDate);
-    }
+
+     
+     
 
     if (!empty($visaStages)) {
         $query->whereIn('stage_id', $visaStages);
     }
-    if ($startDate) {
-        $query->whereDate('created_at', '>=', $startDate);
-    }
-    if ($endDate) {
-        $query->whereDate('created_at', '<=', $endDate);
+    
+
+    if ($startDate && $endDate && $depositStartDate && $depositEndDate) {
+        $query->where(function ($q) use ($startDate, $endDate, $depositStartDate, $depositEndDate) {
+            $q->whereBetween('created_at', [$startDate, $endDate])
+            ->orWhereBetween('deposit_created_at', [$depositStartDate, $depositEndDate]);
+        });
+    } elseif ($startDate && $endDate) {
+        $query->whereBetween('created_at', [$startDate, $endDate]);
+    } elseif ($depositStartDate && $depositEndDate) {
+        $query->whereBetween('deposit_created_at', [$depositStartDate, $depositEndDate]);
     }
 
     // -------------------------------
