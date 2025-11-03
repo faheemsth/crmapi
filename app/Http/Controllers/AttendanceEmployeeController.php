@@ -1534,6 +1534,7 @@ public function backuplist(Request $request)
                     break;
 
                 case 'HR':
+                case 'hr':
                 case 'admin team':
                 case 'project director':
                     // Can see everyone except Super Admin
@@ -1553,7 +1554,8 @@ public function backuplist(Request $request)
                         'marketing officer',
                         'agent',
                         'support team',
-                        'receptionist'
+                        'receptionist',
+                        'project manager'
                     ]);
                     break;
 
@@ -1569,7 +1571,8 @@ public function backuplist(Request $request)
                         'marketing officer',
                         'agent',
                         'support team',
-                        'receptionist'
+                        'receptionist',
+                        'region manager'
                     ]);
                     break;
 
@@ -1583,6 +1586,7 @@ public function backuplist(Request $request)
                         'admissions officer',
                         'marketing officer',
                         'agent',
+                        'branch manager',
                         'support team',
                         'receptionist'
                     ]);
@@ -1590,7 +1594,7 @@ public function backuplist(Request $request)
 
                 case 'product coordinator manager':
                     // Can see Product Coordinator only
-                    $query->where('users.type', 'product coordinator');
+                    $query->whereIn('users.type', ['product coordinator','product coordinator manager']);
                     break;
 
                 case 'product coordinator':

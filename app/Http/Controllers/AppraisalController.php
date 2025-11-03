@@ -454,6 +454,7 @@ class AppraisalController extends Controller
 
     public function appraisalDetails(Request $request)
     {
+        // sheeraaz
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:appraisals,id',
         ]);
@@ -487,6 +488,7 @@ class AppraisalController extends Controller
         }
 
         $user = User::find($appraisal->employee);
+        $created_by = User::find($appraisal->created_by);
         if (!$user) {
             return response()->json([
                 'status' => 'error',
@@ -503,10 +505,10 @@ class AppraisalController extends Controller
 
         $rating = !empty($appraisal->rating) ? json_decode($appraisal->rating, true) : [];
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
-
+ 
         return response()->json([
             'status' => 'success',
-
+            'created_by' => $created_by,
             'data' => $appraisal,
             'performance_types' => $performance_types,
             'ratings' => $ratings,

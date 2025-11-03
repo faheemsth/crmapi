@@ -183,7 +183,7 @@ class UserController extends Controller
         $customFields = CustomField::where('created_by', $authUser->creatorId())
             ->where('module', 'user')
             ->get();
-
+        $AdditionalAddress = AdditionalAddress::where('user_id', $user->id)->first();
         return response()->json([
             'status' => 'success',
             'baseurl' => asset('/'),
@@ -196,6 +196,7 @@ class UserController extends Controller
                 'regions' => $regions,
                 'branches' => $branches,
                 'employees' => $employees,
+                'AdditionalAddress' => $AdditionalAddress
             ]
         ], 200);
     }
