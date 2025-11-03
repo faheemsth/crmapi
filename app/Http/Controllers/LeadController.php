@@ -46,6 +46,7 @@ use App\Models\DealApplication;
 use App\Models\LeadActivityLog;
 use App\Models\CompanyPermission;
 use App\Models\EmailTemplate;
+use App\Models\AgencyTag;
 use App\Models\EmailTemplateLang;
 use App\Models\EmailSendLog;
 use Illuminate\Support\Facades\DB;
@@ -2219,5 +2220,637 @@ class LeadController extends Controller
             'status' => 'success',
             'data' => $notes
         ], 201);
+    }
+
+    public function EmailMarketing(Request $request)
+    {
+        if (\Auth::user()->type == 'Agent'){
+            return response()->json(['error' => 'Permission Denied.'], 403);
+        }
+
+        $usr = \Auth::user();
+        $id = $request->templateID ?? 0;
+        $lang = $request->lang ?? 'en';
+        $executed_data = $this->EmailMarketingLeadQuery();
+
+        // $leadEmails = $executed_data['leadEmails'];
+        $leadIds = $executed_data['leadIds'];
+        $total_records = $executed_data['total_records'];
+        $total_pages = $executed_data['total_records'];
+        $num_results_on_page = $executed_data['num_results_on_page'];
+
+        $stages = LeadStage::get();
+        $saved_filters = SavedFilter::where('created_by', \Auth::id())->where('module', 'leads')->get();
+        $branch_query = Branch::select(['branches.*']);
+        if(\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team' || \Auth::user()->type == 'HR'){
+        } else if(\Auth::user()->type == 'company'){
+            $branch_query->where('brands', \Auth::user()->id);
+        } else {
+            $companies = FiltersBrands();
+            $brand_ids = array_keys($companies);
+            $branch_query->whereIn('brands', $brand_ids);
+        }
+
+        if(\Auth::user()->type == 'Region Manager'){
+            $branch_query->where('region_id', \Auth::user()->region_id);
+        }
+
+        // Filters
+        if(isset($_GET['brand_id']) && !empty($_GET['brand_id'])){
+            $branch_query->where('brands', $_GET['brand_id']);
+        }
+        if(isset($_GET['region_id']) && !empty($_GET['region_id'])){
+            $branch_query->where('region_id', $_GET['region_id']);
+        }
+
+        $initial_emails = [
+            01 => \Auth::user()->email,
+        ];
+        $emails = $branch_query->whereNotNull('email')->pluck('email', 'id')->toArray();
+        $Allemails = array_merge($initial_emails, $emails);
+
+        // Email Templates
+        $leads_query = EmailTemplate::query();
+        if (\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
+            $leads_query->where('status', '1')->orWhere('status', '0');
+        } else {
+            $leads_query->where('status', '1');
+        }
+
+        if (
+            $usr->can('view lead') ||
+            $usr->can('manage lead') ||
+            \Auth::user()->type == 'super admin' ||
+            \Auth::user()->type == 'Admin Team'
+        ) {
+            $companies = FiltersBrands();
+            $brand_ids = array_keys($companies);
+            $userType = \Auth::user()->type;
+
+            if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
+            } elseif ($userType === 'company') {
+                $leads_query->where('brand_id', \Auth::user()->id);
+            } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
+                $leads_query->whereIn('brand_id', $brand_ids);
+            } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
+                $leads_query->where('region_id', \Auth::user()->region_id);
+            } elseif (($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
+                $leads_query->where('branch_id', \Auth::user()->branch_id);
+            } else {
+                $leads_query->where('created_by', \Auth::user()->id);
+            }
+
+            $leads_query->where('id', $id)->orderBy('name', 'asc');
+        }
+
+        $EmailTemplates = $leads_query->get();
+
+        if ($id != 0 && $EmailTemplates->count() < 1) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $languages = Utility::languages();
+        $emailTemplate = EmailTemplate::first();
+        $currEmailTempLang = EmailTemplateLang::where('parent_id', '=', $id)->where('lang', $lang)->first();
+
+        if (!isset($currEmailTempLang) || empty($currEmailTempLang)) {
+            $currEmailTempLang = EmailTemplateLang::where('lang', $lang)->first();
+            if (empty($currEmailTempLang)) {
+                return response()->json(['error' => 'This Email Template Lang Not Exist.'], 404);
+            }
+            $currEmailTempLang->lang = $lang;
+        }
+
+        $emailTemplate = EmailTemplate::where('id', '=', $id)->first();
+
+        $leads_query = EmailTemplate::query();
+        if (\Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
+            $leads_query->where('status', '1')->orWhere('status', '0');
+        } else {
+            $leads_query->where('status', '1');
+        }
+
+        if (
+            $usr->can('view lead') ||
+            $usr->can('manage lead') ||
+            \Auth::user()->type == 'super admin' ||
+            \Auth::user()->type == 'Admin Team'
+        ) {
+            $companies = FiltersBrands();
+            $brand_ids = array_keys($companies);
+            $userType = \Auth::user()->type;
+
+            if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
+            } elseif ($userType === 'company') {
+                $leads_query->where('brand_id', \Auth::user()->id);
+            } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
+                $leads_query->whereIn('brand_id', $brand_ids);
+            } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
+                $leads_query->where('region_id', \Auth::user()->region_id);
+            } elseif (($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
+                $leads_query->where('branch_id', \Auth::user()->branch_id);
+            } else {
+                $leads_query->where('created_by', \Auth::user()->id);
+            }
+
+            $leads_query->orderBy('name', 'asc');
+        }
+
+        $EmailTemplates = $leads_query->where('type', "lead")->get();
+
+        // ✅ Return JSON for API
+        return response()->json([
+            'status' => 'success',
+            // 'leadEmails' => $leadEmails,
+            'emailTemplate' => $emailTemplate,
+            'languages' => $languages,
+            'currEmailTempLang' => $currEmailTempLang,
+            'EmailTemplates' => $EmailTemplates,
+            'saved_filters' => $saved_filters,
+            'leadIds' => $leadIds,
+            'total_records' => $total_records,
+            'Allemails' => $Allemails,
+        ]);
+    }
+
+    private function EmailMarketingLeadQuery()
+    {
+        $usr = \Auth::user();
+        $start = 0;
+        $num_results_on_page = !empty($_POST) ? 100000000000 : 0;
+        $filters = $this->leadsFilter();
+        $pipeline = Pipeline::first();
+        $companies = FiltersBrands();
+        $brand_ids = array_keys($companies);
+        if(!empty($_POST['type'])){
+
+            
+            if(empty($_POST['type']) || $_POST['type'] == "file_import")
+            {
+                $EmailMarkittingFileEmail = EmailMarkittingFileEmail::where('created_by',\Auth::id())->pluck('email','id')->toArray();
+                // $leadEmails = array_values($EmailMarkittingFileEmail);
+            
+                $leadIds = implode(',', array_keys($EmailMarkittingFileEmail));
+
+                return [
+                    'total_records' => count($EmailMarkittingFileEmail),
+                    // 'leadEmails' => $leadEmails,
+                    'leadIds' => $leadIds,
+                    'companies' => $companies,
+                    'pipeline' => $pipeline,
+                    'num_results_on_page' => $num_results_on_page
+                ];
+
+            }else if(empty($_POST['type']) || $_POST['type'] == "agency")
+            {
+                $Agency_Email = Agency::query();
+           
+
+
+                $filters = $this->AgencyFilter();
+                foreach ($filters as $column => $value) {
+                    if ($column === 'name') {
+                        $Agency_Email->where('agencies.organization_name', 'LIKE', '%' . $value . '%');
+                    } elseif ($column === 'phone') {
+                        $Agency_Email->where('agencies.phone', 'LIKE', '%' . $value . '%');
+                    } elseif ($column === 'email') {
+                        $Agency_Email->where('agencies.organization_email', 'LIKE', '%' . $value . '%');
+                    } elseif ($column === 'country') {
+                        $Agency_Email->where('agencies.billing_country', 'like', '%' . $value . '%');
+                    } elseif ($column === 'city') {
+                        $Agency_Email->where('agencies.city', 'like', '%' . $value . '%');
+                    } elseif ($column === 'tag') {
+                    if (is_array($value)) {
+                        $Agency_Email->where(function ($query) use ($value) {
+                            foreach ($value as $tag) {
+                                $query->orWhereRaw('FIND_IN_SET(?, agencies.tag_ids)', [$tag]);
+                            }
+                        });
+                    } else {
+                        $Agency_Email->whereRaw('FIND_IN_SET(?, agencies.tag_ids)', [$value]);
+                    }
+                }
+                }
+                $EmailMarkittingFileEmail = $Agency_Email->pluck('agencies.organization_email','agencies.id')->toArray();
+                // $leadEmails = array_values($EmailMarkittingFileEmail);
+            
+                $leadIds = implode(',', array_keys($EmailMarkittingFileEmail));
+
+                return [
+                    'total_records' => count($EmailMarkittingFileEmail),
+                    // 'leadEmails' => $leadEmails,
+                    'leadIds' => $leadIds,
+                    'companies' => $companies,
+                    'pipeline' => $pipeline,
+                    'num_results_on_page' => $num_results_on_page
+                ];
+
+            }else if(empty($_POST['type']) || $_POST['type'] == "organization")
+            {
+            $organization_Email = User::select(['users.*'])->join('organizations', 'organizations.user_id', '=', 'users.id')->where('users.type', 'organization');
+            $filters = $this->organizationsFilter();
+            foreach ($filters as $column => $value) {
+                if ($column === 'name') {
+                    $organization_Email->whereIn('name', $value);
+                } elseif ($column === 'phone') {
+                    $organization_Email->where('organizations.phone', 'LIKE', '%' . $value . '%');
+                } elseif ($column === 'street') {
+                    $organization_Email->where('organizations.billing_street', 'LIKE', '%' . $value . '%');
+                } elseif ($column == 'city') {
+                    $organization_Email->where('organizations.billing_city', 'LIKE', '%' . $value . '%');
+                } elseif ($column == 'state') {
+                    $organization_Email->where('organizations.billing_state', 'LIKE', '%' . $value . '%');
+                } elseif ($column === 'country') {
+                    $organization_Email->whereIn('organizations.billing_country', $value);
+                }
+            }
+                $EmailMarkittingFileEmail = $organization_Email->pluck('users.email','users.id')->toArray();
+                // $leadEmails = array_values($EmailMarkittingFileEmail);
+            
+                $leadIds = implode(',', array_keys($EmailMarkittingFileEmail));
+
+                return [
+                    'total_records' => count($EmailMarkittingFileEmail),
+                    // 'leadEmails' => $leadEmails,
+                    'leadIds' => $leadIds,
+                    'companies' => $companies,
+                    'pipeline' => $pipeline,
+                    'num_results_on_page' => $num_results_on_page
+                ];
+
+            }else if(empty($_POST['type']) || $_POST['type'] == "lead")
+            {
+                // if ($usr->can('view lead') || $usr->can('manage lead') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
+
+                //     $leads_query = Lead::select('leads.id','leads.email');
+        
+                //     if (!empty($_POST['Assigned'])) {
+                //         $leads_query->whereNotNull('leads.user_id');
+                //     }
+                //     if (!empty($_POST['Unassigned'])) {
+                //         $leads_query->whereNull('leads.user_id');
+                //     }
+                //     // Apply user type-based filtering
+                //     $userType = \Auth::user()->type;
+                //     if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
+                //         // No additional filtering needed
+                //     } elseif ($userType === 'company') {
+                //         $leads_query->where('leads.brand_id', \Auth::user()->id);
+                //     } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
+                //         $leads_query->whereIn('leads.brand_id', $brand_ids);
+                //     } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
+                //         $leads_query->where('leads.region_id', \Auth::user()->region_id);
+                //     } elseif (($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) || \Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id)) {
+                //         $leads_query->where('leads.branch_id', \Auth::user()->branch_id);
+                //     }  elseif ($userType === 'Agent') {
+                //         $Agency = Agency::where('user_id',\Auth::user()->id)->first();
+                //         if($Agency){
+                //             $leads_query->where('organization_link',$Agency->id)->Orwhere('user_id', \Auth::user()->id)->Orwhere('leads.created_by', \Auth::user()->id);
+                //         }else{
+                //             $leads_query->where('user_id', \Auth::user()->id)->Orwhere('leads.created_by', \Auth::user()->id);
+                //         }
+                        
+                //     } else {
+                //         $leads_query->where('user_id', \Auth::user()->id);
+                //     }
+        
+                //     // Apply dynamic filters
+                //     foreach ($filters as $column => $value) {
+                //         switch ($column) {
+                //             case 'name':
+                //                 $leads_query->whereIn('leads.id', $value);
+                //                 break;
+                //             case 'brand_id':
+                //                 $leads_query->where('leads.brand_id', $value);
+                //                 break;
+                //             case 'region_id':
+                //                 $leads_query->where('leads.region_id', $value);
+                //                 break;
+                //             case 'branch_id':
+                //                 $leads_query->where('leads.branch_id', $value);
+                //                 break;
+                //             case 'stage_id':
+                //                 $leads_query->whereIn('stage_id', $value);
+                //                 break;
+                //             case 'lead_assigned_user':
+                //                 if ($value == null) {
+                //                     $leads_query->whereNull('leads.user_id');
+                //                 } else {
+                //                     $leads_query->where('leads.user_id', $value);
+                //                 }
+                //                 break;
+                //             case 'users':
+                //                 $leads_query->whereIn('leads.user_id', $value);
+                //                 break;
+                //             case 'created_at_from':
+                //                 $leads_query->whereDate('leads.created_at', '>=', $value);
+                //                 break;
+                //             case 'created_at_to':
+                //                 $leads_query->whereDate('leads.created_at', '<=', $value);
+                //                 break;
+                //             case 'tag':
+                //                 $leads_query->whereRaw('FIND_IN_SET(?, leads.tag_ids)', [$value]);
+                //                 break;
+                //         }
+                //     }
+        
+                //     // Apply default filters when $_POST is empty
+                //     if (empty($_POST['stages']) || (!in_array("6", $_POST['stages']) && !in_array("7", $_POST['stages']))) {
+                //         $leads_query->whereNotIn('leads.stage_id', [6, 7])->where('leads.is_converted', 0);
+                //     }
+        
+                //     // Count total records and retrieve paginated leads
+                //     $total_records = !empty($_POST) ? $leads_query->count() : 0;
+        
+                //    $leads = [];
+                //    $leads_query->chunk(1000, function ($chunk) use (&$leads) {
+                //         foreach ($chunk as $lead) {
+                //             $leads[$lead->id] = $lead->email;
+                //         }
+                //     });
+                    
+                //     // $leadEmails = array_values($leads);
+                    
+                //     $leadIds = implode(',', array_keys($leads));
+        
+                //     return [
+                //         'total_records' => $total_records,
+                //         // 'leadEmails' => $leadEmails,
+                //         'leadIds' => $leadIds,
+                //         'companies' => $companies,
+                //         'pipeline' => $pipeline,
+                //         'num_results_on_page' => $num_results_on_page
+                //     ];
+                // }
+                if ($usr->can('view lead') || $usr->can('manage lead') || 
+                \Auth::user()->type == 'super admin' || 
+                \Auth::user()->type == 'Admin Team') {
+
+                // --- Base query ---
+                $sql = "SELECT leads.id, leads.email FROM leads WHERE 1=1";
+                $bindings = [];
+
+                // --- Assigned / Unassigned ---
+                if (!empty($_POST['Assigned'])) {
+                    $sql .= " AND leads.user_id IS NOT NULL";
+                }
+                if (!empty($_POST['Unassigned'])) {
+                    $sql .= " AND leads.user_id IS NULL";
+                }
+
+                // --- User Type filters ---
+                $userType = \Auth::user()->type;
+                if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
+                    // No additional filtering
+                } elseif ($userType === 'company') {
+                    $sql .= " AND leads.brand_id = ?";
+                    $bindings[] = \Auth::user()->id;
+                } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
+                    if (!empty($brand_ids)) {
+                        $sql .= " AND leads.brand_id IN (" . implode(',', array_fill(0, count($brand_ids), '?')) . ")";
+                        $bindings = array_merge($bindings, $brand_ids);
+                    }
+                } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
+                    $sql .= " AND leads.region_id = ?";
+                    $bindings[] = \Auth::user()->region_id;
+                } elseif (($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) 
+                    || \Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id)) {
+                    $sql .= " AND leads.branch_id = ?";
+                    $bindings[] = \Auth::user()->branch_id;
+                } elseif ($userType === 'Agent') {
+                    $Agency = DB::table('agency')->where('user_id', \Auth::user()->id)->first();
+                    if ($Agency) {
+                        $sql .= " AND (organization_link = ? OR user_id = ? OR leads.created_by = ?)";
+                        array_push($bindings, $Agency->id, \Auth::user()->id, \Auth::user()->id);
+                    } else {
+                        $sql .= " AND (user_id = ? OR leads.created_by = ?)";
+                        array_push($bindings, \Auth::user()->id, \Auth::user()->id);
+                    }
+                } else {
+                    $sql .= " AND leads.user_id = ?";
+                    $bindings[] = \Auth::user()->id;
+                }
+
+                // --- Dynamic Filters ---
+                foreach ($filters as $column => $value) {
+                    switch ($column) {
+                        case 'name':
+                            $sql .= " AND leads.id IN (" . implode(',', array_fill(0, count($value), '?')) . ")";
+                            $bindings = array_merge($bindings, $value);
+                            break;
+                        case 'brand_id':
+                            $sql .= " AND leads.brand_id = ?";
+                            $bindings[] = $value;
+                            break;
+                        case 'region_id':
+                            $sql .= " AND leads.region_id = ?";
+                            $bindings[] = $value;
+                            break;
+                        case 'branch_id':
+                            $sql .= " AND leads.branch_id = ?";
+                            $bindings[] = $value;
+                            break;
+                        case 'stage_id':
+                            $sql .= " AND leads.stage_id IN (" . implode(',', array_fill(0, count($value), '?')) . ")";
+                            $bindings = array_merge($bindings, $value);
+                            break;
+                        case 'lead_assigned_user':
+                            if ($value == null) {
+                                $sql .= " AND leads.user_id IS NULL";
+                            } else {
+                                $sql .= " AND leads.user_id = ?";
+                                $bindings[] = $value;
+                            }
+                            break;
+                        case 'users':
+                            $sql .= " AND leads.user_id IN (" . implode(',', array_fill(0, count($value), '?')) . ")";
+                            $bindings = array_merge($bindings, $value);
+                            break;
+                        case 'created_at_from':
+                            $sql .= " AND DATE(leads.created_at) >= ?";
+                            $bindings[] = $value;
+                            break;
+                        case 'created_at_to':
+                            $sql .= " AND DATE(leads.created_at) <= ?";
+                            $bindings[] = $value;
+                            break;
+                        case 'tag':
+                            $sql .= " AND FIND_IN_SET(?, leads.tag_ids)";
+                            $bindings[] = $value;
+                            break;
+                    }
+                }
+
+                // --- Default filters ---
+                if (empty($_POST['stages']) || (!in_array("6", $_POST['stages']) && !in_array("7", $_POST['stages']))) {
+                    $sql .= " AND leads.stage_id NOT IN (6,7) AND leads.is_converted = 0";
+                }
+
+                // --- Execute fast raw SQL query ---
+                $leads = DB::select($sql, $bindings);
+
+                $leadIds = array_column($leads, 'id');
+                $leadIdsString = implode(',', $leadIds);
+
+                return [
+                    'total_records' => count($leads),
+                    'leadIds' => $leadIdsString,
+                    'companies' => $companies ?? [],
+                    'pipeline' => $pipeline ?? [],
+                    'num_results_on_page' => $num_results_on_page ?? 0
+                ];
+            }
+
+            }else{
+                return [
+                    'total_records' => 0,
+                    'leadEmails' => [''],
+                    'leadIds' => ',',
+                    'companies' => $companies,
+                    'pipeline' => $pipeline,
+                    'num_results_on_page' => $num_results_on_page
+                ];
+            }     
+        }else{
+                return [
+                    'total_records' => 0,
+                    'leadEmails' => [''],
+                    'leadIds' => ',',
+                    'companies' => $companies,
+                    'pipeline' => $pipeline,
+                    'num_results_on_page' => $num_results_on_page
+                ];
+            }   
+
+        
+    }
+
+        private function AgencyFilter()
+    {
+        $filters = [];
+        if (isset($_GET['agencyname']) && !empty($_GET['agencyname'])) {
+            $filters['name'] = $_GET['agencyname'];
+        }
+
+        if (isset($_GET['agencyemail']) && !empty($_GET['agencyemail'])) {
+            $filters['email'] = $_GET['agencyemail'];
+        }
+
+        if (isset($_GET['agencyphone']) && !empty($_GET['agencyphone'])) {
+            $filters['phone'] = $_GET['agencyphone'];
+        }
+
+        if (isset($_GET['country']) && !empty($_GET['country'])) {
+            $filters['country'] = $_GET['country'];
+        }
+
+        if (isset($_GET['city']) && !empty($_GET['city'])) {
+            $filters['city'] = $_GET['city'];
+        }
+        if (isset($_GET['brand_id']) && !empty($_GET['brand_id'])) {
+            $filters['brand_id'] = $_GET['brand_id'];
+        }
+         if (isset($_GET['tag']) && !empty($_GET['tag'])) {
+            $filters['tag'] = $_GET['tag'];
+        }
+
+        return $filters;
+    }
+
+    
+    private function organizationsFilter()
+    {
+        $filters = [];
+        if (isset($_GET['name']) && !empty($_GET['name'])) {
+            $filters['name'] = $_GET['name'];
+        }
+
+
+        if (isset($_GET['phone']) && !empty($_GET['phone'])) {
+            $filters['phone'] = $_GET['phone'];
+        }
+
+        if (isset($_GET['street']) && !empty($_GET['street'])) {
+            $filters['street'] = $_GET['street'];
+        }
+
+        if (isset($_GET['state']) && !empty($_GET['state'])) {
+            $filters['state'] = $_GET['state'];
+        }
+
+        if (isset($_GET['city']) && !empty($_GET['city'])) {
+            $filters['city'] = $_GET['city'];
+        }
+
+        if (isset($_GET['country']) && !empty($_GET['country'])) {
+            $filters['country'] = $_GET['country'];
+        }
+
+        return $filters;
+    }
+    private function leadsFilter()
+    {
+        $filters = [];
+        if (isset($_POST['name']) && !empty($_POST['name'])) {
+            $filters['name'] = $_POST['name'];
+        }
+        if (isset($_POST['created_by']) && !empty($_POST['created_by'])) {
+            $filters['created_by'] = $_POST['created_by'];
+        }
+
+
+        if (isset($_POST['stages']) && !empty($_POST['stages'])) {
+            $filters['stage_id'] = $_POST['stages'];
+        }
+
+        if (isset($_POST['users']) && !empty($_POST['users'])) {
+            $filters['users'] = $_POST['users'];
+        }
+
+        if (isset($_POST['lead_assigned_user']) && !empty($_POST['lead_assigned_user'])) {
+            $filters['lead_assigned_user'] = $_POST['lead_assigned_user'];
+        }
+
+        if (isset($_POST['subject']) && !empty($_POST['subject'])) {
+            $filters['subject'] = $_POST['subject'];
+        }
+
+
+
+        // if(isset($_POST['lead_assigned_user']) && !empty($_POST['lead_assigned_user']) && $_POST['lead_assigned_user'] != 'null'){
+        if (isset($_POST['brand']) && !empty($_POST['brand'])) {
+            $filters['brand_id'] = $_POST['brand'];
+        }
+
+        if (isset($_POST['region_id']) && !empty($_POST['region_id'])) {
+            $filters['region_id'] = $_POST['region_id'];
+        }
+
+        if (isset($_POST['branch_id']) && !empty($_POST['branch_id'])) {
+            $filters['branch_id'] = $_POST['branch_id'];
+        }
+        if (isset($_POST['tag']) && !empty($_POST['tag'])) {
+            $filters['tag'] = $_POST['tag'];
+        }
+        //}
+        if (isset($_POST['lead_assigned_user']) && $_POST['lead_assigned_user'] == 'null') {
+            unset($filters['brand_id']);
+            unset($filters['region_id']);
+            unset($filters['branch_id']);
+        }
+
+
+        if (isset($_POST['created_at_from']) && !empty($_POST['created_at_from'])) {
+            $filters['created_at_from'] = $_POST['created_at_from'];
+        }
+
+        if (isset($_POST['created_at_to']) && !empty($_POST['created_at_to'])) {
+            $filters['created_at_to'] = $_POST['created_at_to'];
+        }
+
+        if (isset($_POST['tag']) && !empty($_POST['tag'])) {
+            $filters['tag'] = $_POST['tag'];
+        }
+        return $filters;
     }
 }

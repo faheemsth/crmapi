@@ -1530,10 +1530,10 @@ public function backuplist(Request $request)
         $applyRoleAccess = function ($query) use ($auth_user) {
             switch (strtolower($auth_user->type)) {
                 case 'super admin':
+                case 'HR':
                     // Full access
                     break;
 
-                case 'HR':
                 case 'admin team':
                 case 'project director':
                     // Can see everyone except Super Admin

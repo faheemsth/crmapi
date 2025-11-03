@@ -264,6 +264,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/CreateOrUpdateLeadNotes', [LeadController::class, 'CreateOrUpdateLeadNotes']);
     Route::post('/GetLeadNotes', [LeadController::class, 'GetLeadNotes']);
     Route::post('/DeleteLeadNotes', [LeadController::class, 'DeleteLeadNotes']);
+    Route::post('/EmailMarketing', [LeadController::class, 'EmailMarketing']);
 
 
 
@@ -739,8 +740,11 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getEmailTemplates', [EmailTemplateController::class, 'getEmailTemplates']);
      Route::post('/updateEmailTemplate', [EmailTemplateController::class, 'updateEmailTemplate']);
      Route::post('/deleteEmailTemplate', [EmailTemplateController::class, 'deleteEmailTemplate']);
-
-        //    Role
+     Route::post('email_template_submit_to_queue', [EmailTemplateController::class, 'email_template_submit_to_queue'])->name('email_template_submit_to_queue');
+     Route::get('email-marketing-queue', [EmailTemplateController::class, 'email_marketing_queue'])->name('email_marketing_queue');
+     Route::post('email_marketing_queue_detail', [EmailTemplateController::class, 'email_marketing_queue_detail'])->name('email_marketing_queue');
+       
+     //    Role
      Route::post('/getRoleDetail', [RoleController::class, 'getRoleDetail']);
      Route::post('/addRole', [RoleController::class, 'addRole']);
      Route::post('/updateRole', [RoleController::class, 'updateRole']);
