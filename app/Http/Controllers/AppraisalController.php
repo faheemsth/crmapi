@@ -472,7 +472,7 @@ class AppraisalController extends Controller
             'branches.id as branch_id',
             'assigned_to.id as created_id',
         )
-            ->with('employees')
+            ->with(['employees', 'remarks'])
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
