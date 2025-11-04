@@ -519,9 +519,9 @@ class AppraisalController extends Controller
         ]);
     }
 
-    public function fetchperformance(Request $request)
+    public function fetchperformance(Request $request) 
     {
-         $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'employee' => 'required|exists:users,id',
             'appraisal' => 'nullable|exists:appraisals,id',
         ]);
@@ -530,12 +530,12 @@ class AppraisalController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-         // Fetch appraisal data
+        // Fetch appraisal data
         $appraisal = Appraisal::with('appraisalRemarks')->find($request->appraisal);
 
         $userget = User::find($request->employee);
         $user_type = Role::where('name', $userget->type)->first();
-        //dd($user_type);
+ //dd($user_type);
         $indicator = Indicator::where('designation', $user_type->id)->first();
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : []; 
         $rating = !empty($appraisal) ? json_decode($appraisal->rating, true) : [];
@@ -545,10 +545,25 @@ class AppraisalController extends Controller
             ->get();
 
         foreach ($performance_types as $performance_type) {
-            $performance_type->competencies = Competencies::whereRaw(
+            // get competencies for that role
+            $competencies = Competencies::whereRaw(
                 'JSON_CONTAINS(type, ?, "$")',
                 [json_encode((int)$performance_type->id)]
             )->get();
+
+            // merge remarks if appraisal exists
+            if (!empty($appraisal)) {
+                $competencies = $competencies->map(function ($comp) use ($appraisal) {
+                    $remark = $appraisal->appraisalRemarks
+                        ->where('competencies_id', $comp->id)
+                        ->first();
+
+                    $comp->remarks = $remark ? $remark->remarks : null;
+                    return $comp;
+                });
+            }
+
+            $performance_type->competencies = $competencies;
         }
 
         return response()->json([
