@@ -69,20 +69,12 @@ class ReportsController extends Controller
         }
         if (!empty($instituteIds)) {
             $query->whereIn('university_id', $instituteIds);
-        } else {
-            $query->whereNotNull('university_id');
         }
-
         if (!empty($intakeYear)) {
             $query->where('intakeYear', $intakeYear);
-        } else {
-            $query->whereNotNull('intakeYear');
         }
-
         if (!empty($intake)) {
             $query->where('intake', $intake);
-        } else {
-            $query->whereNotNull('intake');
         }
 
         if (!empty($depositVisaStages)) {
