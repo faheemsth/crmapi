@@ -294,6 +294,51 @@ class LoginRegisterController extends Controller
 }
 
 
+   public function checkemail(Request $request)
+{
+    $validate = Validator::make($request->all(), [
+        'email' => 'required|string|email'
+    ]);
+
+    if($validate->fails()){
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'User not found',
+            'data' => $validate->errors(),
+        ], 403);
+    }
+
+    // Check email existence
+    $user = User::where('email', $request->email)->first();
+
+    // Handle case where user is not found
+    if(!$user) {
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'User not found.'
+        ], 404);
+    }
+
+
+    if (!$user->is_active) {
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'User blocked'
+        ], 401);
+    }
+
+      
+
+    $response = [
+        'status' => 'success',
+        'message' => 'User found',
+        'data' => $user,
+    ];
+
+    return response()->json($response, 200);
+}
+
+
     /**
      * Log out the user from application.
      *
