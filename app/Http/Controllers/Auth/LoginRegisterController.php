@@ -308,7 +308,7 @@ class LoginRegisterController extends Controller
         ], 403);
     }
 
-    // Check email existence
+    // Check email existence 
     $user = User::where('email', $request->email)->first();
 
     // Handle case where user is not found
