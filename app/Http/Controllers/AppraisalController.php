@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AppraisalController extends Controller
 {
@@ -617,4 +618,153 @@ class AppraisalController extends Controller
             'appraisal' => $appraisal,
         ]);
     }
+
+
+    public function summaryReport(Request $request)
+    {
+        $query = DB::table('appraisals')
+            ->leftJoin('branches', 'appraisals.branch', '=', 'branches.id')
+            ->leftJoin('regions', 'appraisals.region_id', '=', 'regions.id')
+            ->leftJoin('users', 'appraisals.employee', '=', 'users.id')
+            ->select(
+                'appraisals.brand_id',
+                'appraisals.region_id',
+                'appraisals.branch',
+                'appraisals.status',
+                'regions.name as region_name',
+                'branches.name as branch_name'
+            );
+
+        // Optional filters (if needed)
+        if ($request->has('brand_id')) {
+            $query->where('appraisals.brand_id', $request->brand_id);
+        }
+        if ($request->has('region_id')) {
+            $query->where('appraisals.region_id', $request->region_id);
+        }
+        if ($request->has('branch_id')) {
+            $query->where('appraisals.branch', $request->branch_id);
+        }
+
+        $data = $query->get();
+
+        // Group brand → region → branch
+        $report = $data->groupBy('brand_id')->map(function ($brandGroup, $brandId) {
+            return [
+                'brand_id' => $brandId,
+                'brand_name' => $this->getBrandName($brandId),
+                'total' => $brandGroup->count(),
+                'saved' => $brandGroup->where('status', '1')->count(),
+                'submitted' => $brandGroup->where('status', '2')->count(),
+                'regions' => $brandGroup->groupBy('region_id')->map(function ($regionGroup, $regionId) {
+                    return [
+                        'region_id' => $regionId,
+                        'region_name' => optional($regionGroup->first())->region_name,
+                        'total' => $regionGroup->count(),
+                        'saved' => $regionGroup->where('status', '1')->count(),
+                        'submitted' => $regionGroup->where('status', '2')->count(),
+                        'branches' => $regionGroup->groupBy('branch')->map(function ($branchGroup, $branchId) {
+                            return [
+                                'branch_id' => $branchId,
+                                'branch_name' => optional($branchGroup->first())->branch_name,
+                                'total' => $branchGroup->count(),
+                                'saved' => $branchGroup->where('status', '1')->count(),
+                                'submitted' => $branchGroup->where('status', '2')->count(),
+                            ];
+                        })->values()
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Appraisal summary report generated successfully',
+            'data' => $report
+        ]);
+    }
+
+    // Helper function to fetch brand name (if stored in users table)
+    private function getBrandName($brandId)
+    {
+        if (!$brandId) return null;
+        $brand = DB::table('users')->where('id', $brandId)->value('name');
+        return $brand ?? "Unknown Brand";
+    }
+
+    public function appraisalSummaryReport(Request $request)
+{
+    $query = DB::table('users as b') // b = brand
+        ->where('b.type', 'company')
+        ->leftJoin('regions as r', 'r.brands', 'LIKE', DB::raw("CONCAT('%', b.id, '%')"))
+        ->leftJoin('branches as br', 'br.region_id', '=', 'r.id')
+        ->leftJoin('appraisals as a', function ($join) {
+            $join->on('a.brand_id', '=', 'b.id')
+                 ->on('a.region_id', '=', 'r.id')
+                 ->on('a.branch', '=', 'br.id');
+        })
+        ->selectRaw("
+            b.id as brand_id,
+            b.name as brand_name,
+            r.id as region_id,
+            r.name as region_name,
+            br.id as branch_id,
+            br.name as branch_name,
+            COUNT(a.id) as total,
+            COALESCE(SUM(CASE WHEN a.status = 1 THEN 1 ELSE 0 END), 0) as saved,
+            COALESCE(SUM(CASE WHEN a.status = 2 THEN 1 ELSE 0 END), 0) as submitted
+        ")
+        ->groupBy('b.id', 'b.name', 'r.id', 'r.name', 'br.id', 'br.name')
+        ->orderBy('b.name')
+        ->get();
+
+    // ✅ Build proper nested structure (brand → region → branch)
+    $report = [];
+    foreach ($query->groupBy('brand_id') as $brandId => $brandGroup) {
+        $brandInfo = $brandGroup->first();
+
+        $brandData = [
+            'brand_id'   => $brandInfo->brand_id,
+            'brand_name' => $brandInfo->brand_name ?? 'N/A',
+            'total'      => $brandGroup->sum('total'),
+            'saved'      => $brandGroup->sum('saved'),
+            'submitted'  => $brandGroup->sum('submitted'),
+            'regions'    => [],
+        ];
+
+        foreach ($brandGroup->groupBy('region_id') as $regionId => $regionGroup) {
+            $regionInfo = $regionGroup->first();
+
+            $regionData = [
+                'region_id'   => $regionInfo->region_id,
+                'region_name' => $regionInfo->region_name ?? 'N/A',
+                'total'       => $regionGroup->sum('total'),
+                'saved'       => $regionGroup->sum('saved'),
+                'submitted'   => $regionGroup->sum('submitted'),
+                'branches'    => [],
+            ];
+
+            foreach ($regionGroup as $branch) {
+                $regionData['branches'][] = [
+                    'branch_id'   => $branch->branch_id,
+                    'branch_name' => $branch->branch_name ?? 'N/A',
+                    'total'       => (int) $branch->total,
+                    'saved'       => (int) $branch->saved,
+                    'submitted'   => (int) $branch->submitted,
+                ];
+            }
+
+            $brandData['regions'][] = $regionData;
+        }
+
+        $report[] = $brandData;
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Appraisal summary report generated successfully',
+        'data' => $report,
+    ]);
+}
+
 }

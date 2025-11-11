@@ -202,6 +202,7 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/validateEmpId', 'validateEmpId');
     Route::post('/encryptDataEmpId', 'encryptDataEmpId');
     Route::post('/googlelogin', 'googlelogin');
+    Route::post('/checkemail', 'checkemail');  // for checking email already exist or not
     Route::post('/changePassword', 'changePassword');
 });
 
@@ -335,6 +336,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/appraisalDetails', [AppraisalController::class, 'appraisalDetails']);
     Route::post('/fetchperformance', [AppraisalController::class, 'fetchperformance']);
     Route::post('/fetchperformanceedit', [AppraisalController::class, 'fetchperformanceedit']);
+    Route::get('/appraisalsummaryReport', [AppraisalController::class, 'appraisalSummaryReport']);
 
     // SetSalaries
     Route::post('/getSetSalaries', [SetSalaryController::class, 'getSetSalaries']);
