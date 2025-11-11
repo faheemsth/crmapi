@@ -202,7 +202,7 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/validateEmpId', 'validateEmpId');
     Route::post('/encryptDataEmpId', 'encryptDataEmpId');
     Route::post('/googlelogin', 'googlelogin');
-    Route::post('/checkemail', 'checkemail'); 
+    Route::post('/checkemail', 'checkemail');  // for checking email already exist or not
     Route::post('/changePassword', 'changePassword');
 });
 

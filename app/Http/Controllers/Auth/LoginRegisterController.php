@@ -293,7 +293,7 @@ class LoginRegisterController extends Controller
     return response()->json($response, 200);
 }
 
-
+    // Check email existence
    public function checkemail(Request $request)
 {
     $validate = Validator::make($request->all(), [
