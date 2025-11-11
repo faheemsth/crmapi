@@ -243,6 +243,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
+// space space
+
     // Leads start here
     Route::post('/getLeads', [LeadController::class, 'getLeads']);
     Route::post('/fetchColumns', [LeadController::class, 'fetchColumns']);

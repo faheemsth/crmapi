@@ -89,6 +89,9 @@ class ReportsController extends Controller
             $query->whereIn('deposit_stage_id', $depositVisaStages);
         }
 
+
+        $query->whereNotNull('university_name');
+
         
         
 
