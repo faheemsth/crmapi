@@ -2408,6 +2408,7 @@ class LeadController extends Controller
 
 
                 $filters = $this->AgencyFilter();
+                // dd($filters);
                 foreach ($filters as $column => $value) {
                     if ($column === 'name') {
                         $Agency_Email->where('agencies.organization_name', 'LIKE', '%' . $value . '%');
@@ -2451,7 +2452,7 @@ class LeadController extends Controller
             $filters = $this->organizationsFilter();
             foreach ($filters as $column => $value) {
                 if ($column === 'name') {
-                    $organization_Email->whereIn('name', $value);
+                    $organization_Email->where('name', 'LIKE', '%' . $value . '%');
                 } elseif ($column === 'phone') {
                     $organization_Email->where('organizations.phone', 'LIKE', '%' . $value . '%');
                 } elseif ($column === 'street') {
@@ -2461,7 +2462,7 @@ class LeadController extends Controller
                 } elseif ($column == 'state') {
                     $organization_Email->where('organizations.billing_state', 'LIKE', '%' . $value . '%');
                 } elseif ($column === 'country') {
-                    $organization_Email->whereIn('organizations.billing_country', $value);
+                    $organization_Email->where('organizations.billing_country', $value);
                 }
             }
                 $EmailMarkittingFileEmail = $organization_Email->pluck('users.email','users.id')->toArray();
@@ -2632,6 +2633,7 @@ class LeadController extends Controller
                 }
 
                 // --- Dynamic Filters ---
+                // dd($filters);
                 foreach ($filters as $column => $value) {
                     switch ($column) {
                         case 'name':
@@ -2728,30 +2730,30 @@ class LeadController extends Controller
         private function AgencyFilter()
     {
         $filters = [];
-        if (isset($_GET['agencyname']) && !empty($_GET['agencyname'])) {
-            $filters['name'] = $_GET['agencyname'];
+        if (isset($_POST['Name']) && !empty($_POST['Name'])) {
+            $filters['name'] = $_POST['Name'];
         }
 
-        if (isset($_GET['agencyemail']) && !empty($_GET['agencyemail'])) {
-            $filters['email'] = $_GET['agencyemail'];
+        if (isset($_POST['sector']) && !empty($_POST['sector'])) {
+            $filters['email'] = $_POST['sector'];
         }
 
-        if (isset($_GET['agencyphone']) && !empty($_GET['agencyphone'])) {
-            $filters['phone'] = $_GET['agencyphone'];
+        if (isset($_POST['agencyphone']) && !empty($_POST['agencyphone'])) {
+            $filters['phone'] = $_POST['agencyphone'];
         }
 
-        if (isset($_GET['country']) && !empty($_GET['country'])) {
-            $filters['country'] = $_GET['country'];
+        if (isset($_POST['countryId']) && !empty($_POST['countryId'])) {
+            $filters['country'] = $_POST['countryId'];
         }
 
-        if (isset($_GET['city']) && !empty($_GET['city'])) {
-            $filters['city'] = $_GET['city'];
+        if (isset($_POST['city']) && !empty($_POST['city'])) {
+            $filters['city'] = $_POST['city'];
         }
-        if (isset($_GET['brand_id']) && !empty($_GET['brand_id'])) {
-            $filters['brand_id'] = $_GET['brand_id'];
+        if (isset($_POST['brand_id']) && !empty($_POST['brand_id'])) {
+            $filters['brand_id'] = $_POST['brand_id'];
         }
-         if (isset($_GET['tag']) && !empty($_GET['tag'])) {
-            $filters['tag'] = $_GET['tag'];
+         if (isset($_POST['tag']) && !empty($_POST['tag'])) {
+            $filters['tag'] = $_POST['tag'];
         }
 
         return $filters;
@@ -2761,29 +2763,29 @@ class LeadController extends Controller
     private function organizationsFilter()
     {
         $filters = [];
-        if (isset($_GET['name']) && !empty($_GET['name'])) {
-            $filters['name'] = $_GET['name'];
+        if (isset($_POST['Name']) && !empty($_POST['Name'])) {
+            $filters['name'] = $_POST['Name'];
         }
 
 
-        if (isset($_GET['phone']) && !empty($_GET['phone'])) {
-            $filters['phone'] = $_GET['phone'];
+        if (isset($_POST['Phone']) && !empty($_POST['Phone'])) {
+            $filters['phone'] = $_POST['Phone'];
         }
 
-        if (isset($_GET['street']) && !empty($_GET['street'])) {
-            $filters['street'] = $_GET['street'];
+        if (isset($_POST['Street']) && !empty($_POST['Street'])) {
+            $filters['street'] = $_POST['Street'];
         }
 
-        if (isset($_GET['state']) && !empty($_GET['state'])) {
-            $filters['state'] = $_GET['state'];
+        if (isset($_POST['State']) && !empty($_POST['State'])) {
+            $filters['state'] = $_POST['State'];
         }
 
-        if (isset($_GET['city']) && !empty($_GET['city'])) {
-            $filters['city'] = $_GET['city'];
+        if (isset($_POST['city']) && !empty($_POST['city'])) {
+            $filters['city'] = $_POST['city'];
         }
 
-        if (isset($_GET['country']) && !empty($_GET['country'])) {
-            $filters['country'] = $_GET['country'];
+        if (isset($_POST['countryId']) && !empty($_POST['countryId'])) {
+            $filters['country'] = $_POST['countryId'];
         }
 
         return $filters;
@@ -2794,21 +2796,21 @@ class LeadController extends Controller
         if (isset($_POST['name']) && !empty($_POST['name'])) {
             $filters['name'] = $_POST['name'];
         }
-        if (isset($_POST['created_by']) && !empty($_POST['created_by'])) {
-            $filters['created_by'] = $_POST['created_by'];
+        if (isset($_POST['CreatedById']) && !empty($_POST['CreatedById'])) {
+            $filters['created_by'] = $_POST['CreatedById'];
         }
 
 
-        if (isset($_POST['stages']) && !empty($_POST['stages'])) {
-            $filters['stage_id'] = $_POST['stages'];
+        if (isset($_POST['StagesId']) && !empty($_POST['StagesId'])) {
+            $filters['stage_id'] = $_POST['StagesId'];
         }
 
         if (isset($_POST['users']) && !empty($_POST['users'])) {
             $filters['users'] = $_POST['users'];
         }
 
-        if (isset($_POST['lead_assigned_user']) && !empty($_POST['lead_assigned_user'])) {
-            $filters['lead_assigned_user'] = $_POST['lead_assigned_user'];
+        if (isset($_POST['EmployeesId']) && !empty($_POST['EmployeesId'])) {
+            $filters['lead_assigned_user'] = $_POST['EmployeesId'];
         }
 
         if (isset($_POST['subject']) && !empty($_POST['subject'])) {
@@ -2818,19 +2820,19 @@ class LeadController extends Controller
 
 
         // if(isset($_POST['lead_assigned_user']) && !empty($_POST['lead_assigned_user']) && $_POST['lead_assigned_user'] != 'null'){
-        if (isset($_POST['brand']) && !empty($_POST['brand'])) {
-            $filters['brand_id'] = $_POST['brand'];
+        if (isset($_POST['brandId']) && !empty($_POST['brandId'])) {
+            $filters['brand_id'] = $_POST['brandId'];
         }
 
-        if (isset($_POST['region_id']) && !empty($_POST['region_id'])) {
-            $filters['region_id'] = $_POST['region_id'];
+        if (isset($_POST['regionId']) && !empty($_POST['regionId'])) {
+            $filters['region_id'] = $_POST['regionId'];
         }
 
-        if (isset($_POST['branch_id']) && !empty($_POST['branch_id'])) {
-            $filters['branch_id'] = $_POST['branch_id'];
+        if (isset($_POST['branchId']) && !empty($_POST['branchId'])) {
+            $filters['branch_id'] = $_POST['branchId'];
         }
-        if (isset($_POST['tag']) && !empty($_POST['tag'])) {
-            $filters['tag'] = $_POST['tag'];
+        if (isset($_POST['TagsId']) && !empty($_POST['TagsId'])) {
+            $filters['tag'] = $_POST['TagsId'];
         }
         //}
         if (isset($_POST['lead_assigned_user']) && $_POST['lead_assigned_user'] == 'null') {
@@ -2840,17 +2842,14 @@ class LeadController extends Controller
         }
 
 
-        if (isset($_POST['created_at_from']) && !empty($_POST['created_at_from'])) {
-            $filters['created_at_from'] = $_POST['created_at_from'];
+        if (isset($_POST['StartDate']) && !empty($_POST['StartDate'])) {
+            $filters['created_at_from'] = $_POST['StartDate'];
         }
 
-        if (isset($_POST['created_at_to']) && !empty($_POST['created_at_to'])) {
-            $filters['created_at_to'] = $_POST['created_at_to'];
+        if (isset($_POST['EndDate']) && !empty($_POST['EndDate'])) {
+            $filters['created_at_to'] = $_POST['EndDate'];
         }
 
-        if (isset($_POST['tag']) && !empty($_POST['tag'])) {
-            $filters['tag'] = $_POST['tag'];
-        }
         return $filters;
     }
 }
