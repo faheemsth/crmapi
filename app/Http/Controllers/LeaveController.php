@@ -577,6 +577,10 @@ public function getLeaves(Request $request)
         $leave = Leave::with('User')->find($request->id);
 
 
+        \App\Models\AttendanceEmployee::where('employee_id', $leave->employee_id)
+            ->whereBetween('date', [$leave->start_date, $leave->end_date])
+            ->where('status', 'Leave')
+            ->delete();
 
         // Log the deletion activity
         $logData = [

@@ -1166,10 +1166,10 @@ public function GetBranchByType()
     ]);
 }
 
- public function totalSummary(Request $request)
+    public function totalSummary(Request $request)
     {
-
-         $validator = Validator::make($request->all(), [ 
+        try {
+            $validator = Validator::make($request->all(), [ 
                 'user_id' => 'required|exists:users,id', 
                 'type' => 'required|string|in:week,month', 
             ]);
@@ -1183,191 +1183,198 @@ public function GetBranchByType()
 
             $employeeId = $request->input('user_id');
             $type = $request->input('type', 'week');
-
-        if (!$employeeId) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Employee not found.'
-            ], 404);
-        }
-
-        $query = DB::table('attendance_employees')
-            ->where('employee_id', $employeeId);
-
-        // Filter by date range
-        if ($type === 'week') {
-            $query->whereBetween('date', [
-                now()->startOfWeek()->toDateString(),
-                now()->endOfWeek()->toDateString()
-            ]);
-        } elseif ($type === 'month') {
-            $query->whereYear('date', now()->year)
-                ->whereMonth('date', now()->month);
-        }
-
-        $records = $query->get();
-
-        // Status counts
-        $present = $records->where('status', 'Present')->count();
-        $absent = $records->where('status', 'Absent')->count();
-        $leave = $records->where('status', 'Leave')->count();
-        $holiday = $records->where('status', 'Holiday')->count();
-        $on_time_rate = $records->filter(function ($record) {
-                return $record->status === 'Present' &&
-                    $record->clock_in &&
-                    $record->shift_start &&
-                    strtotime($record->clock_in) <= strtotime($record->shift_start . ' +30 minutes');
-            })->count();
-          $latecount = $records->filter(function ($record) {
-                return $record->status === 'Present' &&
-                    $record->clock_in &&
-                    $record->shift_start &&
-                    strtotime($record->clock_in) >= strtotime($record->shift_start . ' +30 minutes');
-            })->count();
-        $total = $records->count();
-
-        // Working days = All except holidays
-        $workingDays = $present + $absent + $leave;
-
-        // Total working time in seconds (only for Present days)
-        $totalSeconds = 0;
-        foreach ($records as $record) {
-            if ($record->status === 'Present' && $record->clock_in && $record->clock_out) {
-                $clockIn = strtotime($record->clock_in);
-                $clockOut = strtotime($record->clock_out);
-                $diff = $clockOut - $clockIn;
-
-                if ($diff > 0) {
-                    $totalSeconds += $diff;
-                }
+            
+            // Calculate date range based on type
+            if ($type === 'week') {
+                $startDate = now()->startOfWeek()->toDateString();
+                $endDate = now()->endOfWeek()->toDateString();
+            } elseif ($type === 'month') {
+                $startDate = now()->startOfMonth()->toDateString();
+                $endDate = now()->endOfMonth()->toDateString();
             }
+
+            $countsQuery = DB::table('users')
+                ->leftJoin('attendance_employees as attendances', function ($join) use ($startDate, $endDate) {
+                    $join->on('attendances.employee_id', '=', 'users.id')
+                        ->whereBetween('attendances.date', [$startDate, $endDate]);
+                })
+                ->where('users.id', $employeeId);
+
+            $statusCounts = $countsQuery->select(
+                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL  THEN 1 ELSE 0 END) as OnTime"),
+                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as Late"),
+                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Absent' THEN 1 ELSE 0 END ) as `Absent`"),
+                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
+                DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`")
+            )->first();
+
+            // Calculate summary
+            $onTime = (int) ($statusCounts->OnTime ?? 0);
+            $late = (int) ($statusCounts->Late ?? 0);
+            $absent = (int) ($statusCounts->Absent ?? 0);
+            $leave = (int) ($statusCounts->Leave ?? 0);
+            $earlyClockOut = (int) ($statusCounts->Early_Clock_Out ?? 0);
+            
+            // Present = OnTime + Late (both are present but differentiated by punctuality)
+            $present = $onTime + $late;
+            
+            $holiday = 3; // static or compute dynamically
+            $total_days = $present + $absent + $leave + $holiday;
+            $working_days = $present + $absent + $leave;
+            
+            // Calculate working hours
+            $workingHoursQuery = DB::table('attendance_employees')
+                ->where('employee_id', $employeeId)
+                ->whereBetween('date', [$startDate, $endDate])
+                ->whereNotNull('clock_in')
+                ->whereNotNull('clock_out')
+                ->where('clock_in', '!=', '00:00:00')
+                ->where('clock_out', '!=', '00:00:00');
+
+            $total_working_seconds = 0;
+            $records = $workingHoursQuery->get();
+            
+            foreach ($records as $record) {
+                $clockIn = Carbon::parse($record->date . ' ' . $record->clock_in);
+                $clockOut = Carbon::parse($record->date . ' ' . $record->clock_out);
+                
+                // Handle overnight shifts
+                if ($clockOut->lessThan($clockIn)) {
+                    $clockOut->addDay();
+                }
+                
+                $total_working_seconds += $clockOut->diffInSeconds($clockIn);
+            }
+
+            $total_working_hours = gmdate('H:i', $total_working_seconds);
+            $record_count = count($records);
+            $average_working_seconds = $record_count > 0 ? $total_working_seconds / $record_count : 0;
+            $average_working_hours = gmdate('H:i', $average_working_seconds);
+            $on_time_rate = $working_days > 0 ? round(($onTime / $working_days) * 100, 2) : 0;
+
+            $attendance_summary = [
+                "present" => $present + $onTime,
+                "late" => $late,
+                "absent" => $total_days - ($present + $onTime + $late + $holiday),
+                "leave" => $leave,
+                "holiday" => $holiday,
+                "total_days" => $total_days,
+                "working_days" => $working_days,
+                "total_working_hours" => $total_working_hours,
+                "average_working_hours" => $average_working_hours,
+                "on_time_rate" => $on_time_rate,
+                "early_clock_out" => $earlyClockOut
+            ];
+
+            return $attendance_summary;
+            
+        } catch (Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-
-        // Total working hours (HH:MM)
-        $totalHours = floor($totalSeconds / 3600);
-        $totalMinutes = floor(($totalSeconds % 3600) / 60);
-        $totalWorking = sprintf('%02d:%02d', $totalHours, $totalMinutes);
-
-        // Average working time = totalSeconds / workingDays
-        $avgSeconds = $workingDays > 0 ? intval($totalSeconds / $workingDays) : 0;
-        $avgHours = floor($avgSeconds / 3600);
-        $avgMinutes = floor(($avgSeconds % 3600) / 60);
-        $avgWorking = sprintf('%02d:%02d', $avgHours, $avgMinutes);
-
-        return response()->json([
-            'present' => $present-$latecount,
-            'late' => $latecount,
-            'absent' => $absent,
-            'leave' => $leave,
-            'holiday' => $holiday,
-            'total_days' => $total,
-            'working_days' => $workingDays,
-            'total_working_hours' => $totalWorking,
-            'average_working_hours' => $avgWorking,
-            'on_time_rate' => $present > 0 ? round(($on_time_rate / $present) * 100, 2) : 0,
-        ]);
     }
 
     public function getAttendanceReport(Request $request)
-{
-   
-       $validator = Validator::make($request->all(), [ 
-                'user_id' => 'required|exists:users,id',   
-            ]);
+    {
+    
+        $validator = Validator::make($request->all(), [ 
+                    'user_id' => 'required|exists:users,id',   
+                ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $validator->errors()
-                ], 422);
-            }
+                if ($validator->fails()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $validator->errors()
+                    ], 422);
+                }
 
-        $from = $request->input('from', date('Y-m-1'));
-        $to = $request->input('to', date('Y-m-31'));
-        $employeeId = $request->input('user_id');
+            $from = $request->input('from', date('Y-m-1'));
+            $to = $request->input('to', date('Y-m-31'));
+            $employeeId = $request->input('user_id');
 
-    $records = DB::table('attendance_employees')
-        ->where('employee_id', $request->user_id)
-        ->whereBetween('date', [$from, $to])
-        ->orderBy('date', 'desc')
-        ->get();
+        $records = DB::table('attendance_employees')
+            ->where('employee_id', $request->user_id)
+            ->whereBetween('date', [$from, $to])
+            ->orderBy('date', 'desc')
+            ->get();
 
-   $data = $records->map(function ($record) {
-    $shiftStart = strtotime($record->shift_start);
-    $shiftEnd   = strtotime($record->shift_end);
-    $shiftDuration = $shiftEnd - $shiftStart;
+        $data = $records->map(function ($record) {
+                $shiftStart = strtotime($record->shift_start);
+                $shiftEnd   = strtotime($record->shift_end);
+                $shiftDuration = $shiftEnd - $shiftStart;
 
-    $clockIn  = ($record->clock_in && $record->clock_in !== "00:00:00")
-        ? strtotime($record->clock_in)
-        : null;
+                $clockIn  = ($record->clock_in && $record->clock_in !== "00:00:00")
+                    ? strtotime($record->clock_in)
+                    : null;
 
-    $clockOut = ($record->clock_out && $record->clock_out !== "00:00:00")
-        ? strtotime($record->clock_out)
-        : null;
+                $clockOut = ($record->clock_out && $record->clock_out !== "00:00:00")
+                    ? strtotime($record->clock_out)
+                    : null;
 
-    $graceShiftStart = strtotime("+30 minutes", $shiftStart);
+                $graceShiftStart = strtotime("+30 minutes", $shiftStart);
 
-    $clockInStatus = $clockOutStatus = $overallStatus = null;
+                $clockInStatus = $clockOutStatus = $overallStatus = null;
 
-    // --- If both clockin and clockout missing ---
-    if (!$clockIn && !$clockOut) {
-        $clockInStatus = ['label' => $record->status, 'badge' => 'blue'];
-        $clockOutStatus = ['label' => $record->status, 'badge' => 'blue'];
-        $overallStatus = ['label' => $record->status, 'badge' => 'blue'];
-    } else {
-        // Clock In Status
-        if (!$clockIn) {
-            $clockInStatus = ['label' => $record->status, 'badge' => 'gray'];
-        } elseif ($clockIn <= $graceShiftStart) {
-            $clockInStatus = ['label' => 'On Time', 'badge' => 'green'];
-        } else {
-            $clockInStatus = ['label' => 'Late', 'badge' => 'red'];
-        }
+                // --- If both clockin and clockout missing ---
+                if (!$clockIn && !$clockOut) {
+                    $clockInStatus = ['label' => $record->status, 'badge' => 'blue'];
+                    $clockOutStatus = ['label' => $record->status, 'badge' => 'blue'];
+                    $overallStatus = ['label' => $record->status, 'badge' => 'blue'];
+                } else {
+                    // Clock In Status
+                    if (!$clockIn) {
+                        $clockInStatus = ['label' => $record->status, 'badge' => 'gray'];
+                    } elseif ($clockIn <= $graceShiftStart) {
+                        $clockInStatus = ['label' => 'On Time', 'badge' => 'green'];
+                    } elseif ($record->status === "Present") {
+                        $clockInStatus = ['label' => 'Present', 'badge' => 'green'];
+                    } else {
+                        $clockInStatus = ['label' => 'Late', 'badge' => 'red'];
+                    }
 
-        // Clock Out Status
-        if (!$clockOut || !$clockIn) {
-            $clockOutStatus = ['label' => $record->status, 'badge' => 'gray'];
-        } else {
-            $workedDuration = $clockOut - $clockIn;
-            if ($workedDuration >= $shiftDuration) {
-                $clockOutStatus = ['label' => 'Completed Shift', 'badge' => 'green'];
-            } else {
-                $minutes = round(($shiftDuration - $workedDuration) / 60);
-                $clockOutStatus = ['label' => $minutes . ' min Short', 'badge' => 'red'];
-            }
-        }
+                    // Clock Out Status
+                    if (!$clockOut || !$clockIn) {
+                        $clockOutStatus = ['label' => $record->status, 'badge' => 'gray'];
+                    } else {
+                        $workedDuration = $clockOut - $clockIn;
+                        if ($workedDuration >= $shiftDuration) {
+                            $clockOutStatus = ['label' => 'Completed Shift', 'badge' => 'green'];
+                        } else {
+                            $minutes = round(($shiftDuration - $workedDuration) / 60);
+                            $clockOutStatus = ['label' => $minutes . ' min Short', 'badge' => 'red'];
+                        }
+                    }
 
-        // --- Overall Status ---
-        if (
-            isset($clockInStatus['label'], $clockOutStatus['label']) &&
-            $clockInStatus['label'] === 'On Time' &&
-            $clockOutStatus['label'] === 'Completed Shift'
-        ) {
-            $overallStatus = ['label' => 'Good', 'badge' => 'green'];
-        } else {
-            $overallStatus = ['label' => 'Bad', 'badge' => 'red'];
-        }
+                    // --- Overall Status ---
+                    if (
+                        isset($clockInStatus['label'], $clockOutStatus['label']) &&
+                        $clockInStatus['label'] === 'On Time' &&
+                        $clockOutStatus['label'] === 'Completed Shift'
+                    ) {
+                        $overallStatus = ['label' => 'Good', 'badge' => 'green'];
+                    } else {
+                        $overallStatus = ['label' => 'Bad', 'badge' => 'red'];
+                    }
+                }
+
+                return [
+                    'date' => $record->date,
+                    'clock_in' => $record->clock_in,
+                    'clock_in_status' => $clockInStatus,
+                    'clock_out' => $record->clock_out,
+                    'clock_out_status' => $clockOutStatus,
+                    'status' => $record->status,
+                    'overall_status' => $overallStatus,
+                ];
+            });
+
+
+        return response()->json([
+            'employee_id' => $employeeId,
+            'from' => $from,
+            'to' => $to,
+            'attendance' => $data,
+        ]);
     }
-
-    return [
-        'date' => $record->date,
-        'clock_in' => $record->clock_in,
-        'clock_in_status' => $clockInStatus,
-        'clock_out' => $record->clock_out,
-        'clock_out_status' => $clockOutStatus,
-        'status' => $record->status,
-        'overall_status' => $overallStatus,
-    ];
-});
-
-
-    return response()->json([
-        'employee_id' => $employeeId,
-        'from' => $from,
-        'to' => $to,
-        'attendance' => $data,
-    ]);
-}
 
 
  

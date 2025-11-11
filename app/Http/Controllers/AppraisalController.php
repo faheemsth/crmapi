@@ -455,6 +455,7 @@ class AppraisalController extends Controller
 
     public function appraisalDetails(Request $request)
     {
+        // sheeraaz
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:appraisals,id',
         ]);
@@ -472,7 +473,7 @@ class AppraisalController extends Controller
             'branches.id as branch_id',
             'assigned_to.id as created_id',
         )
-            ->with('employees')
+            ->with(['employees', 'appraisalRemarks'])
             ->leftJoin('users', 'users.id', '=', 'appraisals.brand_id')
             ->leftJoin('branches', 'branches.id', '=', 'appraisals.branch')
             ->leftJoin('regions', 'regions.id', '=', 'appraisals.region_id')
@@ -488,6 +489,7 @@ class AppraisalController extends Controller
         }
 
         $user = User::find($appraisal->employee);
+        $created_by = User::find($appraisal->created_by);
         if (!$user) {
             return response()->json([
                 'status' => 'error',
@@ -504,10 +506,10 @@ class AppraisalController extends Controller
 
         $rating = !empty($appraisal->rating) ? json_decode($appraisal->rating, true) : [];
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
-
+ 
         return response()->json([
             'status' => 'success',
-
+            'created_by' => $created_by,
             'data' => $appraisal,
             'performance_types' => $performance_types,
             'ratings' => $ratings,
@@ -518,9 +520,9 @@ class AppraisalController extends Controller
         ]);
     }
 
-    public function fetchperformance(Request $request)
+    public function fetchperformance(Request $request) 
     {
-         $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->all(), [
             'employee' => 'required|exists:users,id',
             'appraisal' => 'nullable|exists:appraisals,id',
         ]);
@@ -529,12 +531,12 @@ class AppraisalController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-         // Fetch appraisal data
+        // Fetch appraisal data
         $appraisal = Appraisal::with('appraisalRemarks')->find($request->appraisal);
 
         $userget = User::find($request->employee);
         $user_type = Role::where('name', $userget->type)->first();
-        //dd($user_type);
+ //dd($user_type);
         $indicator = Indicator::where('designation', $user_type->id)->first();
         $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : []; 
         $rating = !empty($appraisal) ? json_decode($appraisal->rating, true) : [];
@@ -544,10 +546,25 @@ class AppraisalController extends Controller
             ->get();
 
         foreach ($performance_types as $performance_type) {
-            $performance_type->competencies = Competencies::whereRaw(
+            // get competencies for that role
+            $competencies = Competencies::whereRaw(
                 'JSON_CONTAINS(type, ?, "$")',
                 [json_encode((int)$performance_type->id)]
             )->get();
+
+            // merge remarks if appraisal exists
+            if (!empty($appraisal)) {
+                $competencies = $competencies->map(function ($comp) use ($appraisal) {
+                    $remark = $appraisal->appraisalRemarks
+                        ->where('competencies_id', $comp->id)
+                        ->first();
+
+                    $comp->remarks = $remark ? $remark->remarks : null;
+                    return $comp;
+                });
+            }
+
+            $performance_type->competencies = $competencies;
         }
 
         return response()->json([
