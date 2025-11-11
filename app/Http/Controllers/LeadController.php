@@ -57,6 +57,7 @@ use App\Models\SavedFilter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use App\Models\Agency;
+use App\Models\Country;
 use App\Models\EmailMarkittingFileEmail;
 use Illuminate\Support\Facades\Validator;
 
@@ -2417,7 +2418,7 @@ class LeadController extends Controller
                     } elseif ($column === 'email') {
                         $Agency_Email->where('agencies.organization_email', 'LIKE', '%' . $value . '%');
                     } elseif ($column === 'country') {
-                        $Agency_Email->where('agencies.billing_country', 'like', '%' . $value . '%');
+                        $Agency_Email->where('agencies.billing_country', 'like', '%' . Country::where('country_code',$value)->first()?->name . '%');
                     } elseif ($column === 'city') {
                         $Agency_Email->where('agencies.city', 'like', '%' . $value . '%');
                     } elseif ($column === 'tag') {
@@ -2462,7 +2463,7 @@ class LeadController extends Controller
                 } elseif ($column == 'state') {
                     $organization_Email->where('organizations.billing_state', 'LIKE', '%' . $value . '%');
                 } elseif ($column === 'country') {
-                    $organization_Email->where('organizations.billing_country', $value);
+                    $organization_Email->where('organizations.billing_country', Country::where('country_code',$value)->first()?->name);
                 }
             }
                 $EmailMarkittingFileEmail = $organization_Email->pluck('users.email','users.id')->toArray();
@@ -2746,8 +2747,8 @@ class LeadController extends Controller
             $filters['country'] = $_POST['countryId'];
         }
 
-        if (isset($_POST['city']) && !empty($_POST['city'])) {
-            $filters['city'] = $_POST['city'];
+        if (isset($_POST['cityId']) && !empty($_POST['cityId'])) {
+            $filters['city'] = $_POST['cityId'];
         }
         if (isset($_POST['brand_id']) && !empty($_POST['brand_id'])) {
             $filters['brand_id'] = $_POST['brand_id'];
@@ -2780,8 +2781,8 @@ class LeadController extends Controller
             $filters['state'] = $_POST['State'];
         }
 
-        if (isset($_POST['city']) && !empty($_POST['city'])) {
-            $filters['city'] = $_POST['city'];
+        if (isset($_POST['cityId']) && !empty($_POST['cityId'])) {
+            $filters['city'] = $_POST['cityId'];
         }
 
         if (isset($_POST['countryId']) && !empty($_POST['countryId'])) {
