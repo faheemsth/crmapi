@@ -591,7 +591,7 @@ class EmailTemplateController extends Controller
                             $email_sending_queues_query->whereIn('esq.sender_id', $value);
                             break;
                         case 'status':
-                            $email_sending_queues_query->where('esq.is_send', $value);
+                            $email_sending_queues_query->where('esq.status', $value);
                             break;
                         case 'created_at_from':
                             $email_sending_queues_query->whereDate('esq.created_at', '>=', $value);
@@ -746,6 +746,8 @@ class EmailTemplateController extends Controller
             // Fetch single email queue record
             $emailQueue = EmailSendingQueue::select(
                     'email_sending_queues.id as id',
+                    'email_sending_queues.status as status',
+                    'email_sending_queues.rejectapprovecoment as reason',
                     'email_sending_queues.brand_id',
                     'email_sending_queues.created_at',
                     'email_sending_queues.updated_at',
@@ -793,5 +795,44 @@ class EmailTemplateController extends Controller
         }
     }
 
+    public function email_marketing_approved_reject(Request $request)
+    {
+        try {
+            $id = $request->id; // Get the ID from request
+
+            // Fetch single email queue record
+            $record = \DB::table('email_sending_queues')->where('id', $id)->first();
+
+            // If not found
+            if (!$record) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Email queue not found.',
+                ], 404);
+            }
+
+            // Update all related records with same subject and sender_id
+            \DB::table('email_sending_queues')
+                ->where('subject', $record->subject)
+                ->where('sender_id', $record->sender_id)
+                ->update([
+                    'status' => $request->status,
+                    'rejectapprovecoment' => $request->reason
+                ]);
+
+
+            // Return formatted JSON response
+            return response()->json([
+                'status' => 'success',
+                'data' => [],
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 }

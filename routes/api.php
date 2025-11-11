@@ -743,6 +743,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::post('email_template_submit_to_queue', [EmailTemplateController::class, 'email_template_submit_to_queue'])->name('email_template_submit_to_queue');
      Route::get('email-marketing-queue', [EmailTemplateController::class, 'email_marketing_queue'])->name('email_marketing_queue');
      Route::post('email_marketing_queue_detail', [EmailTemplateController::class, 'email_marketing_queue_detail'])->name('email_marketing_queue');
+     Route::post('email-marketing-approved-reject', [EmailTemplateController::class, 'email_marketing_approved_reject'])->name('email_marketing_approved_reject');
        
      //    Role
      Route::post('/getRoleDetail', [RoleController::class, 'getRoleDetail']);
