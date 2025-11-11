@@ -2654,8 +2654,8 @@ class LeadController extends Controller
                             $bindings[] = $value;
                             break;
                         case 'stage_id':
-                            $sql .= " AND leads.stage_id IN (" . implode(',', array_fill(0, count($value), '?')) . ")";
-                            $bindings = array_merge($bindings, $value);
+                            $sql .= " AND leads.stage_id = ?";
+                            $bindings[] = $value;
                             break;
                         case 'lead_assigned_user':
                             if ($value == null) {
