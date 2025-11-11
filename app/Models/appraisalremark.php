@@ -15,4 +15,8 @@ class appraisalremark extends Model
         'remarks',
     ];
 
+    public function appraisal()
+    {
+        return $this->belongsTo(Appraisal::class, 'appraisal_id', 'id');
+    }
 }

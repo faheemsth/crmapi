@@ -1534,6 +1534,7 @@ public function backuplist(Request $request)
                     break;
 
                 case 'HR':
+                case 'hr':
                 case 'admin team':
                 case 'project director':
                     // Can see everyone except Super Admin
@@ -1553,7 +1554,8 @@ public function backuplist(Request $request)
                         'marketing officer',
                         'agent',
                         'support team',
-                        'receptionist'
+                        'receptionist',
+                        'project manager'
                     ]);
                     break;
 
@@ -1569,7 +1571,8 @@ public function backuplist(Request $request)
                         'marketing officer',
                         'agent',
                         'support team',
-                        'receptionist'
+                        'receptionist',
+                        'region manager'
                     ]);
                     break;
 
@@ -1583,6 +1586,7 @@ public function backuplist(Request $request)
                         'admissions officer',
                         'marketing officer',
                         'agent',
+                        'branch manager',
                         'support team',
                         'receptionist'
                     ]);
@@ -1590,7 +1594,7 @@ public function backuplist(Request $request)
 
                 case 'product coordinator manager':
                     // Can see Product Coordinator only
-                    $query->where('users.type', 'product coordinator');
+                    $query->whereIn('users.type', ['product coordinator','product coordinator manager']);
                     break;
 
                 case 'product coordinator':
@@ -1643,39 +1647,43 @@ public function backuplist(Request $request)
         $total = $employeesQuery->count();
 
         if ($request->input('download_csv')) {
-            $all = $employeesQuery->get()->map(function ($row) use ($date) {
-                $clockIn = $row->clock_in ?? null;
-                $clockOut = $row->clock_out ?? null;
+            $all = $employeesQuery->get()->map(function ($row) use ($date, $request) {
+                $clockInRaw = $row->clock_in ?? null;
+                $clockOutRaw = $row->clock_out ?? null;
+                $shiftStartRaw = $row->shift_start ?? null;
 
-                $workedSeconds = ($clockIn && $clockOut && $clockIn !== '00:00:00' && $clockOut !== '00:00:00')
-                    ? Carbon::parse($clockOut)->diffInSeconds(Carbon::parse($clockIn))
-                    : 0;
+                $clockIn = ($clockInRaw && $clockInRaw !== '00:00:00') ? Carbon::parse($clockInRaw) : null;
+                $clockOut = ($clockOutRaw && $clockOutRaw !== '00:00:00') ? Carbon::parse($clockOutRaw) : null;
+                $shiftStart = ($shiftStartRaw && $shiftStartRaw !== '00:00:00') ? Carbon::parse($shiftStartRaw) : null;
 
+                $workedSeconds = ($clockIn && $clockOut) ? $clockOut->diffInSeconds($clockIn) : 0;
                 $lateSeconds = 0;
-                if ($clockIn && $clockIn !== '00:00:00' && $row->shift_start && $row->shift_start !== '00:00:00') {
-                    $ci = Carbon::parse($clockIn);
-                    $ss = Carbon::parse($row->shift_start)->addMinutes(30);
-                    if ($ci->gt($ss)) {
-                        $lateSeconds = $ci->diffInSeconds($ss);
+
+                if ($clockIn && $shiftStart) {
+                    $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+                    if ($clockIn->gt($shiftStartWithMargin)) {
+                        $lateSeconds = $clockIn->diffInSeconds($shiftStartWithMargin);
                     }
                 }
 
-                $computedStatus = 'Present';
+                // Compute correct status
                 if (!$row->attendance_id) {
                     $computedStatus = 'Not Marked';
                 } elseif ($row->status === 'Leave') {
                     $computedStatus = 'Leave';
                 } elseif (!empty($row->earlyCheckOutReason)) {
                     $computedStatus = 'Early Clock Out';
-                } elseif ($clockIn && $row->shift_start) {
-                    $shiftStartWithMargin = Carbon::parse($row->shift_start)->addMinutes(30);
-                    if ($clockIn->lte($shiftStartWithMargin)) {
-                        $computedStatus = 'OnTime';
-                    } else {
-                        $computedStatus = 'Late';
-                    }
+                } elseif ($clockIn && $shiftStart) {
+                    $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+                    $computedStatus = $clockIn->lte($shiftStartWithMargin) ? 'OnTime' : 'Late';
                 } else {
                     $computedStatus = $row->status ?? 'Present';
+                }
+
+                // Filter by selected status
+                if ($request->filled('status')) {
+                    if ($request->status === 'OnTime' && $computedStatus !== 'OnTime') return null;
+                    if ($request->status === 'Late' && $computedStatus !== 'Late') return null;
                 }
 
                 return [
@@ -1684,20 +1692,23 @@ public function backuplist(Request $request)
                     'brand_name' => $row->brand_name,
                     'region_name' => $row->region_name,
                     'branch_name' => $row->branch_name,
-                    'timezone' => $row->timezone,
-                    'date' => $date,
-                    'shift_start' => $row->shift_start,
-                    'shift_end' => $row->shift_end,
-                    'clock_in' => $clockIn ?? '00:00:00',
-                    'clock_out' => $clockOut ?? '00:00:00',
-                    'earlyCheckOutReason' => $row->earlyCheckOutReason,
+                    'date' => $row->attendance_date ?? $date,
+                    'shift_start' => $row->shift_start ?? '00:00:00',
+                    'shift_end' => $row->shift_end ?? '00:00:00',
+                    'clock_in' => $clockInRaw ?? '00:00:00',
+                    'clock_out' => $clockOutRaw ?? '00:00:00',
+                    'earlyCheckOutReason' => $row->earlyCheckOutReason ?? '',
                     'worked_hours' => gmdate('H:i:s', $workedSeconds),
                     'status' => $computedStatus,
                     'late' => $lateSeconds ? gmdate('H:i:s', $lateSeconds) : '00:00:00',
                     'early_leaving' => $row->early_leaving ?? '00:00:00',
                     'overtime' => $row->overtime ?? '00:00:00',
                 ];
-            });
+            })->filter(); // ✅ Removes null rows safely
+
+            if ($all->isEmpty()) {
+                return response()->json(['status' => 'error', 'message' => 'No records found for CSV export.']);
+            }
 
             $filename = 'Attendance_' . $date . '_' . now()->timestamp . '.csv';
             $headers = [
