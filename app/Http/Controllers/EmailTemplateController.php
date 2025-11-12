@@ -842,14 +842,17 @@ class EmailTemplateController extends Controller
         $spreadsheet = IOFactory::load($file->getPathname());
         $worksheet = $spreadsheet->getActiveSheet();
         $key = 0;
+        $createdIds = []; // 🆕 store created record IDs
 
         // Extract column mapping
         foreach ($worksheet->getRowIterator() as $line) {
             if ($key == 0) {
                 foreach ($line->getCellIterator() as $column_key => $cell) {
                     $column_value = trim(preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()));
+
                     // Check if header name exists in POST
                     if (empty($_POST['columns'][$column_value])) {
+
                         // Auto-detect email header
                         $column_lower = strtolower($column_value);
                         if (
@@ -862,6 +865,8 @@ class EmailTemplateController extends Controller
 
                         continue;
                     }
+
+                    // Keep your original logic
                     $column_arr[$column_key] = $_POST['columns'][$column_value];
                 }
                 $key++;
@@ -889,13 +894,18 @@ class EmailTemplateController extends Controller
             } else {
                 $EmailMarkittingFileEmail->email = 'N/A';
             }
+
             if (!empty($test['email'])) {
                 $EmailMarkittingFileEmail->created_by = $usr->id;
                 $EmailMarkittingFileEmail->save();
+
+                // 🆕 collect ID after save
+                $createdIds[] = $EmailMarkittingFileEmail->id;
             }
         }
 
-        return true;
+        // 🆕 Return comma-separated IDs only
+        return implode(',', $createdIds);
     }
 
     function getFileDelimiter($file, $checkLines = 2)
@@ -934,6 +944,7 @@ class EmailTemplateController extends Controller
         $column_arr = [];
         $handle = fopen($file->getPathname(), 'r');
         $key = 0;
+        $createdIds = []; // <-- Store created record IDs here
 
         while ($line = fgets($handle)) {
 
@@ -997,11 +1008,16 @@ class EmailTemplateController extends Controller
 
                 $EmailMarkittingFileEmail->created_by = $usr->id;
                 $EmailMarkittingFileEmail->save();
+
+                // Collect newly created ID
+                $createdIds[] = $EmailMarkittingFileEmail->id;
             }
         }
 
         fclose($handle);
-        return true;
+
+        // Return all IDs as a comma-separated string
+        return implode(',', $createdIds);
     }
 
 
