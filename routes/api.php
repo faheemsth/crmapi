@@ -827,6 +827,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getBranches', [GeneralController::class, 'getBranches']);
     Route::get('/getStages', [GeneralController::class, 'getStages']);
     Route::get('/getTags', [GeneralController::class, 'getTags']);
+    Route::get('/getTagsByBrandId', [GeneralController::class, 'getTagsByBrandId']);
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
     Route::post('/UpdateFilterSave', [GeneralController::class, 'UpdateFilterSave']);
