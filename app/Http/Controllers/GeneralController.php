@@ -590,7 +590,9 @@ class GeneralController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
             $tags = [];
-            $tags = LeadTag::where('brand_id', $request->brand_id)->pluck('tag', 'id')->toArray();
+            if($request->brand_id){
+               $tags = LeadTag::where('brand_id', $request->brand_id)->pluck('tag', 'id')->toArray();
+            }
 
             return response()->json([
                 'status' => 'success',
