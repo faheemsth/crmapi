@@ -834,5 +834,153 @@ class EmailTemplateController extends Controller
             ], 500);
         }
     }
+    private function excelSheetDataSaved($request, $file)
+    {
+        $usr = \Auth::user();
+        $column_arr = [];
+        $spreadsheet = IOFactory::load($file->getPathname());
+        $worksheet = $spreadsheet->getActiveSheet();
+        $key = 0;
 
+        // Extract column mapping
+        foreach ($worksheet->getRowIterator() as $line) {
+            if ($key == 0) {
+                foreach ($line->getCellIterator() as $column_key => $cell) {
+                    $column_value = preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()); // Extract value from cell
+                    if (empty($_POST['columns'][$column_value])) {
+                        continue;
+                    }
+                    $column_arr[$column_key] = $_POST['columns'][$column_value];
+                }
+                $key++;
+                continue;
+            }
+
+            $EmailMarkittingFileEmail = new EmailMarkittingFileEmail();
+            $test = [];
+
+
+            foreach ($line->getCellIterator() as $column_key => $cell) {
+                $column_value = preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()); // Extract value from cell
+                if (!empty($column_arr[$column_key])) {
+                    $test['email'] = str_replace('"', '', $column_value);
+                }
+            }
+
+
+            if (filter_var($test['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+                $EmailMarkittingFileEmail_exist = EmailMarkittingFileEmail::where('email', $test['email'])->first();
+                if ($EmailMarkittingFileEmail_exist) {
+                    continue;
+                }
+                $EmailMarkittingFileEmail->email = $test['email'];
+            } else {
+                $EmailMarkittingFileEmail->email = 'N/A';
+            }
+            if (!empty($test['email'])) {
+                $EmailMarkittingFileEmail->created_by = $usr->id;
+                $EmailMarkittingFileEmail->save();
+            }
+        }
+
+        return true;
+    }
+
+
+    private function csvSheetDataSaved($request, $file)
+    {
+        $usr = \Auth::user();
+        $column_arr = [];
+        $handle = fopen($file->getPathname(), 'r');
+        $key = 0;
+
+        while ($line = fgets($handle)) {
+
+             // Remove BOM
+             if (substr($line, 0, 3) == pack('CCC', 0xEF, 0xBB, 0xBF)) {
+                $line = substr($line, 3);
+            }
+
+            // Remove null bytes
+            $clean_line = str_replace("\x00", '', $line);
+
+            // Decode UTF-16LE
+            $clean_line = utf8_encode(utf8_decode($clean_line));
+
+            $clean_line = str_replace('??', '', $clean_line);
+            $delimater = $this->getFileDelimiter($file, 1);
+            $line = explode($delimater, $clean_line);
+
+            if ($key == 0) {
+                foreach ($line as $column_key => $column) {
+                    $column = preg_replace('/[^\x20-\x7E]/', '', $column);
+
+                    if (empty($_POST['columns'][$column])) {
+                        continue;
+                    }
+
+                    $column_arr[$column_key] = $_POST['columns'][$column];
+                }
+                $key++;
+                continue;
+            }
+
+            $EmailMarkittingFileEmail  = new EmailMarkittingFileEmail();
+            $test = [];
+            foreach ($line as $column_key => $column) {
+
+                $column = preg_replace('/[^\x20-\x7E]/', '', $column);
+                if (!empty($column_arr[$column_key])) {
+                    $test['email'] = str_replace('"', '', $column);
+                }
+            }
+
+            if (filter_var($test['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+                $EmailMarkittingFileEmail_exist = EmailMarkittingFileEmail::where('email', $test['email'])->first();
+
+                if ($EmailMarkittingFileEmail_exist) {
+                    continue;
+                }
+                $EmailMarkittingFileEmail->email = $test['email'];
+            } else {
+                $EmailMarkittingFileEmail->email = 'N/A';
+            }
+            if (!empty($test['email'])) {
+                
+                $EmailMarkittingFileEmail->created_by = $usr->id;
+                $EmailMarkittingFileEmail->save();
+            }
+        }
+
+        return true;
+    }
+
+
+    public function fetchColumns(Request $request)
+    {
+        $usr = \Auth::user();
+
+            $file = $request->file('leads_file');
+
+            $column_arr = [];
+
+            $file = $request->file('leads_file');
+            $extension = $file->getClientOriginalExtension();
+            if ($extension == 'csv') {
+                $response = $this->csvSheetDataSaved($request, $file);
+            } else {
+                $response =  $this->excelSheetDataSaved($request, $file);
+            }
+             
+            if ($response)
+                return response()->json([
+                'status' => 'success',
+                'message' => 'Import successfully created!'
+            ], 200);
+            else
+                return response()->json([
+                'status' => 'error',
+                'message' => "Went something wrong.",
+            ], 500);
+    }
 }
