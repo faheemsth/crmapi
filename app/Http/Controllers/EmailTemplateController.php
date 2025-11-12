@@ -1037,15 +1037,27 @@ class EmailTemplateController extends Controller
                 $response =  $this->excelSheetDataSaved($request, $file);
             }
              
-            if ($response)
+            if (!empty($response)) {
+                // Check if contains IDs (like 43,5566,767)
+                if (preg_match('/\d+(,\d+)*/', $response)) {
+                    return response()->json([
+                        'status' => 'success',
+                        'message' => 'Import successfully created!',
+                    ], 200);
+                } else {
+                    // Any other unexpected value
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Something went wrong.',
+                    ], 500);
+                }
+            } else {
+                // Empty response → already exist
                 return response()->json([
-                'status' => 'success',
-                'message' => 'Import successfully created!'
-            ], 200);
-            else
-                return response()->json([
-                'status' => 'error',
-                'message' => "Went something wrong.",
-            ], 500);
+                    'status' => 'error',
+                    'message' => 'Import already exists!',
+                ], 200);
+            }
+
     }
 }
