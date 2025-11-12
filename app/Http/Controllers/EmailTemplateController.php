@@ -13,6 +13,7 @@ use App\Models\LeadStage;
 use App\Models\UserEmailTemplate;
 use App\Models\Utility;
 use Illuminate\Http\Request;
+use SplFileObject;
 use App\Models\Pipeline;
 use App\Models\Region;
 use App\Models\SavedFilter;
@@ -886,7 +887,36 @@ class EmailTemplateController extends Controller
         return true;
     }
 
-
+    function getFileDelimiter($file, $checkLines = 2)
+    {
+        $file = new SplFileObject($file);
+        $delimiters = array(
+            ",",
+            "\t",
+            ";",
+            "|",
+            ":"
+        );
+        $results = array();
+        $i = 0;
+        while ($file->valid() && $i <= $checkLines) {
+            $line = $file->fgets();
+            foreach ($delimiters as $delimiter) {
+                $regExp = '/[' . $delimiter . ']/';
+                $fields = preg_split($regExp, $line);
+                if (count($fields) > 1) {
+                    if (!empty($results[$delimiter])) {
+                        $results[$delimiter]++;
+                    } else {
+                        $results[$delimiter] = 1;
+                    }
+                }
+            }
+            $i++;
+        }
+        $results = array_keys($results, max($results));
+        return $results[0];
+    }
     private function csvSheetDataSaved($request, $file)
     {
         $usr = \Auth::user();
