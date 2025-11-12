@@ -711,7 +711,7 @@ class EmailTemplateController extends Controller
 
             // Page and pagination setup
             $current_page = $request->input('page', 1);
-            $per_page = $request->input('per_page', 50);
+            $per_page = $request->input('perPage', 50);
 
             // Fetch executed data
             $executed_data = $this->executeLeadQuery();
