@@ -352,7 +352,7 @@ class EmailTemplateController extends Controller
             } else {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Leads Records.'
                 ]);
             }
 
@@ -397,7 +397,7 @@ class EmailTemplateController extends Controller
             } else {
                 return json_encode([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Agency Records.'
                 ]);
             }
         } elseif ($request->type == 'organization') {
@@ -439,7 +439,7 @@ class EmailTemplateController extends Controller
             } else {
                 return json_encode([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Organizations Records.'
                 ]);
             }
         } elseif ($request->type == 'import') {
@@ -484,7 +484,7 @@ class EmailTemplateController extends Controller
             } else {
                 return json_encode([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Import Records.'
                 ]);
             }
         }
