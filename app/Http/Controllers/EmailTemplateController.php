@@ -1042,6 +1042,7 @@ class EmailTemplateController extends Controller
                 if (preg_match('/\d+(,\d+)*/', $response)) {
                     return response()->json([
                         'status' => 'success',
+                        'LeadsId' => $response,
                         'message' => 'Import successfully created!',
                     ], 200);
                 } else {
