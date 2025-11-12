@@ -847,8 +847,19 @@ class EmailTemplateController extends Controller
         foreach ($worksheet->getRowIterator() as $line) {
             if ($key == 0) {
                 foreach ($line->getCellIterator() as $column_key => $cell) {
-                    $column_value = preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()); // Extract value from cell
+                    $column_value = trim(preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()));
+                    // Check if header name exists in POST
                     if (empty($_POST['columns'][$column_value])) {
+                        // Auto-detect email header
+                        $column_lower = strtolower($column_value);
+                        if (
+                            str_contains($column_lower, 'email') ||
+                            str_contains($column_lower, 'e-mail') ||
+                            str_contains($column_lower, 'mail')
+                        ) {
+                            $column_arr[$column_key] = 'email';
+                        }
+
                         continue;
                     }
                     $column_arr[$column_key] = $_POST['columns'][$column_value];
@@ -860,14 +871,14 @@ class EmailTemplateController extends Controller
             $EmailMarkittingFileEmail = new EmailMarkittingFileEmail();
             $test = [];
 
-
             foreach ($line->getCellIterator() as $column_key => $cell) {
-                $column_value = preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()); // Extract value from cell
-                if (!empty($column_arr[$column_key])) {
+                $column_value = trim(preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()));
+
+                // Keep old logic but include auto-detected email columns
+                if (!empty($column_arr[$column_key]) && $column_arr[$column_key] === 'email') {
                     $test['email'] = str_replace('"', '', $column_value);
                 }
             }
-
 
             if (filter_var($test['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
                 $EmailMarkittingFileEmail_exist = EmailMarkittingFileEmail::where('email', $test['email'])->first();
@@ -926,62 +937,70 @@ class EmailTemplateController extends Controller
 
         while ($line = fgets($handle)) {
 
-             // Remove BOM
-             if (substr($line, 0, 3) == pack('CCC', 0xEF, 0xBB, 0xBF)) {
+            // Remove BOM
+            if (substr($line, 0, 3) == pack('CCC', 0xEF, 0xBB, 0xBF)) {
                 $line = substr($line, 3);
             }
 
-            // Remove null bytes
+            // Clean encoding & special chars
             $clean_line = str_replace("\x00", '', $line);
-
-            // Decode UTF-16LE
             $clean_line = utf8_encode(utf8_decode($clean_line));
-
             $clean_line = str_replace('??', '', $clean_line);
-            $delimater = $this->getFileDelimiter($file, 1);
-            $line = explode($delimater, $clean_line);
 
+            $delimiter = $this->getFileDelimiter($file, 1);
+            $line = explode($delimiter, $clean_line);
+
+            // First row: map column headers
             if ($key == 0) {
                 foreach ($line as $column_key => $column) {
-                    $column = preg_replace('/[^\x20-\x7E]/', '', $column);
+                    $column = trim(preg_replace('/[^\x20-\x7E]/', '', $column));
+                    $column_lower = strtolower($column);
 
-                    if (empty($_POST['columns'][$column])) {
-                        continue;
+                    // Normalize possible email column names
+                    if (
+                        str_contains($column_lower, 'email') ||
+                        str_contains($column_lower, 'e-mail') ||
+                        str_contains($column_lower, 'mail')
+                    ) {
+                        $column_arr[$column_key] = 'email';
                     }
-
-                    $column_arr[$column_key] = $_POST['columns'][$column];
                 }
                 $key++;
                 continue;
             }
 
-            $EmailMarkittingFileEmail  = new EmailMarkittingFileEmail();
+            $EmailMarkittingFileEmail = new EmailMarkittingFileEmail();
             $test = [];
-            foreach ($line as $column_key => $column) {
 
-                $column = preg_replace('/[^\x20-\x7E]/', '', $column);
-                if (!empty($column_arr[$column_key])) {
+            // Read actual data rows
+            foreach ($line as $column_key => $column) {
+                $column = trim(preg_replace('/[^\x20-\x7E]/', '', $column));
+
+                if (!empty($column_arr[$column_key]) && $column_arr[$column_key] === 'email') {
                     $test['email'] = str_replace('"', '', $column);
                 }
             }
 
-            if (filter_var($test['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
-                $EmailMarkittingFileEmail_exist = EmailMarkittingFileEmail::where('email', $test['email'])->first();
-
-                if ($EmailMarkittingFileEmail_exist) {
-                    continue;
-                }
-                $EmailMarkittingFileEmail->email = $test['email'];
-            } else {
-                $EmailMarkittingFileEmail->email = 'N/A';
-            }
+            // Validate and save email
             if (!empty($test['email'])) {
-                
+                $emailValue = trim($test['email']);
+
+                if (filter_var($emailValue, FILTER_VALIDATE_EMAIL)) {
+                    $exists = EmailMarkittingFileEmail::where('email', $emailValue)->exists();
+                    if ($exists) {
+                        continue;
+                    }
+                    $EmailMarkittingFileEmail->email = $emailValue;
+                } else {
+                    $EmailMarkittingFileEmail->email = 'N/A';
+                }
+
                 $EmailMarkittingFileEmail->created_by = $usr->id;
                 $EmailMarkittingFileEmail->save();
             }
         }
 
+        fclose($handle);
         return true;
     }
 
