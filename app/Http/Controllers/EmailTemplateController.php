@@ -17,6 +17,7 @@ use SplFileObject;
 use App\Models\Pipeline;
 use App\Models\Region;
 use App\Models\SavedFilter;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\User;
  
 class EmailTemplateController extends Controller
