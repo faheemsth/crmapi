@@ -249,6 +249,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getLeads', [LeadController::class, 'getLeads']);
     Route::post('/fetchColumns', [LeadController::class, 'fetchColumns']);
     Route::post('/importCsv', [LeadController::class, 'importCsv']);
+    Route::post('/importEmailMarkitingCsv', [EmailTemplateController::class, 'fetchColumns']);
     Route::post('/getLeadDetails', [LeadController::class, 'getLeadDetails']);
     Route::post('/getLeadDetailOnly', [LeadController::class, 'getLeadDetailOnly']);
     Route::post('/saveLead', [LeadController::class, 'saveLead']);
