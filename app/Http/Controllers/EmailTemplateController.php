@@ -358,7 +358,7 @@ class EmailTemplateController extends Controller
 
         } elseif ($request->type == 'agency') {
 
-            $EmailMarkittingAgencyEmails = Agency::whereIn('id', explode(',', $request->leads))->get();
+            $EmailMarkittingAgencyEmails = Agency::whereIn('id', explode(',', $request->Leads))->get();
 
             if ($EmailMarkittingAgencyEmails->isNotEmpty() || $EmailMarkittingAgencyEmails->count() > 0) {
                 foreach ($EmailMarkittingAgencyEmails as $EmailMarkitting) {
@@ -401,7 +401,7 @@ class EmailTemplateController extends Controller
                 ]);
             }
         } elseif ($request->type == 'organization') {
-            $EmailMarkittingOrgEmails = User::select(['users.*'])->join('organizations', 'organizations.user_id', '=', 'users.id')->where('users.type', 'organization')->whereIn('users.id', explode(',', $request->leads))->get();
+            $EmailMarkittingOrgEmails = User::select(['users.*'])->join('organizations', 'organizations.user_id', '=', 'users.id')->where('users.type', 'organization')->whereIn('users.id', explode(',', $request->Leads))->get();
             if ($EmailMarkittingOrgEmails->isNotEmpty() || $EmailMarkittingOrgEmails->count() > 0) {
                 foreach ($EmailMarkittingOrgEmails as $EmailMarkitting) {
                     $replacedHtml = str_replace(
@@ -444,7 +444,7 @@ class EmailTemplateController extends Controller
             }
         } elseif ($request->type == 'import') {
 
-            $EmailMarkittingFileEmails = EmailMarkittingFileEmail::where('created_by', \Auth::id())->whereIn('id', explode(',', $request->leads))->get();
+            $EmailMarkittingFileEmails = EmailMarkittingFileEmail::where('created_by', \Auth::id())->whereIn('id', explode(',', $request->Leads))->get();
             if ($EmailMarkittingFileEmails->isNotEmpty() || $EmailMarkittingFileEmails->count() > 0) {
                 foreach ($EmailMarkittingFileEmails as $EmailMarkitting) {
                     $replacedHtml = str_replace(
