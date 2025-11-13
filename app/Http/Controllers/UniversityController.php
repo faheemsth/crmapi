@@ -25,118 +25,139 @@ class UniversityController extends Controller
      */
     public function getUniversities(Request $request)
     {
-        // Check permission
-        if (!Auth::user()->type == 'super admin' && !Gate::check('show university') && !Gate::check('manage university')) {
-            return response()->json([
-                'status' => false,
-                'message' => __('Permission Denied.'),
-            ], 403);
-        }
+                    // Check permission
+                    if (!Auth::user()->type == 'super admin' && !Gate::check('show university') && !Gate::check('manage university')) {
+                        return response()->json([
+                            'status' => false,
+                            'message' => __('Permission Denied.'),
+                        ], 403);
+                    }
 
-        // European countries for filtering
-        $europeanCountries = [
-            "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan",
-            "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria",
-            "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia",
-            "Finland", "France", "Georgia", "Germany", "Greece",
-            "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan",
-            "Kosovo", "Latvia", "Liechtenstein", "Lithuania",
-            "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro",
-            "Netherlands", "North Macedonia", "Norway", "Poland",
-            "Portugal", "Romania", "Russia", "San Marino", "Serbia",
-            "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland",
-            "Turkey", "Ukraine", "Vatican City"
-        ];
+                    // European countries for filtering
+                    $europeanCountries = [
+                        "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan",
+                        "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria",
+                        "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia",
+                        "Finland", "France", "Georgia", "Germany", "Greece",
+                        "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan",
+                        "Kosovo", "Latvia", "Liechtenstein", "Lithuania",
+                        "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro",
+                        "Netherlands", "North Macedonia", "Norway", "Poland",
+                        "Portugal", "Romania", "Russia", "San Marino", "Serbia",
+                        "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland",
+                        "Turkey", "Ukraine", "Vatican City"
+                    ];
 
-        // Pagination control
-        $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
-        $page = $request->input('page', 1);
+                    // Pagination control
+                    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
+                    $page = $request->input('page', 1);
 
-        // Build query
-        $query = University::query();
+                    // Build query
+                    $query = University::query();
 
-        // Filters
-        if ($request->filled('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
-        }
+                    // Filters
+                    if ($request->filled('name')) {
+                        $query->where('name', 'like', '%' . $request->name . '%');
+                    }
 
-        if ($request->filled('city')) {
-            $query->where('campuses', 'like', '%' . $request->city . '%');
-        }
+                    if ($request->filled('city')) {
+                        $query->where('campuses', 'like', '%' . $request->city . '%');
+                    }
 
-        if ($request->filled('country')) {
-            if ($request->country === 'Europe') {
-                $query->whereIn('country', $europeanCountries);
-            } else {
-                $country = Country::find($request->country);
-                if (!empty($country)) {
-                    $query->where('country', 'like', '%' . $country->name . '%');
-                } else {
-                    $query->where('country', 'like', '%' . $request->country . '%');
-                }
+                    if ($request->filled('country')) {
+                        if ($request->country === 'Europe') {
+                            $query->whereIn('country', $europeanCountries);
+                        } else {
+                            $country = Country::find($request->country);
+                            if (!empty($country)) {
+                                $query->where('country', 'like', '%' . $country->name . '%');
+                            } else {
+                                $query->where('country', 'like', '%' . $request->country . '%');
+                            }
+                        }
+                    }
+
+                    if ($request->filled('rank_id')) {
+                        $query->where('rank_id', 'like', '%' . $request->rank_id . '%');
+                    }
+
+            if ($request->filled('intake_months')) {
+                $query->where(function($subQuery) use ($request) {
+                    foreach ($request->intake_months as $month) {
+                        $subQuery->orWhereRaw("FIND_IN_SET(?, intake_months)", [trim($month)]);
+                    }
+                });
             }
-        }
-
-        if ($request->filled('rank_id')) {
-            $query->where('rank_id', 'like', '%' . $request->rank_id . '%');
-        }
-
-if ($request->filled('intake_months')) {
-    $query->where(function($subQuery) use ($request) {
-        foreach ($request->intake_months as $month) {
-            $subQuery->orWhereRaw("FIND_IN_SET(?, intake_months)", [trim($month)]);
-        }
-    });
-}
 
 
 
 
-        // Retrieve paginated data
+                    // Retrieve paginated data
 
-        $universities = $query->orderBy('rank_id', 'DESC')->orderBy('name', 'ASC')
-        ->paginate($perPage, ['*'], 'page', $page);
+                    $universities = $query->orderBy('rank_id', 'DESC')->orderBy('name', 'ASC')
+                    ->paginate($perPage, ['*'], 'page', $page);
 
-        // University statistics grouped by country
-        $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
-            ->groupBy('country')
+                    // University statistics grouped by country
+                    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
+                        ->groupBy('country')
+                        ->get();
+
+                    $statuses = [];
+                    foreach ($universityStatsByCountries as $u) {
+                        $statuses[$u->country] = array(
+                                'country_code'=>$u->country_code,
+                                'count'=>$u->total_universities
+                        );
+                    }
+
+                    $customOrder = [
+                        "United States", "Canada", "United Kingdom", "Australia",
+                        "United Arab Emirates", "Hungary", "Ireland", "Malta",
+                        "Poland", "Germany", "Holand", "China", "Malaysia",
+                        "Turkey", "Samoa,Djibouti"
+                    ];
+
+                    // Reorder statuses
+                    $sortedStatuses = [];
+                    foreach ($customOrder as $country) {
+                        if (isset($statuses[$country])) {
+                            $sortedStatuses[$country] = $statuses[$country];
+                        }
+                    }
+
+                    // Final response
+                    return response()->json([
+                        'status' => 'success',
+                        'message' => 'University list retrieved successfully.',
+                        'data' => [
+                            'number_of_tiles' => 5,
+                            'statuses' => $sortedStatuses,
+                            'universities' => $universities->items(),
+                            'current_page' => $universities->currentPage(),
+                            'last_page' => $universities->lastPage(),
+                            'total_records' => $universities->total(),
+                            'per_page' => $universities->perPage(),
+                        ]
+                    ]);
+    }
+    public function getPublicUniversities(Request $request)
+    {
+        // Build query with proper column selection and eager loading
+        $universities = University::select(['name', 'country', 'commission', 'notes'])
+            ->with([
+                'createdBy:id,name',
+                'ToolkitLevel:id,name', 
+                'PaymentType:id,name',
+                'InstallmentPayOut:id,name'
+            ])
             ->get();
-
-        $statuses = [];
-        foreach ($universityStatsByCountries as $u) {
-            $statuses[$u->country] = array(
-                    'country_code'=>$u->country_code,
-                    'count'=>$u->total_universities
-            );
-        }
-
-        $customOrder = [
-            "United States", "Canada", "United Kingdom", "Australia",
-            "United Arab Emirates", "Hungary", "Ireland", "Malta",
-            "Poland", "Germany", "Holand", "China", "Malaysia",
-            "Turkey", "Samoa,Djibouti"
-        ];
-
-        // Reorder statuses
-        $sortedStatuses = [];
-        foreach ($customOrder as $country) {
-            if (isset($statuses[$country])) {
-                $sortedStatuses[$country] = $statuses[$country];
-            }
-        }
 
         // Final response
         return response()->json([
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
-            'data' => [
-                'number_of_tiles' => 5,
-                'statuses' => $sortedStatuses,
-                'universities' => $universities->items(),
-                'current_page' => $universities->currentPage(),
-                'last_page' => $universities->lastPage(),
-                'total_records' => $universities->total(),
-                'per_page' => $universities->perPage(),
+            'data' => [ 
+                'universities' => $universities, 
             ]
         ]);
     }
