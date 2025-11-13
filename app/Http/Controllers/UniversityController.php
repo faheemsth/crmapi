@@ -142,22 +142,32 @@ class UniversityController extends Controller
     }
     public function getPublicUniversities(Request $request)
     {
-        // Build query with proper column selection and eager loading
-        $universities = University::select(['name', 'country', 'commission', 'notes'])
-            ->with([
-                'createdBy:id,name',
-                'ToolkitLevel:id,name', 
-                'PaymentType:id,name',
-                'InstallmentPayOut:id,name'
-            ])
-            ->get();
+        $universities = University::select([
+            'id', 
+            'name', 
+            'country', 
+            'commission', 
+            'notes',
+            'created_by',
+            'rank_id',
+            'level_id',
+            'payment_type_id',
+            'pay_out_id'
+        ])
+        ->with([
+            'createdBy:id,name',
+            'rank:id,name',
+            'ToolkitLevel:id,name',
+            'PaymentType:id,name',
+            'InstallmentPayOut:id,name'
+        ])
+        ->get();
 
-        // Final response
         return response()->json([
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
-            'data' => [ 
-                'universities' => $universities, 
+            'data' => [
+                'universities' => $universities,
             ]
         ]);
     }
