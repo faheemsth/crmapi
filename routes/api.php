@@ -130,6 +130,7 @@ Route::get('/proxy-image', function (Request $request) {
     Route::post('/getTableData', [GeneralController::class, 'getTableData']);
     
     Route::post('/generateSop', [OpenAIController::class, 'generateSop']);
+    Route::get('/getPublicUniversities', [UniversityController::class, 'getPublicUniversities']);
 
 Route::get('/AttendanceEmployeeCron_old', function () {
     $today = Carbon::today()->toDateString();
