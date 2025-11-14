@@ -750,6 +750,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('email-marketing-queue', [EmailTemplateController::class, 'email_marketing_queue'])->name('email_marketing_queue');
      Route::post('email_marketing_queue_detail', [EmailTemplateController::class, 'email_marketing_queue_detail'])->name('email_marketing_queue');
      Route::post('email-marketing-approved-reject', [EmailTemplateController::class, 'email_marketing_approved_reject'])->name('email_marketing_approved_reject');
+     Route::post('getEmailTemplateDetail', [EmailTemplateController::class, 'getEmailTemplateDetail'])->name('getEmailTemplateDetail');
        
      //    Role
      Route::post('/getRoleDetail', [RoleController::class, 'getRoleDetail']);

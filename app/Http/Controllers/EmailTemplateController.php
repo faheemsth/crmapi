@@ -76,7 +76,7 @@ class EmailTemplateController extends Controller
             ], 422);
         }
 
-        $emailTemplate = EmailTemplate::find($request->id);
+        $emailTemplate = EmailTemplateLang::where('parent_id', '=', $request->id)->where('lang', 'en')->first();
 
         return response()->json([
             'status' => 'success',
