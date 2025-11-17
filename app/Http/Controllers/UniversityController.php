@@ -191,7 +191,9 @@ class UniversityController extends Controller
                             $sortedStatuses[$country] = $statuses[$country];
                         }
                     }
-
+        $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
+        $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
+        $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
         return response()->json([
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
@@ -200,6 +202,9 @@ class UniversityController extends Controller
                 'number_of_tiles' => 5,
                 'statuses' => $sortedStatuses,
                 'universities' => $universities,
+                'payOuts' => $payOuts,
+                'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
+                'toolkitLevels' => $toolkitLevels
             ]
         ]);
     }
@@ -448,9 +453,7 @@ class UniversityController extends Controller
                 $updatedFields[] = $field;
             }
         }
-        $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
-        $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
-        $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
+
         if (!empty($changes)) {
             addLogActivity([
                 'type' => 'info',
@@ -468,11 +471,7 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'University updated successfully.',
-            'data' => $university,
-            'payOuts' => $payOuts,
-            'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
-            'toolkitLevels' => $toolkitLevels
-
+            'data' => $university
         ]);
     }
 
