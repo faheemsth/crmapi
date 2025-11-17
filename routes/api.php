@@ -296,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateSalaryappriasal', [SalaryappriasalController::class, 'updateSalaryappriasal']);
     Route::post('/getSalaryappriasals', [SalaryappriasalController::class, 'getSalaryappriasals']);
     Route::post('/deleteSalaryappriasal', [SalaryappriasalController::class, 'deleteSalaryappriasal']);
+    Route::post('/SalaryappriasalDetails', [SalaryappriasalController::class, 'SalaryappriasalDetails']);
 
 
     // UserEmployeeFileUpdate
