@@ -163,10 +163,41 @@ class UniversityController extends Controller
         ])
         ->get();
 
+          // University statistics grouped by country
+                    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
+                        ->groupBy('country')
+                        ->get();
+
+                    $statuses = [];
+                    foreach ($universityStatsByCountries as $u) {
+                        $statuses[$u->country] = array(
+                                'country_code'=>$u->country_code,
+                                'count'=>$u->total_universities
+                        );
+                    }
+
+                    $customOrder = [
+                        "United States", "Canada", "United Kingdom", "Australia",
+                        "United Arab Emirates", "Hungary", "Ireland", "Malta",
+                        "Poland", "Germany", "Holand", "China", "Malaysia",
+                        "Turkey", "Samoa,Djibouti"
+                    ];
+
+                    // Reorder statuses
+                    $sortedStatuses = [];
+                    foreach ($customOrder as $country) {
+                        if (isset($statuses[$country])) {
+                            $sortedStatuses[$country] = $statuses[$country];
+                        }
+                    }
+
         return response()->json([
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
             'data' => [
+                
+                'number_of_tiles' => 5,
+                'statuses' => $sortedStatuses,
                 'universities' => $universities,
             ]
         ]);
