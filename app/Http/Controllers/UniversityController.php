@@ -454,7 +454,7 @@ class UniversityController extends Controller
             }
 
             // Permission check
-            if (!Auth::user()->can('edit university')) {
+            if (!Auth::user()->can('edit scorp commission')) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Permission Denied.'
