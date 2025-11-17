@@ -12,6 +12,7 @@ use App\Models\InstituteCategory;
 use App\Models\Stage;
 use App\Models\University;
 use App\Models\User;
+use App\Models\ToolkitInstallmentPayOut;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -447,7 +448,9 @@ class UniversityController extends Controller
                 $updatedFields[] = $field;
             }
         }
-
+        $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
+        $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
+        $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
         if (!empty($changes)) {
             addLogActivity([
                 'type' => 'info',
@@ -465,7 +468,11 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'University updated successfully.',
-            'data' => $university
+            'data' => $university,
+            'payOuts' => $payOuts,
+            'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
+            'toolkitLevels' => $toolkitLevels
+
         ]);
     }
 
