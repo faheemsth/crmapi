@@ -471,34 +471,10 @@ class SalaryappriasalController extends Controller
             ], 404);
         }
 
-        $user = User::find($Salaryappriasal->employee);
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Employee not found'
-            ], 404);
-        }
-
-        $excludedTypes = ['super admin', 'company', 'team', 'client'];
-        $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $user->type)->get();
-
-        $employee = Employee::where('user_id', $Salaryappriasal->employee)->first();
-        $user_type = Role::where('name', $user->type)->first();
-        $indicator = Indicator::where('designation', $user_type->id)->first();
-
-        $rating = !empty($Salaryappriasal->rating) ? json_decode($Salaryappriasal->rating, true) : [];
-        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
-
         return response()->json([
             'status' => 'success',
             'baseurl' => asset('/'),
             'data' => $Salaryappriasal,
-            'performance_types' => $performance_types,
-            'ratings' => $ratings,
-            'rating' => $rating,
-            'user' => $user,
-            'employee' => $employee,
-
         ]);
     }
 
