@@ -451,8 +451,8 @@ class SalaryappriasalController extends Controller
             'assigned_to.name as created_user',
             'branches.id as branch_id',
             'assigned_to.id as created_id',
-            'createdby as createdbyname',
-            'updatedby as updatedbname',
+            'createdby.name as createdbyname',
+            'updatedby.name as updatedbname'
         )
             ->with('employees')
             ->leftJoin('users', 'users.id', '=', 'salaryappriasals.brand_id')
@@ -461,7 +461,6 @@ class SalaryappriasalController extends Controller
             ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'salaryappriasals.user_id')
             ->leftJoin('users as createdby', 'createdby.id', '=', 'salaryappriasals.created_by')
             ->leftJoin('users as updatedby', 'updatedby.id', '=', 'salaryappriasals.updated_by')
-            
             ->where('salaryappriasals.id', $request->id)
             ->first();
 
