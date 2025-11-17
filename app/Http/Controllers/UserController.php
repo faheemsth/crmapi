@@ -1817,7 +1817,7 @@ public function getDashboardholiday(Request $request)
 
     public function UserEmployeeFileDocument(Request $request)
     {
-        if (!\Auth::user()->can('edit employee')) {
+        if (!\Auth::user()->can('create document')) {
             return response()->json([
                 'status' => 'error',
                 'msg' => 'Permission Denied',
