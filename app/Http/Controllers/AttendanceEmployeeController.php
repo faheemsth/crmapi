@@ -1435,9 +1435,449 @@ public function getemplyee_monthly_attandance(Request $request)
 
 
 
+// public function backuplist_if_any_issue_then_replace_it(Request $request)
+// {
+//     try {
+//         $validator = Validator::make($request->all(), [
+//             'date' => 'required|date',
+//             'perPage' => 'nullable|integer|min:1',
+//             'page' => 'nullable|integer|min:1',
+//             'search' => 'nullable|string',
+//             'brand_id' => 'nullable|integer|exists:users,id',
+//             'region_id' => 'nullable|integer|exists:regions,id',
+//             'branch_id' => 'nullable|integer|exists:branches,id',
+//             'tag_ids' => 'nullable|string',
+//             'status' => 'nullable|string',
+//             'download_csv' => 'nullable|boolean',
+//             'enddate' => 'nullable|date'
+//         ]);
 
+//         if ($validator->fails()) {
+//             return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+//         }
 
+//         $date = Carbon::parse($request->date)->format('Y-m-d');
+//         $enddate = !empty($request->enddate) ? Carbon::parse($request->enddate)->format('Y-m-d') : $date;
 
+//         $perPage = $request->input('perPage', 50);
+//         $page = $request->input('page', 1);
+//         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
+//         $excludedTypes = ['company', 'team', 'client', 'Agent'];
+//         $auth_user = auth()->user(); // Added missing auth user
+
+//         $employeesQuery = DB::table('users')
+//             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+//             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+//             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+//             ->leftJoin('attendance_employees as attendances', function ($join) use ($date, $enddate) {
+//                 $join->on('attendances.employee_id', '=', 'users.id')
+//                     ->whereBetween('attendances.date', [$date, $enddate]);
+//             })
+//             ->select([
+//                 'users.id as employee_id',
+//                 'users.name as employee_name',
+//                 'brand.name as brand_name',
+//                 'users.brand_id',
+//                 'users.region_id',
+//                 'users.branch_id',
+//                 'branches.name as branch_name',
+//                 'branches.timezone as timezone',
+//                 'regions.name as region_name',
+//                 'attendances.shift_start',
+//                 'attendances.shift_end',
+//                 'attendances.clock_in',
+//                 'attendances.clock_out',
+//                 'attendances.earlyCheckOutReason',
+//                 'attendances.late',
+//                 'attendances.early_leaving',
+//                 'attendances.overtime',
+//                 'attendances.id as attendance_id',
+//                 'attendances.date as attendance_date',
+//                 DB::raw("
+//                     CASE
+//                         WHEN attendances.id IS NULL THEN 'Not Marked' 
+//                         WHEN attendances.earlyCheckOutReason IS NOT NULL THEN 'Early Clock Out'  
+//                         ELSE attendances.status
+//                     END as status
+//                 ")
+//             ])
+//             ->whereNotIn('users.type', $excludedTypes)
+//             ->where('users.is_attendance_required', 1)
+//             ->when($request->filled('search'), fn($q) =>
+//                 $q->where('users.name', 'like', '%' . $request->search . '%'))
+//             ->when($request->filled('emp_id'), fn($q) =>
+//                 $q->where('users.id', $request->emp_id))
+//             ->when($request->filled('brand_id'), fn($q) =>
+//                 $q->where('users.brand_id', $request->brand_id))
+//             ->when($request->filled('region_id'), fn($q) =>
+//                 $q->where('users.region_id', $request->region_id))
+//             ->when($request->filled('branch_id'), fn($q) =>
+//                 $q->where('users.branch_id', $request->branch_id))
+//             ->when(!empty($tagIds), function ($q) use ($tagIds) {
+//                 $q->where(function ($sub) use ($tagIds) {
+//                     foreach ($tagIds as $tagId) {
+//                         $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+//                     }
+//                 });
+//             });
+
+//         // Apply role-based access control to main query
+//         $applyRoleAccess = function ($query) use ($auth_user) {
+//             switch (strtolower($auth_user->type)) {
+//                 case 'super admin':
+//                     // Full access
+//                     break;
+
+//                 case 'HR':
+//                 case 'hr':
+//                 case 'admin team':
+//                 case 'project director':
+//                     // Can see everyone except Super Admin
+//                     $query->whereNotIn('users.type', ['super admin']);
+//                     break;
+
+//                 case 'project manager':
+//                     // Can see all below: Region Manager → Receptionist
+//                     $query->whereIn('users.type', [
+//                         'region manager',
+//                         'branch manager',
+//                         'finance officer',
+//                         'product coordinator manager',
+//                         'product coordinator',
+//                         'careers consultant',
+//                         'admissions officer',
+//                         'marketing officer',
+//                         'agent',
+//                         'support team',
+//                         'receptionist',
+//                         'project manager'
+//                     ]);
+//                     break;
+
+//                 case 'region manager':
+//                     // Can see all below: Branch Manager → Receptionist
+//                     $query->whereIn('users.type', [
+//                         'branch manager',
+//                         'finance officer',
+//                         'product coordinator manager',
+//                         'product coordinator',
+//                         'careers consultant',
+//                         'admissions officer',
+//                         'marketing officer',
+//                         'agent',
+//                         'support team',
+//                         'receptionist',
+//                         'region manager'
+//                     ]);
+//                     break;
+
+//                 case 'branch manager':
+//                     // Can see all below: Finance Officer → Receptionist
+//                     $query->whereIn('users.type', [
+//                         'finance officer',
+//                         'product coordinator manager',
+//                         'product coordinator',
+//                         'careers consultant',
+//                         'admissions officer',
+//                         'marketing officer',
+//                         'agent',
+//                         'branch manager',
+//                         'support team',
+//                         'receptionist'
+//                     ]);
+//                     break;
+
+//                 case 'product coordinator manager':
+//                     // Can see Product Coordinator only
+//                     $query->whereIn('users.type', ['product coordinator','product coordinator manager']);
+//                     break;
+
+//                 case 'product coordinator':
+//                     // Can see only itself
+//                     $query->where('users.id', $auth_user->id);
+//                     break;
+
+//                 default:
+//                     // All other roles see only their own data
+//                     $query->where('users.id', $auth_user->id);
+//                     break;
+//             }
+//         };
+//         $applyRoleAccess($employeesQuery);
+
+//         if ($enddate == $date) {
+//             $employeesQuery->orderByRaw("
+//                 CASE 
+//                     WHEN attendances.id IS NULL THEN 3
+//                     WHEN attendances.status = 'Absent' THEN 2
+//                     ELSE 1 
+//                 END ASC,
+//                 CASE 
+//                     WHEN attendances.status != 'Absent' THEN attendances.id 
+//                     ELSE NULL 
+//                 END DESC,
+//                 CASE 
+//                     WHEN attendances.status = 'Absent' THEN attendances.id 
+//                     ELSE NULL 
+//                 END DESC
+//             ");
+//         } else {
+//             $employeesQuery->orderBy('attendances.date', 'DESC');
+//         }
+
+//         if ($request->filled('status')) {
+//             if ($request->status == 'Absent') {
+//                 $employeesQuery->having(function ($q) {
+//                     $q->having('status', '=', 'Absent')
+//                       ->orHaving('status', '=', 'Not Marked');
+//                 });
+//             } elseif ($request->status == 'OnTime' || $request->status == 'Late') {
+//                 $employeesQuery->having('status', 'NOT LIKE', 'Absent')
+//                               ->having('status', 'NOT LIKE', 'Not Marked');
+//             } else {
+//                 $employeesQuery->having('status', '=', $request->status);
+//             }
+//         }
+
+//         $total = $employeesQuery->count();
+
+//         if ($request->input('download_csv')) {
+//             $all = $employeesQuery->get()->map(function ($row) use ($date, $request) {
+//                 $clockInRaw = $row->clock_in ?? null;
+//                 $clockOutRaw = $row->clock_out ?? null;
+//                 $shiftStartRaw = $row->shift_start ?? null;
+
+//                 $clockIn = ($clockInRaw && $clockInRaw !== '00:00:00') ? Carbon::parse($clockInRaw) : null;
+//                 $clockOut = ($clockOutRaw && $clockOutRaw !== '00:00:00') ? Carbon::parse($clockOutRaw) : null;
+//                 $shiftStart = ($shiftStartRaw && $shiftStartRaw !== '00:00:00') ? Carbon::parse($shiftStartRaw) : null;
+
+//                 $workedSeconds = ($clockIn && $clockOut) ? $clockOut->diffInSeconds($clockIn) : 0;
+//                 $lateSeconds = 0;
+
+//                 if ($clockIn && $shiftStart) {
+//                     $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+//                     if ($clockIn->gt($shiftStartWithMargin)) {
+//                         $lateSeconds = $clockIn->diffInSeconds($shiftStartWithMargin);
+//                     }
+//                 }
+
+//                 // Compute correct status
+//                 if (!$row->attendance_id) {
+//                     $computedStatus = 'Not Marked';
+//                 } elseif ($row->status === 'Leave') {
+//                     $computedStatus = 'Leave';
+//                 } elseif (!empty($row->earlyCheckOutReason)) {
+//                     $computedStatus = 'Early Clock Out';
+//                 } elseif ($clockIn && $shiftStart) {
+//                     $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+//                     $computedStatus = $clockIn->lte($shiftStartWithMargin) ? 'OnTime' : 'Late';
+//                 } else {
+//                     $computedStatus = $row->status ?? 'Present';
+//                 }
+
+//                 // Filter by selected status
+//                 if ($request->filled('status')) {
+//                     if ($request->status === 'OnTime' && $computedStatus !== 'OnTime') return null;
+//                     if ($request->status === 'Late' && $computedStatus !== 'Late') return null;
+//                 }
+
+//                 return [
+//                     'employee_id' => $row->employee_id,
+//                     'employee_name' => $row->employee_name,
+//                     'brand_name' => $row->brand_name,
+//                     'region_name' => $row->region_name,
+//                     'branch_name' => $row->branch_name,
+//                     'date' => $row->attendance_date ?? $date,
+//                     'shift_start' => $row->shift_start ?? '00:00:00',
+//                     'shift_end' => $row->shift_end ?? '00:00:00',
+//                     'clock_in' => $clockInRaw ?? '00:00:00',
+//                     'clock_out' => $clockOutRaw ?? '00:00:00',
+//                     'earlyCheckOutReason' => $row->earlyCheckOutReason ?? '',
+//                     'worked_hours' => gmdate('H:i:s', $workedSeconds),
+//                     'status' => $computedStatus,
+//                     'late' => $lateSeconds ? gmdate('H:i:s', $lateSeconds) : '00:00:00',
+//                     'early_leaving' => $row->early_leaving ?? '00:00:00',
+//                     'overtime' => $row->overtime ?? '00:00:00',
+//                 ];
+//             })->filter(); // ✅ Removes null rows safely
+
+//             if ($all->isEmpty()) {
+//                 return response()->json(['status' => 'error', 'message' => 'No records found for CSV export.']);
+//             }
+
+//             $filename = 'Attendance_' . $date . '_' . now()->timestamp . '.csv';
+//             $headers = [
+//                 'Content-Type' => 'text/csv',
+//                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+//             ];
+
+//             return response()->stream(function () use ($all) {
+//                 $f = fopen('php://output', 'w');
+//                 fputcsv($f, [
+//                     'Employee ID',
+//                     'Employee Name',
+//                     'Brand',
+//                     'Region',
+//                     'Branch',
+//                     'Date',
+//                     'Shift Start',
+//                     'Shift End',
+//                     'Clock In',
+//                     'Clock Out',
+//                     'Early Checkout Reason',
+//                     'Worked Hours',
+//                     'Status',
+//                     'Late',
+//                     'Early Leaving',
+//                     'Overtime'
+//                 ]);
+//                 foreach ($all as $row) {
+//                     fputcsv($f, array_values($row));
+//                 }
+//                 fclose($f);
+//             }, 200, $headers);
+//         }
+
+//         $countsQuery = DB::table('users')
+//             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+//             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+//             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+//             ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+//                 $join->on('attendances.employee_id', '=', 'users.id')
+//                     ->where('attendances.date', '=', $date);
+//             })
+//             ->whereNotIn('users.type', $excludedTypes)
+//             ->where('users.is_attendance_required', 1)
+//             ->when($request->filled('search'), fn($q) =>
+//                 $q->where('users.name', 'like', '%' . $request->search . '%'))
+//             ->when($request->filled('emp_id'), fn($q) =>
+//                 $q->where('users.id', $request->emp_id))
+//             ->when($request->filled('brand_id'), fn($q) =>
+//                 $q->where('users.brand_id', $request->brand_id))
+//             ->when($request->filled('region_id'), fn($q) =>
+//                 $q->where('users.region_id', $request->region_id))
+//             ->when($request->filled('branch_id'), fn($q) =>
+//                 $q->where('users.branch_id', $request->branch_id))
+//             ->when(!empty($tagIds), function ($q) use ($tagIds) {
+//                 $q->where(function ($sub) use ($tagIds) {
+//                     foreach ($tagIds as $tagId) {
+//                         $sub->orWhereRaw("FIND_IN_SET(?, users.tag_ids)", [$tagId]);
+//                     }
+//                 });
+//             });
+
+//         $applyRoleAccess($countsQuery);
+
+//         $statusCounts = $countsQuery->select(
+//             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in <= DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL  THEN 1 ELSE 0 END) as OnTime"),
+//             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in < attendances.shift_start THEN 1 ELSE 0 END) as Early_Clock_In"),
+//             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.clock_in IS NOT NULL AND attendances.clock_in > DATE_ADD(attendances.shift_start, INTERVAL 30 MINUTE) AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as Late"),
+//             DB::raw("SUM(CASE WHEN attendances.id IS NULL OR attendances.status = 'Absent' THEN 1 ELSE 0 END ) as `Absent`"),
+//             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Leave' THEN 1 ELSE 0 END) as `Leave`"),
+//             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.earlyCheckOutReason IS NOT NULL THEN 1 ELSE 0 END) as `Early_Clock_Out`"),
+//             DB::raw("SUM(CASE WHEN attendances.id IS NOT NULL AND attendances.status = 'Present' AND attendances.earlyCheckOutReason IS NULL THEN 1 ELSE 0 END) as `Present`")
+//         )->first();
+
+//         // --- FIXED PAGINATION: filter first, then slice ---
+//         $allRecordsQuery = $employeesQuery->get();
+//         $filteredRecords = collect();
+
+//         foreach ($allRecordsQuery as $row) {
+//             $clockInRaw = $row->clock_in ?? null;
+//             $clockOutRaw = $row->clock_out ?? null;
+//             $shiftStartRaw = $row->shift_start ?? null;
+
+//             $clockIn = ($clockInRaw && $clockInRaw !== '00:00:00') ? Carbon::parse($clockInRaw) : null;
+//             $clockOut = ($clockOutRaw && $clockOutRaw !== '00:00:00') ? Carbon::parse($clockOutRaw) : null;
+//             $shiftStart = ($shiftStartRaw && $shiftStartRaw !== '00:00:00') ? Carbon::parse($shiftStartRaw) : null;
+
+//             $workedSeconds = ($clockIn && $clockOut) ? $clockOut->diffInSeconds($clockIn) : 0;
+//             $lateSeconds = 0;
+//             if ($clockIn && $shiftStart) {
+//                 $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+//                 if ($clockIn->gt($shiftStartWithMargin)) {
+//                     $lateSeconds = $clockIn->diffInSeconds($shiftStartWithMargin);
+//                 }
+//             }
+
+//             if (!$row->attendance_id) {
+//                 $computedStatus = 'Not Marked';
+//             } elseif ($row->status === 'Leave') {
+//                 $computedStatus = 'Leave';
+//             } elseif (!empty($row->earlyCheckOutReason)) {
+//                 $computedStatus = 'Early Clock Out';
+//             } elseif ($clockIn && $shiftStart) {
+//                 $shiftStartWithMargin = $shiftStart->copy()->addMinutes(30);
+//                 $computedStatus = $clockIn->lte($shiftStartWithMargin) ? 'OnTime' : 'Late';
+//             } else {
+//                 $computedStatus = $row->status ?? 'Present';
+//             }
+
+//             if ($request->filled('status')) {
+//                 if ($request->status == 'OnTime' && $computedStatus !== 'OnTime') continue;
+//                 if ($request->status == 'Late' && $computedStatus !== 'Late') continue;
+//             }
+
+//             $filteredRecords->push([
+//                 'employee_id' => $row->employee_id,
+//                 'attendance_id' => $row->attendance_id,
+//                 'employee_name' => $row->employee_name,
+//                 'timezone' => $row->timezone,
+//                 'brand_id' => $row->brand_id,
+//                 'region_id' => $row->region_id,
+//                 'branch_id' => $row->branch_id,
+//                 'branch_name' => $row->branch_name,
+//                 'brand_name' => $row->brand_name,
+//                 'region_name' => $row->region_name,
+//                 'shift_start' => $row->shift_start,
+//                 'shift_end' => $row->shift_end,
+//                 'date' => $row->attendance_date ?? $date,
+//                 'clock_in' => $clockInRaw ?? '00:00:00',
+//                 'clock_out' => $clockOutRaw ?? '00:00:00',
+//                 'earlyCheckOutReason' => $row->earlyCheckOutReason,
+//                 'worked_hours' => gmdate('H:i:s', $workedSeconds),
+//                 'status' => $computedStatus,
+//                 'late' => ($clockIn !== '00:00:00' && $row?->shift_start)
+//                         ? ($clockIn > $row->shift_start
+//                             ? gmdate('H:i:s', Carbon::parse($row->shift_start)->diffInSeconds(Carbon::parse($clockIn)))
+//                             : '00:00:00')
+//                         : '00:00:00',
+//                 'early_leaving' => $row->early_leaving ?? '00:00:00',
+//                 'overtime' => $row->overtime ?? '00:00:00',
+//             ]);
+//         }
+
+//         $filteredTotal = $filteredRecords->count();
+//         $paginatedRecords = $filteredRecords->slice(($page - 1) * $perPage, $perPage)->values();
+//         $OnlyCount = DB::table('users')
+//             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+//             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+//             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
+//             ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+//                 $join->on('attendances.employee_id', '=', 'users.id')
+//                     ->where('attendances.date', '=', $date);
+//             })
+//             ->whereNotIn('users.type', $excludedTypes)
+//             ->where('users.is_attendance_required', 1);
+
+//         $applyRoleAccess($OnlyCount);
+//         $OnlyFullCount = $OnlyCount->count();
+//         return response()->json([
+//             'status' => 'success',
+//             'data' => $paginatedRecords,
+//             'date' => $date,
+//             'current_page' => $page,
+//             'last_page' => ceil($filteredTotal / $perPage),
+//             'total_records' => $filteredTotal,
+//             'FullCounts' => $OnlyFullCount,
+//             'perPage' => (int) $perPage,
+//             'count_summary' => $statusCounts,
+//         ]);
+
+//     } catch (\Exception $e) {
+//         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+//     }
+// }
 
 
 public function backuplist(Request $request)
@@ -1468,10 +1908,10 @@ public function backuplist(Request $request)
         $page = $request->input('page', 1);
         $tagIds = $request->filled('tag_ids') ? explode(',', $request->tag_ids) : [];
         $excludedTypes = ['company', 'team', 'client', 'Agent'];
-        $auth_user = auth()->user(); // Added missing auth user
+        $auth_user = auth()->user();
+        $user = Auth::user();
 
-        $excludedTypes = ['company', 'team', 'client','Agent'];
-        $user=Auth::user();
+        // Main query
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
@@ -1529,20 +1969,20 @@ public function backuplist(Request $request)
                 });
             });
 
-                // Apply user-specific restrictions
+        // Apply user-specific restrictions - FIXED: Use $employeesQuery consistently
         if ($user->can('level 1') || $user->type === 'super admin') {
-            $employeesQuery->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->whereNotIn('users.type', $excludedTypes);
         } elseif ($user->type === 'company') {
-            $employeesQuery->where('users.brand_id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->where('users.brand_id', $user->id)->whereNotIn('users.type', $excludedTypes);
         } elseif ($user->can('level 2')) {
             $brandIds = array_keys(FiltersBrands());
-            $employeesQuery->whereIn('users.brand_id', $brandIds)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->whereIn('users.brand_id', $brandIds)->whereNotIn('users.type', $excludedTypes);
         } elseif ($user->can('level 3') && $user->region_id) {
-            $employeesQuery->where('users.region_id', $user->region_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager']);
+            $employeesQuery->where('users.region_id', $user->region_id)->whereNotIn('users.type', array_merge($excludedTypes, ['Project Director', 'Project Manager']));
         } elseif ($user->can('level 4') && $user->branch_id) {
-            $employeesQuery->where('users.branch_id', $user->branch_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager','Region Manager']);
+            $employeesQuery->where('users.branch_id', $user->branch_id)->whereNotIn('users.type', array_merge($excludedTypes, ['Project Director', 'Project Manager', 'Region Manager']));
         } else {
-            $employeesQuery->where('id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $employeesQuery->where('users.id', $user->id)->whereNotIn('users.type', $excludedTypes);
         }
         
         // Apply role-based access control to main query
@@ -1622,13 +2062,13 @@ public function backuplist(Request $request)
                     break;
 
                 default:
-                    // All other roles see only their own data
+                // All other roles see only their own data
                     $query->where('users.id', $auth_user->id);
                     break;
             }
         };
         $applyRoleAccess($employeesQuery);
-
+        
         if ($enddate == $date) {
             $employeesQuery->orderByRaw("
                 CASE 
@@ -1648,7 +2088,7 @@ public function backuplist(Request $request)
         } else {
             $employeesQuery->orderBy('attendances.date', 'DESC');
         }
-
+        
         if ($request->filled('status')) {
             if ($request->status == 'Absent') {
                 $employeesQuery->having(function ($q) {
@@ -1663,8 +2103,7 @@ public function backuplist(Request $request)
             }
         }
 
-        $total = $employeesQuery->count();
-
+        // CSV Download
         if ($request->input('download_csv')) {
             $all = $employeesQuery->get()->map(function ($row) use ($date, $request) {
                 $clockInRaw = $row->clock_in ?? null;
@@ -1703,6 +2142,10 @@ public function backuplist(Request $request)
                 if ($request->filled('status')) {
                     if ($request->status === 'OnTime' && $computedStatus !== 'OnTime') return null;
                     if ($request->status === 'Late' && $computedStatus !== 'Late') return null;
+                    if ($request->status === 'Absent' && !in_array($computedStatus, ['Absent', 'Not Marked'])) return null;
+                    if ($request->status === 'Present' && $computedStatus !== 'Present') return null;
+                    if ($request->status === 'Leave' && $computedStatus !== 'Leave') return null;
+                    if ($request->status === 'Early Clock Out' && $computedStatus !== 'Early Clock Out') return null;
                 }
 
                 return [
@@ -1766,9 +2209,9 @@ public function backuplist(Request $request)
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
-            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+            ->leftJoin('attendance_employees as attendances', function ($join) use ($date, $enddate) {
                 $join->on('attendances.employee_id', '=', 'users.id')
-                    ->where('attendances.date', '=', $date);
+                    ->whereBetween('attendances.date', [$date, $enddate]);
             })
             ->whereNotIn('users.type', $excludedTypes)
             ->where('users.is_attendance_required', 1)
@@ -1789,20 +2232,20 @@ public function backuplist(Request $request)
                     }
                 });
             });
-                // Apply user-specific restrictions
+        // Apply user-specific restrictions
         if ($user->can('level 1') || $user->type === 'super admin') {
-            $employeesQuery->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $countsQuery->whereNotIn('users.type', $excludedTypes);
         } elseif ($user->type === 'company') {
-            $employeesQuery->where('users.brand_id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $countsQuery->where('users.brand_id', $user->id)->whereNotIn('users.type', $excludedTypes);
         } elseif ($user->can('level 2')) {
             $brandIds = array_keys(FiltersBrands());
-            $employeesQuery->whereIn('users.brand_id', $brandIds)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $countsQuery->whereIn('users.brand_id', $brandIds)->whereNotIn('users.type', $excludedTypes);
         } elseif ($user->can('level 3') && $user->region_id) {
-            $employeesQuery->where('users.region_id', $user->region_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager']);
+            $countsQuery->where('users.region_id', $user->region_id)->whereNotIn('users.type', array_merge($excludedTypes, ['Project Director', 'Project Manager']));
         } elseif ($user->can('level 4') && $user->branch_id) {
-            $employeesQuery->where('users.branch_id', $user->branch_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager','Region Manager']);
+            $countsQuery->where('users.branch_id', $user->branch_id)->whereNotIn('users.type', array_merge($excludedTypes, ['Project Director', 'Project Manager', 'Region Manager']));
         } else {
-            $employeesQuery->where('id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+            $countsQuery->where('users.id', $user->id)->whereNotIn('users.type', $excludedTypes);
         }
         $applyRoleAccess($countsQuery);
 
@@ -1854,6 +2297,16 @@ public function backuplist(Request $request)
             if ($request->filled('status')) {
                 if ($request->status == 'OnTime' && $computedStatus !== 'OnTime') continue;
                 if ($request->status == 'Late' && $computedStatus !== 'Late') continue;
+                if ($request->status == 'Absent' && !in_array($computedStatus, ['Absent', 'Not Marked'])) continue;
+                if ($request->status == 'Present' && $computedStatus !== 'Present') continue;
+                if ($request->status == 'Leave' && $computedStatus !== 'Leave') continue;
+                if ($request->status == 'Early Clock Out' && $computedStatus !== 'Early Clock Out') continue;
+            }
+            $lateOutput = '00:00:00';
+            if ($clockIn && $shiftStart && $clockInRaw !== '00:00:00') {
+                if ($clockIn->gt($shiftStart)) {
+                    $lateOutput = gmdate('H:i:s', $clockIn->diffInSeconds($shiftStart));
+                }
             }
 
             $filteredRecords->push([
@@ -1891,20 +2344,36 @@ public function backuplist(Request $request)
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
             ->leftJoin('users as brand', 'brand.id', '=', 'users.brand_id')
-            ->leftJoin('attendance_employees as attendances', function ($join) use ($date) {
+            ->leftJoin('attendance_employees as attendances', function ($join) use ($date, $enddate) {
                 $join->on('attendances.employee_id', '=', 'users.id')
-                    ->where('attendances.date', '=', $date);
+                    ->whereBetween('attendances.date', [$date, $enddate]);
             })
             ->whereNotIn('users.type', $excludedTypes)
             ->where('users.is_attendance_required', 1);
 
+        // Apply same restrictions to full count query
+        if ($user->can('level 1') || $user->type === 'super admin') {
+            $OnlyCount->whereNotIn('users.type', $excludedTypes);
+        } elseif ($user->type === 'company') {
+            $OnlyCount->where('users.brand_id', $user->id)->whereNotIn('users.type', $excludedTypes);
+        } elseif ($user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $OnlyCount->whereIn('users.brand_id', $brandIds)->whereNotIn('users.type', $excludedTypes);
+        } elseif ($user->can('level 3') && $user->region_id) {
+            $OnlyCount->where('users.region_id', $user->region_id)->whereNotIn('users.type', array_merge($excludedTypes, ['Project Director', 'Project Manager']));
+        } elseif ($user->can('level 4') && $user->branch_id) {
+            $OnlyCount->where('users.branch_id', $user->branch_id)->whereNotIn('users.type', array_merge($excludedTypes, ['Project Director', 'Project Manager', 'Region Manager']));
+        } else {
+            $OnlyCount->where('users.id', $user->id)->whereNotIn('users.type', $excludedTypes);
+        }
+        
         $applyRoleAccess($OnlyCount);
         $OnlyFullCount = $OnlyCount->count();
         return response()->json([
             'status' => 'success',
             'data' => $paginatedRecords,
             'date' => $date,
-            'current_page' => $page,
+            'current_page' => (int)$page,
             'last_page' => ceil($filteredTotal / $perPage),
             'total_records' => $filteredTotal,
             'FullCounts' => $OnlyFullCount,
