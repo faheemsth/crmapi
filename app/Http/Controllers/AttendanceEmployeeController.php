@@ -1470,6 +1470,8 @@ public function backuplist(Request $request)
         $excludedTypes = ['company', 'team', 'client', 'Agent'];
         $auth_user = auth()->user(); // Added missing auth user
 
+        $excludedTypes = ['company', 'team', 'client','Agent'];
+        $user=Auth::user();
         $employeesQuery = DB::table('users')
             ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
@@ -1483,6 +1485,7 @@ public function backuplist(Request $request)
                 'users.name as employee_name',
                 'brand.name as brand_name',
                 'users.brand_id',
+                'users.type',
                 'users.region_id',
                 'users.branch_id',
                 'branches.name as branch_name',
@@ -1526,6 +1529,21 @@ public function backuplist(Request $request)
                 });
             });
 
+                // Apply user-specific restrictions
+        if ($user->can('level 1') || $user->type === 'super admin') {
+            $employeesQuery->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        } elseif ($user->type === 'company') {
+            $employeesQuery->where('users.brand_id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        } elseif ($user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $employeesQuery->whereIn('users.brand_id', $brandIds)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        } elseif ($user->can('level 3') && $user->region_id) {
+            $employeesQuery->where('users.region_id', $user->region_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager']);
+        } elseif ($user->can('level 4') && $user->branch_id) {
+            $employeesQuery->where('users.branch_id', $user->branch_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager','Region Manager']);
+        } else {
+            $employeesQuery->where('id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        }
         // Apply role-based access control to main query
         $applyRoleAccess = function ($query) use ($auth_user) {
             switch (strtolower($auth_user->type)) {
@@ -1770,7 +1788,21 @@ public function backuplist(Request $request)
                     }
                 });
             });
-
+                // Apply user-specific restrictions
+        if ($user->can('level 1') || $user->type === 'super admin') {
+            $employeesQuery->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        } elseif ($user->type === 'company') {
+            $employeesQuery->where('users.brand_id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        } elseif ($user->can('level 2')) {
+            $brandIds = array_keys(FiltersBrands());
+            $employeesQuery->whereIn('users.brand_id', $brandIds)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        } elseif ($user->can('level 3') && $user->region_id) {
+            $employeesQuery->where('users.region_id', $user->region_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager']);
+        } elseif ($user->can('level 4') && $user->branch_id) {
+            $employeesQuery->where('users.branch_id', $user->branch_id)->whereNotIn('users.type', ['company', 'team', 'client','Agent','Project Director','Project Manager','Region Manager']);
+        } else {
+            $employeesQuery->where('id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
+        }
         $applyRoleAccess($countsQuery);
 
         $statusCounts = $countsQuery->select(
