@@ -148,7 +148,8 @@ class UniversityController extends Controller
         $universities = University::select([
             'id', 
             'name', 
-            'country', 
+            'country',
+            'territory',
             'commission', 
             'notes',
             'created_by',
