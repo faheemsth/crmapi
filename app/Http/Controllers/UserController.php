@@ -2703,7 +2703,7 @@ public function getDashboardholiday(Request $request)
         \DB::beginTransaction();
         try {
             $password = Hash::make($request->password);
-            $role = Role::find($request->role);
+            $role = Role::where('name',$request->role)->first();
             // Create User
             $user = User::find($request->emp_id) ?? new User();
 
@@ -2733,7 +2733,7 @@ public function getDashboardholiday(Request $request)
 
             // Assign Role using Role ID
 
-            $user->assignRole($request->role);
+            $user->assignRole($role);
 
             // Assign Project/Region/Branch Manager based on Role ID
             switch ($request->role) {
