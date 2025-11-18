@@ -585,6 +585,26 @@ class GeneralController extends Controller
             'message' => 'Unauthorized',
         ], 401);
     }
+    public function getTagsByBrandId(Request $request)
+    {
+        if (Auth::check()) {
+            $user = Auth::user();
+            $tags = [];
+            if($request->brand_id){
+               $tags = LeadTag::where('brand_id', $request->brand_id)->pluck('tag', 'id')->toArray();
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $tags,
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => 'false',
+            'message' => 'Unauthorized',
+        ], 401);
+    }
     public function FilterSave(Request $request)
     {
         // Validate incoming request parameters

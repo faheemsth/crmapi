@@ -11,7 +11,10 @@ use App\Models\DealApplication;
 use App\Models\InstituteCategory;
 use App\Models\Stage;
 use App\Models\University;
+use App\Models\ToolkitPaymentType;
 use App\Models\User;
+use App\Models\ToolkitLevel;
+use App\Models\ToolkitInstallmentPayOut;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -142,22 +145,68 @@ class UniversityController extends Controller
     }
     public function getPublicUniversities(Request $request)
     {
-        // Build query with proper column selection and eager loading
-        $universities = University::select(['name', 'country', 'commission', 'notes'])
-            ->with([
-                'createdBy:id,name',
-                'ToolkitLevel:id,name', 
-                'PaymentType:id,name',
-                'InstallmentPayOut:id,name'
-            ])
-            ->get();
+        $universities = University::select([
+            'id', 
+            'name', 
+            'country', 
+            'commission', 
+            'notes',
+            'created_by',
+            'rank_id',
+            'level_id',
+            'payment_type_id',
+            'pay_out_id'
+        ])
+        ->with([
+            'createdBy:id,name',
+            'rank:id,name',
+            'ToolkitLevel:id,name',
+            'PaymentType:id,name',
+            'InstallmentPayOut:id,name'
+        ])
+        ->get();
 
-        // Final response
+          // University statistics grouped by country
+                    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
+                        ->groupBy('country')
+                        ->get();
+
+                    $statuses = [];
+                    foreach ($universityStatsByCountries as $u) {
+                        $statuses[$u->country] = array(
+                                'country_code'=>$u->country_code,
+                                'count'=>$u->total_universities
+                        );
+                    }
+
+                    $customOrder = [
+                        "United States", "Canada", "United Kingdom", "Australia",
+                        "United Arab Emirates", "Hungary", "Ireland", "Malta",
+                        "Poland", "Germany", "Holand", "China", "Malaysia",
+                        "Turkey", "Samoa,Djibouti"
+                    ];
+
+                    // Reorder statuses
+                    $sortedStatuses = [];
+                    foreach ($customOrder as $country) {
+                        if (isset($statuses[$country])) {
+                            $sortedStatuses[$country] = $statuses[$country];
+                        }
+                    }
+        $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
+        $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
+        $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
         return response()->json([
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
-            'data' => [ 
-                'universities' => $universities, 
+            'data' => [
+                
+                'number_of_tiles' => 5,
+                'statuses' => $sortedStatuses,
+                'universities' => $universities,
+                'payOuts' => $payOuts,
+                'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
+                'toolkitLevels' => $toolkitLevels
             ]
         ]);
     }
@@ -444,7 +493,7 @@ class UniversityController extends Controller
             }
 
             // Permission check
-            if (!Auth::user()->can('edit university')) {
+            if (!Auth::user()->can('edit scorp commission')) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Permission Denied.'

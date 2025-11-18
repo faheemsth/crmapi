@@ -1817,7 +1817,7 @@ public function getDashboardholiday(Request $request)
 
     public function UserEmployeeFileDocument(Request $request)
     {
-        if (!\Auth::user()->can('edit employee')) {
+        if (!\Auth::user()->can('create document')) {
             return response()->json([
                 'status' => 'error',
                 'msg' => 'Permission Denied',
@@ -2733,7 +2733,7 @@ public function getDashboardholiday(Request $request)
 
             // Assign Role using Role ID
 
-            $user->assignRole($request->role);
+            $user->syncRoles([$request->role]);
 
             // Assign Project/Region/Branch Manager based on Role ID
             switch ($request->role) {

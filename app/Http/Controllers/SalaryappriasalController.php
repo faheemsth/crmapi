@@ -451,12 +451,16 @@ class SalaryappriasalController extends Controller
             'assigned_to.name as created_user',
             'branches.id as branch_id',
             'assigned_to.id as created_id',
+            'createdby.name as createdbyname',
+            'updatedby.name as updatedbname'
         )
             ->with('employees')
             ->leftJoin('users', 'users.id', '=', 'salaryappriasals.brand_id')
-            ->leftJoin('branches', 'branches.id', '=', 'salaryappriasals.branch')
+            ->leftJoin('branches', 'branches.id', '=', 'salaryappriasals.branch_id')
             ->leftJoin('regions', 'regions.id', '=', 'salaryappriasals.region_id')
-            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'salaryappriasals.employee')
+            ->leftJoin('users as assigned_to', 'assigned_to.id', '=', 'salaryappriasals.user_id')
+            ->leftJoin('users as createdby', 'createdby.id', '=', 'salaryappriasals.created_by')
+            ->leftJoin('users as updatedby', 'updatedby.id', '=', 'salaryappriasals.updated_by')
             ->where('salaryappriasals.id', $request->id)
             ->first();
 
@@ -467,34 +471,10 @@ class SalaryappriasalController extends Controller
             ], 404);
         }
 
-        $user = User::find($Salaryappriasal->employee);
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Employee not found'
-            ], 404);
-        }
-
-        $excludedTypes = ['super admin', 'company', 'team', 'client'];
-        $performance_types = Role::whereNotIn('name', $excludedTypes)->where('name', $user->type)->get();
-
-        $employee = Employee::where('user_id', $Salaryappriasal->employee)->first();
-        $user_type = Role::where('name', $user->type)->first();
-        $indicator = Indicator::where('designation', $user_type->id)->first();
-
-        $rating = !empty($Salaryappriasal->rating) ? json_decode($Salaryappriasal->rating, true) : [];
-        $ratings = !empty($indicator) ? json_decode($indicator->rating, true) : [];
-
         return response()->json([
             'status' => 'success',
             'baseurl' => asset('/'),
             'data' => $Salaryappriasal,
-            'performance_types' => $performance_types,
-            'ratings' => $ratings,
-            'rating' => $rating,
-            'user' => $user,
-            'employee' => $employee,
-
         ]);
     }
 

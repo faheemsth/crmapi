@@ -250,6 +250,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getLeads', [LeadController::class, 'getLeads']);
     Route::post('/fetchColumns', [LeadController::class, 'fetchColumns']);
     Route::post('/importCsv', [LeadController::class, 'importCsv']);
+    Route::post('/importEmailMarkitingCsv', [EmailTemplateController::class, 'fetchColumns']);
     Route::post('/getLeadDetails', [LeadController::class, 'getLeadDetails']);
     Route::post('/getLeadDetailOnly', [LeadController::class, 'getLeadDetailOnly']);
     Route::post('/saveLead', [LeadController::class, 'saveLead']);
@@ -295,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateSalaryappriasal', [SalaryappriasalController::class, 'updateSalaryappriasal']);
     Route::post('/getSalaryappriasals', [SalaryappriasalController::class, 'getSalaryappriasals']);
     Route::post('/deleteSalaryappriasal', [SalaryappriasalController::class, 'deleteSalaryappriasal']);
+    Route::post('/SalaryappriasalDetails', [SalaryappriasalController::class, 'SalaryappriasalDetails']);
 
 
     // UserEmployeeFileUpdate
@@ -749,6 +751,7 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('email-marketing-queue', [EmailTemplateController::class, 'email_marketing_queue'])->name('email_marketing_queue');
      Route::post('email_marketing_queue_detail', [EmailTemplateController::class, 'email_marketing_queue_detail'])->name('email_marketing_queue');
      Route::post('email-marketing-approved-reject', [EmailTemplateController::class, 'email_marketing_approved_reject'])->name('email_marketing_approved_reject');
+     Route::post('getEmailTemplateDetail', [EmailTemplateController::class, 'getEmailTemplateDetail'])->name('getEmailTemplateDetail');
        
      //    Role
      Route::post('/getRoleDetail', [RoleController::class, 'getRoleDetail']);
@@ -828,6 +831,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getBranches', [GeneralController::class, 'getBranches']);
     Route::get('/getStages', [GeneralController::class, 'getStages']);
     Route::get('/getTags', [GeneralController::class, 'getTags']);
+    Route::get('/getTagsByBrandId', [GeneralController::class, 'getTagsByBrandId']);
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
     Route::post('/FilterSave', [GeneralController::class, 'FilterSave']);
     Route::post('/UpdateFilterSave', [GeneralController::class, 'UpdateFilterSave']);

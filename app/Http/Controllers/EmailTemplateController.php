@@ -13,9 +13,11 @@ use App\Models\LeadStage;
 use App\Models\UserEmailTemplate;
 use App\Models\Utility;
 use Illuminate\Http\Request;
+use SplFileObject;
 use App\Models\Pipeline;
 use App\Models\Region;
 use App\Models\SavedFilter;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\User;
  
 class EmailTemplateController extends Controller
@@ -74,7 +76,7 @@ class EmailTemplateController extends Controller
             ], 422);
         }
 
-        $emailTemplate = EmailTemplate::find($request->id);
+        $emailTemplate = EmailTemplateLang::where('parent_id', '=', $request->id)->where('lang', 'en')->first();
 
         return response()->json([
             'status' => 'success',
@@ -351,13 +353,13 @@ class EmailTemplateController extends Controller
             } else {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Leads Records.'
                 ]);
             }
 
         } elseif ($request->type == 'agency') {
 
-            $EmailMarkittingAgencyEmails = Agency::whereIn('id', explode(',', $request->leads))->get();
+            $EmailMarkittingAgencyEmails = Agency::whereIn('id', explode(',', $request->Leads))->get();
 
             if ($EmailMarkittingAgencyEmails->isNotEmpty() || $EmailMarkittingAgencyEmails->count() > 0) {
                 foreach ($EmailMarkittingAgencyEmails as $EmailMarkitting) {
@@ -396,11 +398,11 @@ class EmailTemplateController extends Controller
             } else {
                 return json_encode([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Agency Records.'
                 ]);
             }
         } elseif ($request->type == 'organization') {
-            $EmailMarkittingOrgEmails = User::select(['users.*'])->join('organizations', 'organizations.user_id', '=', 'users.id')->where('users.type', 'organization')->whereIn('users.id', explode(',', $request->leads))->get();
+            $EmailMarkittingOrgEmails = User::select(['users.*'])->join('organizations', 'organizations.user_id', '=', 'users.id')->where('users.type', 'organization')->whereIn('users.id', explode(',', $request->Leads))->get();
             if ($EmailMarkittingOrgEmails->isNotEmpty() || $EmailMarkittingOrgEmails->count() > 0) {
                 foreach ($EmailMarkittingOrgEmails as $EmailMarkitting) {
                     $replacedHtml = str_replace(
@@ -438,12 +440,12 @@ class EmailTemplateController extends Controller
             } else {
                 return json_encode([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Organizations Records.'
                 ]);
             }
         } elseif ($request->type == 'import') {
 
-            $EmailMarkittingFileEmails = EmailMarkittingFileEmail::where('created_by', \Auth::id())->whereIn('id', explode(',', $request->leads))->get();
+            $EmailMarkittingFileEmails = EmailMarkittingFileEmail::where('created_by', \Auth::id())->whereIn('id', explode(',', $request->Leads))->get();
             if ($EmailMarkittingFileEmails->isNotEmpty() || $EmailMarkittingFileEmails->count() > 0) {
                 foreach ($EmailMarkittingFileEmails as $EmailMarkitting) {
                     $replacedHtml = str_replace(
@@ -483,7 +485,7 @@ class EmailTemplateController extends Controller
             } else {
                 return json_encode([
                     'status' => 'error',
-                    'message' => 'You do not have any leads.'
+                    'message' => 'You do not have any Import Records.'
                 ]);
             }
         }
@@ -711,7 +713,7 @@ class EmailTemplateController extends Controller
 
             // Page and pagination setup
             $current_page = $request->input('page', 1);
-            $per_page = $request->input('per_page', 50);
+            $per_page = $request->input('perPage', 50);
 
             // Fetch executed data
             $executed_data = $this->executeLeadQuery();
@@ -834,5 +836,230 @@ class EmailTemplateController extends Controller
             ], 500);
         }
     }
+    private function excelSheetDataSaved($request, $file)
+    {
+        $usr = \Auth::user();
+        $column_arr = [];
+        $spreadsheet = IOFactory::load($file->getPathname());
+        $worksheet = $spreadsheet->getActiveSheet();
+        $key = 0;
+        $createdIds = []; // 🆕 store created record IDs
 
+        // Extract column mapping
+        foreach ($worksheet->getRowIterator() as $line) {
+            if ($key == 0) {
+                foreach ($line->getCellIterator() as $column_key => $cell) {
+                    $column_value = trim(preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()));
+
+                    // Check if header name exists in POST
+                    if (empty($_POST['columns'][$column_value])) {
+
+                        // Auto-detect email header
+                        $column_lower = strtolower($column_value);
+                        if (
+                            str_contains($column_lower, 'email') ||
+                            str_contains($column_lower, 'e-mail') ||
+                            str_contains($column_lower, 'mail')
+                        ) {
+                            $column_arr[$column_key] = 'email';
+                        }
+
+                        continue;
+                    }
+
+                    // Keep your original logic
+                    $column_arr[$column_key] = $_POST['columns'][$column_value];
+                }
+                $key++;
+                continue;
+            }
+
+            $EmailMarkittingFileEmail = new EmailMarkittingFileEmail();
+            $test = [];
+
+            foreach ($line->getCellIterator() as $column_key => $cell) {
+                $column_value = trim(preg_replace('/[^\x20-\x7E]/', '', $cell->getValue()));
+
+                // Keep old logic but include auto-detected email columns
+                if (!empty($column_arr[$column_key]) && $column_arr[$column_key] === 'email') {
+                    $test['email'] = str_replace('"', '', $column_value);
+                }
+            }
+
+            if (filter_var($test['email'] ?? '', FILTER_VALIDATE_EMAIL)) {
+                $EmailMarkittingFileEmail_exist = EmailMarkittingFileEmail::where('email', $test['email'])->first();
+                if ($EmailMarkittingFileEmail_exist) {
+                    continue;
+                }
+                $EmailMarkittingFileEmail->email = $test['email'];
+            } else {
+                $EmailMarkittingFileEmail->email = 'N/A';
+            }
+
+            if (!empty($test['email'])) {
+                $EmailMarkittingFileEmail->created_by = $usr->id;
+                $EmailMarkittingFileEmail->save();
+
+                // 🆕 collect ID after save
+                $createdIds[] = $EmailMarkittingFileEmail->id;
+            }
+        }
+
+        // 🆕 Return comma-separated IDs only
+        return implode(',', $createdIds);
+    }
+
+    function getFileDelimiter($file, $checkLines = 2)
+    {
+        $file = new SplFileObject($file);
+        $delimiters = array(
+            ",",
+            "\t",
+            ";",
+            "|",
+            ":"
+        );
+        $results = array();
+        $i = 0;
+        while ($file->valid() && $i <= $checkLines) {
+            $line = $file->fgets();
+            foreach ($delimiters as $delimiter) {
+                $regExp = '/[' . $delimiter . ']/';
+                $fields = preg_split($regExp, $line);
+                if (count($fields) > 1) {
+                    if (!empty($results[$delimiter])) {
+                        $results[$delimiter]++;
+                    } else {
+                        $results[$delimiter] = 1;
+                    }
+                }
+            }
+            $i++;
+        }
+        $results = array_keys($results, max($results));
+        return $results[0];
+    }
+    private function csvSheetDataSaved($request, $file)
+    {
+        $usr = \Auth::user();
+        $column_arr = [];
+        $handle = fopen($file->getPathname(), 'r');
+        $key = 0;
+        $createdIds = []; // <-- Store created record IDs here
+
+        while ($line = fgets($handle)) {
+
+            // Remove BOM
+            if (substr($line, 0, 3) == pack('CCC', 0xEF, 0xBB, 0xBF)) {
+                $line = substr($line, 3);
+            }
+
+            // Clean encoding & special chars
+            $clean_line = str_replace("\x00", '', $line);
+            $clean_line = utf8_encode(utf8_decode($clean_line));
+            $clean_line = str_replace('??', '', $clean_line);
+
+            $delimiter = $this->getFileDelimiter($file, 1);
+            $line = explode($delimiter, $clean_line);
+
+            // First row: map column headers
+            if ($key == 0) {
+                foreach ($line as $column_key => $column) {
+                    $column = trim(preg_replace('/[^\x20-\x7E]/', '', $column));
+                    $column_lower = strtolower($column);
+
+                    // Normalize possible email column names
+                    if (
+                        str_contains($column_lower, 'email') ||
+                        str_contains($column_lower, 'e-mail') ||
+                        str_contains($column_lower, 'mail')
+                    ) {
+                        $column_arr[$column_key] = 'email';
+                    }
+                }
+                $key++;
+                continue;
+            }
+
+            $EmailMarkittingFileEmail = new EmailMarkittingFileEmail();
+            $test = [];
+
+            // Read actual data rows
+            foreach ($line as $column_key => $column) {
+                $column = trim(preg_replace('/[^\x20-\x7E]/', '', $column));
+
+                if (!empty($column_arr[$column_key]) && $column_arr[$column_key] === 'email') {
+                    $test['email'] = str_replace('"', '', $column);
+                }
+            }
+
+            // Validate and save email
+            if (!empty($test['email'])) {
+                $emailValue = trim($test['email']);
+
+                if (filter_var($emailValue, FILTER_VALIDATE_EMAIL)) {
+                    $exists = EmailMarkittingFileEmail::where('email', $emailValue)->exists();
+                    if ($exists) {
+                        continue;
+                    }
+                    $EmailMarkittingFileEmail->email = $emailValue;
+                } else {
+                    $EmailMarkittingFileEmail->email = 'N/A';
+                }
+
+                $EmailMarkittingFileEmail->created_by = $usr->id;
+                $EmailMarkittingFileEmail->save();
+
+                // Collect newly created ID
+                $createdIds[] = $EmailMarkittingFileEmail->id;
+            }
+        }
+
+        fclose($handle);
+
+        // Return all IDs as a comma-separated string
+        return implode(',', $createdIds);
+    }
+
+
+    public function fetchColumns(Request $request)
+    {
+        $usr = \Auth::user();
+
+            $file = $request->file('leads_file');
+
+            $column_arr = [];
+
+            $file = $request->file('leads_file');
+            $extension = $file->getClientOriginalExtension();
+            if ($extension == 'csv') {
+                $response = $this->csvSheetDataSaved($request, $file);
+            } else {
+                $response =  $this->excelSheetDataSaved($request, $file);
+            }
+             
+            if (!empty($response)) {
+                // Check if contains IDs (like 43,5566,767)
+                if (preg_match('/\d+(,\d+)*/', $response)) {
+                    return response()->json([
+                        'status' => 'success',
+                        'LeadsId' => $response,
+                        'message' => 'Import successfully created!',
+                    ], 200);
+                } else {
+                    // Any other unexpected value
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Something went wrong.',
+                    ], 500);
+                }
+            } else {
+                // Empty response → already exist
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Import already exists!',
+                ], 200);
+            }
+
+    }
 }
