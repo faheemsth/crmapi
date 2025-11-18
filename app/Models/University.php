@@ -51,6 +51,30 @@ class University extends Model
     {
         return $this->belongsTo(UniversityRank::class, 'rank_id');
     }
+    public function ApplicableFee()
+    {
+        return $this->belongsTo(ToolkitApplicableFee::class, 'fee_id');
+    }
+    public function Channel()
+    {
+        return $this->belongsTo(ToolkitChannel::class, 'channel_id');
+    }
+    public function InstallmentPayOut()
+    {
+        return $this->belongsTo(ToolkitInstallmentPayOut::class, 'pay_out_id');
+    }
+    public function ToolkitLevel()
+    {
+        return $this->belongsTo(ToolkitLevel::class, 'level_id');
+    }
+    public function PaymentType()
+    {
+        return $this->belongsTo(ToolkitPaymentType::class, 'payment_type_id');
+    }
+    public function ToolkitTeam()
+    {
+        return $this->belongsTo(ToolkitTeam::class, 'team_id');
+    }
 
 
 }
