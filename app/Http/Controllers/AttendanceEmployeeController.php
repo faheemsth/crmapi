@@ -1544,6 +1544,7 @@ public function backuplist(Request $request)
         } else {
             $employeesQuery->where('id', $user->id)->whereNotIn('users.type', ['company', 'team', 'client','Agent']);
         }
+        
         // Apply role-based access control to main query
         $applyRoleAccess = function ($query) use ($auth_user) {
             switch (strtolower($auth_user->type)) {
