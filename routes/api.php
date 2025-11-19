@@ -120,7 +120,7 @@ Route::get('/proxy-image', function (Request $request) {
         return response('Proxy error: ' . $e->getMessage(), 500);
     }
 });
-
+Route::post('/Country', [GeneralController::class, 'Country']);
     Route::get('PayslipAutoGenerateEachMonth/', [PaySlipController::class, 'PayslipAutoGenerateEachMonth']);
     Route::get('/sendexpiredDocumentEmail', [UserController::class, 'sendexpiredDocumentEmail']);
     Route::get('/getCronAttendances', [AttendanceEmployeeController::class, 'getCronAttendances']);
