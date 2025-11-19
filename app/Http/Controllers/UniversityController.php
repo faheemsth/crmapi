@@ -146,7 +146,7 @@ class UniversityController extends Controller
  
     public function getPublicUniversities(Request $request)
 {
-    // Fetch universities
+    // Fetch universities with country_name accessor
     $universities = University::select([
             'id', 
             'name', 
@@ -168,18 +168,20 @@ class UniversityController extends Controller
             'InstallmentPayOut:id,name'
         ])
         ->get()
-        ->append(['country_name']);
+        ->append('country_name');
 
-    // University statistics grouped by country
-    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country_name')
-        ->groupBy('country_name')
+    // University statistics grouped by country (use actual column 'country')
+    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
+        ->groupBy('country')
         ->get()
-        ->append(['country_name']);
+        ->append('country_name'); // append accessor for full country name
 
+    // Build statuses array keyed by country name
     $statuses = [];
     foreach ($universityStatsByCountries as $u) {
-        $statuses[$u->country_name] = [
-            'country_code' => $u->country_code ?? null,
+        $countryName = $u->country_name;  // accessor returns full country name
+        $statuses[$countryName] = [
+            'country_code' => $u->country, // store original code
             'count' => $u->total_universities
         ];
     }
@@ -188,7 +190,7 @@ class UniversityController extends Controller
     $customOrder = [
         "United States", "Canada", "United Kingdom", "Australia",
         "United Arab Emirates", "Hungary", "Ireland", "Malta",
-        "Poland", "Germany", "Holand", "China", "Malaysia",
+        "Poland", "Germany", "Netherlands", "China", "Malaysia",
         "Turkey", "Samoa", "Djibouti"
     ];
 
@@ -221,14 +223,14 @@ class UniversityController extends Controller
         "United Arab Emirates", "Yemen", "Turkey"
     ];
 
-    // Fast lookup arrays
+    // Fast lookup arrays for counting
     $europeMap = array_flip($europeEMEA);
     $middleEastMap = array_flip($middleEastEMEA);
 
     $europeCount = 0;
     $middleEastCount = 0;
 
-    // Single loop to compute totals
+    // Single loop to compute totals for Europe & Middle East
     foreach ($statuses as $countryName => $data) {
         $count = $data['count'];
 
@@ -254,11 +256,8 @@ class UniversityController extends Controller
             'number_of_tiles' => 5,
             'statuses' => $sortedStatuses,
             'universities' => $universities,
-
-            // NEW TOTAL COUNTS
             'europe_total' => $europeCount,
             'middle_east_total' => $middleEastCount,
-
             'payOuts' => $payOuts,
             'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
             'toolkitLevels' => $toolkitLevels
