@@ -181,7 +181,7 @@ class UniversityController extends Controller
     foreach ($universityStatsByCountries as $u) {
         $countryName = $u->country_name;  // accessor returns full country name
         $statuses[$countryName] = [
-            'country_code' => $u->country, // store original code
+            'country_code' => $u->country_code, // estore original cod test
             'count' => $u->total_universities
         ];
     }
