@@ -143,9 +143,11 @@ class UniversityController extends Controller
                         ]
                     ]);
     }
+ 
     public function getPublicUniversities(Request $request)
-    {
-        $universities = University::select([
+{
+    // Fetch universities
+    $universities = University::select([
             'id', 
             'name', 
             'country',
@@ -165,52 +167,104 @@ class UniversityController extends Controller
             'PaymentType:id,name',
             'InstallmentPayOut:id,name'
         ])
-        ->get();
+        ->get()
+        ->append(['country_name']);
 
-          // University statistics grouped by country
-                    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
-                        ->groupBy('country')
-                        ->get();
+    // University statistics grouped by country
+    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country_name')
+        ->groupBy('country_name')
+        ->get()
+        ->append(['country_name']);
 
-                    $statuses = [];
-                    foreach ($universityStatsByCountries as $u) {
-                        $statuses[$u->country] = array(
-                                'country_code'=>$u->country_code,
-                                'count'=>$u->total_universities
-                        );
-                    }
-
-                    $customOrder = [
-                        "United States", "Canada", "United Kingdom", "Australia",
-                        "United Arab Emirates", "Hungary", "Ireland", "Malta",
-                        "Poland", "Germany", "Holand", "China", "Malaysia",
-                        "Turkey", "Samoa,Djibouti"
-                    ];
-
-                    // Reorder statuses
-                    $sortedStatuses = [];
-                    foreach ($customOrder as $country) {
-                        if (isset($statuses[$country])) {
-                            $sortedStatuses[$country] = $statuses[$country];
-                        }
-                    }
-        $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
-        $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
-        $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
-        return response()->json([
-            'status' => 'success',
-            'message' => 'University list retrieved successfully.',
-            'data' => [
-                
-                'number_of_tiles' => 5,
-                'statuses' => $sortedStatuses,
-                'universities' => $universities,
-                'payOuts' => $payOuts,
-                'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
-                'toolkitLevels' => $toolkitLevels
-            ]
-        ]);
+    $statuses = [];
+    foreach ($universityStatsByCountries as $u) {
+        $statuses[$u->country_name] = [
+            'country_code' => $u->country_code ?? null,
+            'count' => $u->total_universities
+        ];
     }
+
+    // Custom display order
+    $customOrder = [
+        "United States", "Canada", "United Kingdom", "Australia",
+        "United Arab Emirates", "Hungary", "Ireland", "Malta",
+        "Poland", "Germany", "Holand", "China", "Malaysia",
+        "Turkey", "Samoa", "Djibouti"
+    ];
+
+    // Reorder statuses
+    $sortedStatuses = [];
+    foreach ($customOrder as $country) {
+        if (isset($statuses[$country])) {
+            $sortedStatuses[$country] = $statuses[$country];
+        }
+    }
+
+    // -------------------------------
+    // EMEA REGION LISTS FOR COUNTING
+    // -------------------------------
+    $europeEMEA = [
+        "Albania", "Andorra", "Austria", "Belgium", "Bosnia and Herzegovina",
+        "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark",
+        "Estonia", "Finland", "France", "Germany", "Greece",
+        "Hungary", "Iceland", "Ireland", "Italy", "Latvia",
+        "Lithuania", "Luxembourg", "Malta", "Netherlands", "North Macedonia",
+        "Norway", "Poland", "Portugal", "Romania", "Russia",
+        "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain",
+        "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom"
+    ];
+
+    $middleEastEMEA = [
+        "Bahrain", "Egypt", "Iran", "Iraq", "Israel",
+        "Jordan", "Kuwait", "Lebanon", "Oman",
+        "Palestine", "Qatar", "Saudi Arabia", "Syria",
+        "United Arab Emirates", "Yemen", "Turkey"
+    ];
+
+    // Fast lookup arrays
+    $europeMap = array_flip($europeEMEA);
+    $middleEastMap = array_flip($middleEastEMEA);
+
+    $europeCount = 0;
+    $middleEastCount = 0;
+
+    // Single loop to compute totals
+    foreach ($statuses as $countryName => $data) {
+        $count = $data['count'];
+
+        if (isset($europeMap[$countryName])) {
+            $europeCount += $count;
+        }
+
+        if (isset($middleEastMap[$countryName])) {
+            $middleEastCount += $count;
+        }
+    }
+
+    // Supporting dropdowns
+    $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
+    $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
+    $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
+
+    // Final Response
+    return response()->json([
+        'status' => 'success',
+        'message' => 'University list retrieved successfully.',
+        'data' => [
+            'number_of_tiles' => 5,
+            'statuses' => $sortedStatuses,
+            'universities' => $universities,
+
+            // NEW TOTAL COUNTS
+            'europe_total' => $europeCount,
+            'middle_east_total' => $middleEastCount,
+
+            'payOuts' => $payOuts,
+            'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
+            'toolkitLevels' => $toolkitLevels
+        ]
+    ]);
+}
 
 
     public function download(){

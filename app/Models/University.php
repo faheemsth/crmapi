@@ -76,5 +76,17 @@ class University extends Model
         return $this->belongsTo(ToolkitTeam::class, 'team_id');
     }
 
+    public function getCountryNameAttribute()
+    {
+        // If numeric → treat as country_id
+        if (is_numeric($this->country)) {
+            $country = Country::find($this->country);
+            return $country?->name ?? $this->country; // fallback
+        }
+
+        // If string → return as it is
+        return $this->country;
+    }
+
 
 }
