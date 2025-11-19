@@ -30,7 +30,7 @@ class PaySlipController extends Controller
             'brand.avatar as avatar',   // Renamed for better readability
             'regions.name as regionname', // Renamed for better readability
             'branches.name as branchname', // Renamed for better readability
-            'employees.name as username'
+            'employees.name as username',
         )
         ->with([
             'employees',
@@ -44,7 +44,20 @@ class PaySlipController extends Controller
         ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
         ->leftJoin('branches', 'branches.id', '=', 'users.branch_id') ;
 
-
+            $userType = \Auth::user()->type;
+            if (in_array($userType, ['super admin', 'Admin Team'])) {
+                // No additional filtering needed
+            } elseif ($userType === 'company') {
+                $jobsQuery->where('pay_slips.brand_id', \Auth::user()->id);
+            } elseif (in_array($userType, ['Project Director', 'Project Manager'])) {
+                $jobsQuery->whereIn('pay_slips.brand_id', array_keys(FiltersBrands()));
+            } elseif (($userType === 'Region Manager') && !empty(\Auth::user()->region_id)) {
+                $jobsQuery->where('pay_slips.region_id', \Auth::user()->region_id);
+            } elseif (($userType === 'Branch Manager' || in_array($userType, ['Careers Consultant', 'Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) && !empty(\Auth::user()->branch_id)) {
+                $jobsQuery->where('pay_slips.branch_id', \Auth::user()->branch_id);
+            } else {
+                $jobsQuery->where('pay_slips.employee_id', \Auth::user()?->employee?->id);
+            }
 
             if ($request->filled('brand')) {
                 $jobsQuery->where('users.brand_id', $request->brand);
