@@ -247,7 +247,7 @@ class UniversityController extends Controller
     $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
     $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
     $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
-
+    $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
     // Final Response
     return response()->json([
         'status' => 'success',
@@ -260,7 +260,8 @@ class UniversityController extends Controller
             'middle_east_total' => $middleEastCount,
             'payOuts' => $payOuts,
             'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
-            'toolkitLevels' => $toolkitLevels
+            'toolkitLevels' => $toolkitLevels,
+            'Country' => $Country
         ]
     ]);
 }
