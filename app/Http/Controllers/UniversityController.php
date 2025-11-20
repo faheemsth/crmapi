@@ -630,6 +630,7 @@ class UniversityController extends Controller
             'id' => 'required|exists:universities,id',
             'territory' => 'required|array|min:1',
             'agency' => 'required|string',
+            'website_link' => 'string',
             'territory.*' => 'required|string',
             'campuses' => 'required|array|min:1',
             'campuses.*' => 'required|string'
@@ -656,6 +657,7 @@ class UniversityController extends Controller
         $university->territory = implode(',', $request->territory);
         $university->campuses = implode(',', $request->campuses);
         $university->agency = $request->agency;
+        $university->website_link = $request->website_link;
         $university->save();
 
         // Log changed fields only
