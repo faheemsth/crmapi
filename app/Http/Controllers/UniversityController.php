@@ -18,6 +18,7 @@ use App\Models\ToolkitInstallmentPayOut;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class UniversityController extends Controller
