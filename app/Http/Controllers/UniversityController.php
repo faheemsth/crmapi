@@ -15,6 +15,7 @@ use App\Models\ToolkitPaymentType;
 use App\Models\User;
 use App\Models\ToolkitLevel;
 use App\Models\ToolkitInstallmentPayOut;
+use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -172,10 +173,28 @@ class UniversityController extends Controller
         ->append('country_name');
 
     // University statistics grouped by country (use actual column 'country')
-    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
-        ->groupBy('country')
-        ->get()
-        ->append('country_name'); // append accessor for full country name
+   $universityStatsByCountries = University::query()
+    ->selectRaw("
+        COUNT(universities.id) AS total_universities,
+
+        COALESCE(
+            CASE
+                WHEN universities.country REGEXP '^[0-9]+$'
+                    THEN country_by_id.name        -- numeric → join countries.id
+                ELSE country_by_name.name          -- text → join countries.name
+            END,
+            universities.country                    -- fallback (already text)
+        ) AS country_name
+    ")
+    ->leftJoin('countries AS country_by_id', function ($join) {
+        $join->on('country_by_id.id', '=', DB::raw('CAST(universities.country AS UNSIGNED)'));
+    })
+    ->leftJoin('countries AS country_by_name', function ($join) {
+        $join->on(DB::raw('LOWER(country_by_name.name)'), '=', DB::raw('LOWER(universities.country)'));
+    })
+    ->groupBy('country_name')
+    ->get();
+
 
     // Build statuses array keyed by country name
     $statuses = [];
@@ -187,12 +206,11 @@ class UniversityController extends Controller
         ];
     }
 
+    $general_country = Utility::getValByName('general_country');
+
     // Custom display order
     $customOrder = [
-        "United States", "Canada", "United Kingdom", "Australia",
-        "United Arab Emirates", "Hungary", "Ireland", "Malta",
-        "Poland", "Germany", "Netherlands", "China", "Malaysia",
-        "Turkey", "Samoa", "Djibouti"
+       $general_country
     ];
 
     // Reorder statuses
@@ -206,22 +224,17 @@ class UniversityController extends Controller
     // -------------------------------
     // EMEA REGION LISTS FOR COUNTING
     // -------------------------------
+
+     $europe_country = Utility::getValByName('europe_country');
     $europeEMEA = [
-        "Albania", "Andorra", "Austria", "Belgium", "Bosnia and Herzegovina",
-        "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark",
-        "Estonia", "Finland", "France", "Germany", "Greece",
-        "Hungary", "Iceland", "Ireland", "Italy", "Latvia",
-        "Lithuania", "Luxembourg", "Malta", "Netherlands", "North Macedonia",
-        "Norway", "Poland", "Portugal", "Romania", "Russia",
-        "San Marino", "Serbia", "Slovakia", "Slovenia", "Spain",
-        "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom"
+         $europe_country
     ];
 
+
+    $middle_east_country = Utility::getValByName('middle_east_country');
+
     $middleEastEMEA = [
-        "Bahrain", "Egypt", "Iran", "Iraq", "Israel",
-        "Jordan", "Kuwait", "Lebanon", "Oman",
-        "Palestine", "Qatar", "Saudi Arabia", "Syria",
-        "United Arab Emirates", "Yemen", "Turkey"
+        $middle_east_country
     ];
 
     // Fast lookup arrays for counting
@@ -262,6 +275,9 @@ class UniversityController extends Controller
             'payOuts' => $payOuts,
             'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
             'toolkitLevels' => $toolkitLevels,
+            'general_country' =>  $general_country,
+            'middle_east_country' => $middle_east_country,
+            'europe_country' => $europe_country,
             'Country' => $Country
         ]
     ]);
