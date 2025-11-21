@@ -131,7 +131,7 @@ class UniversityController extends Controller
             'status' => 'success',
             'message' => 'University list retrieved successfully.',
             'data' => [
-                'number_of_tiles' => 5,
+                'number_of_tiles' => 10,
                 'statuses' => $sortedStatuses,
                 'universities' => $universities->items(),
                 'current_page' => $universities->currentPage(),
