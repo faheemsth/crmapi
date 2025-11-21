@@ -660,6 +660,7 @@ class UniversityController extends Controller
             'territory' => 'required|array|min:1',
             'agency' => 'required|string',
             'website_link' => 'string',
+            'product_coordinator_id' => 'exists:users,id',
             'territory.*' => 'required|string',
             'campuses' => 'required|array|min:1',
             'campuses.*' => 'required|string',
@@ -687,6 +688,7 @@ class UniversityController extends Controller
         $university->campuses = implode(',', $request->campuses);
         $university->agency = $request->agency;
         $university->website_link = $request->website_link;
+        $university->product_coordinator_id = $request->product_coordinator_id;
         $university->save();
 
         // Log changed fields only
