@@ -2077,3 +2077,36 @@ if (!function_exists('FetchTimeZone')) {
         return (json_last_error() == JSON_ERROR_NONE);
     }
 }
+if (!function_exists('formatLocalDateReturntime')) {
+    function formatLocalDateReturntime($datetime, $timezone = 'UTC', $timezoneAbbr = null) {
+        if (!$datetime) return null;
+
+        try {
+            $dt = new \Carbon\Carbon($datetime, 'UTC');
+            $dt->setTimezone($timezone);
+
+            $day = $dt->format('d');
+            $month = $dt->format('M');
+            $year = $dt->format('Y');
+            $time = $dt->format('h:i A');
+
+            if (!$timezoneAbbr) {
+                $timezoneAbbr = $dt->format('T');
+            }
+
+            return [
+                'formattedDate' => "$day, $month $year, $time ($timezoneAbbr)",
+                'formattedtime' => "$time ($timezoneAbbr)",
+                'timezone' => $timezone,
+                'timezoneAbbr' => $timezoneAbbr,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'formattedDate' => $datetime,
+                'formattedtime' => $datetime,
+                'timezone' => $timezone,
+                'timezoneAbbr' => $timezoneAbbr,
+            ];
+        }
+    }
+}
