@@ -1,24 +1,23 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Country;
-use Auth;
 use App\Models\Course;
-use App\Models\CourseDuration;
-use App\Models\CourseLevel;
 use App\Models\Deal;
 use App\Models\DealApplication;
 use App\Models\InstituteCategory;
 use App\Models\Stage;
-use App\Models\University;
-use App\Models\ToolkitPaymentType;
-use App\Models\User;
-use App\Models\ToolkitLevel;
 use App\Models\ToolkitInstallmentPayOut;
+use App\Models\ToolkitLevel;
+use App\Models\ToolkitPaymentType;
+use App\Models\University;
+use App\Models\User;
 use App\Models\Utility;
+use Auth;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 
 class UniversityController extends Controller
@@ -30,291 +29,309 @@ class UniversityController extends Controller
      */
     public function getUniversities(Request $request)
     {
-                    // Check permission
-                    if (!Auth::user()->type == 'super admin' && !Gate::check('show university') && !Gate::check('manage university')) {
-                        return response()->json([
-                            'status' => false,
-                            'message' => __('Permission Denied.'),
-                        ], 403);
-                    }
+        // Check permission
+        if (! Auth::user()->type == 'super admin' && ! Gate::check('show university') && ! Gate::check('manage university')) {
+            return response()->json([
+                'status' => false,
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
 
-                    // European countries for filtering
-                    $europeanCountries = [
-                        "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan",
-                        "Belarus", "Belgium", "Bosnia and Herzegovina", "Bulgaria",
-                        "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia",
-                        "Finland", "France", "Georgia", "Germany", "Greece",
-                        "Hungary", "Iceland", "Ireland", "Italy", "Kazakhstan",
-                        "Kosovo", "Latvia", "Liechtenstein", "Lithuania",
-                        "Luxembourg", "Malta", "Moldova", "Monaco", "Montenegro",
-                        "Netherlands", "North Macedonia", "Norway", "Poland",
-                        "Portugal", "Romania", "Russia", "San Marino", "Serbia",
-                        "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland",
-                        "Turkey", "Ukraine", "Vatican City"
-                    ];
+        // European countries for filtering
+        $europeanCountries = [
+            'Albania', 'Andorra', 'Armenia', 'Austria', 'Azerbaijan',
+            'Belarus', 'Belgium', 'Bosnia and Herzegovina', 'Bulgaria',
+            'Croatia', 'Cyprus', 'Czech Republic', 'Denmark', 'Estonia',
+            'Finland', 'France', 'Georgia', 'Germany', 'Greece',
+            'Hungary', 'Iceland', 'Ireland', 'Italy', 'Kazakhstan',
+            'Kosovo', 'Latvia', 'Liechtenstein', 'Lithuania',
+            'Luxembourg', 'Malta', 'Moldova', 'Monaco', 'Montenegro',
+            'Netherlands', 'North Macedonia', 'Norway', 'Poland',
+            'Portugal', 'Romania', 'Russia', 'San Marino', 'Serbia',
+            'Slovakia', 'Slovenia', 'Spain', 'Sweden', 'Switzerland',
+            'Turkey', 'Ukraine', 'Vatican City',
+        ];
 
-                    // Pagination control
-                    $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
-                    $page = $request->input('page', 1);
+        // Pagination control
+        $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
+        $page = $request->input('page', 1);
 
-                    // Build query
-                    $query = University::query();
+        // Build query
+        $query = University::query();
 
-                    // Filters
-                    if ($request->filled('name')) {
-                        $query->where('name', 'like', '%' . $request->name . '%');
-                    }
+        // Filters
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%'.$request->name.'%');
+        }
 
-                    if ($request->filled('city')) {
-                        $query->where('campuses', 'like', '%' . $request->city . '%');
-                    }
+        if ($request->filled('city')) {
+            $query->where('campuses', 'like', '%'.$request->city.'%');
+        }
 
-                    if ($request->filled('country')) {
-                        if ($request->country === 'Europe') {
-                            $query->whereIn('country', $europeanCountries);
-                        } else {
-                            $country = Country::find($request->country);
-                            if (!empty($country)) {
-                                $query->where('country', 'like', '%' . $country->name . '%');
-                            } else {
-                                $query->where('country', 'like', '%' . $request->country . '%');
-                            }
-                        }
-                    }
-
-                    if ($request->filled('rank_id')) {
-                        $query->where('rank_id', 'like', '%' . $request->rank_id . '%');
-                    }
-
-            if ($request->filled('intake_months')) {
-                $query->where(function($subQuery) use ($request) {
-                    foreach ($request->intake_months as $month) {
-                        $subQuery->orWhereRaw("FIND_IN_SET(?, intake_months)", [trim($month)]);
-                    }
-                });
+        if ($request->filled('country')) {
+            if ($request->country === 'Europe') {
+                $query->whereIn('country', $europeanCountries);
+            } else {
+                $country = Country::find($request->country);
+                if (! empty($country)) {
+                    $query->where('country', 'like', '%'.$country->name.'%');
+                } else {
+                    $query->where('country', 'like', '%'.$request->country.'%');
+                }
             }
+        }
 
+        if ($request->filled('rank_id')) {
+            $query->where('rank_id', 'like', '%'.$request->rank_id.'%');
+        }
 
+        if ($request->filled('intake_months')) {
+            $query->where(function ($subQuery) use ($request) {
+                foreach ($request->intake_months as $month) {
+                    $subQuery->orWhereRaw('FIND_IN_SET(?, intake_months)', [trim($month)]);
+                }
+            });
+        }
 
+        // Retrieve paginated data
 
-                    // Retrieve paginated data
+        $universities = $query->orderBy('rank_id', 'DESC')->orderBy('name', 'ASC')
+            ->paginate($perPage, ['*'], 'page', $page);
 
-                    $universities = $query->orderBy('rank_id', 'DESC')->orderBy('name', 'ASC')
-                    ->paginate($perPage, ['*'], 'page', $page);
+        // University statistics grouped by country
+        $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
+            ->groupBy('country')
+            ->get();
 
-                    // University statistics grouped by country
-                    $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
-                        ->groupBy('country')
-                        ->get();
+        $statuses = [];
+        foreach ($universityStatsByCountries as $u) {
+            $statuses[$u->country] = [
+                'country_code' => $u->country_code,
+                'count' => $u->total_universities,
+            ];
+        }
 
-                    $statuses = [];
-                    foreach ($universityStatsByCountries as $u) {
-                        $statuses[$u->country] = array(
-                                'country_code'=>$u->country_code,
-                                'count'=>$u->total_universities
-                        );
-                    }
+        $customOrder = [
+            'United States', 'Canada', 'United Kingdom', 'Australia',
+            'United Arab Emirates', 'Hungary', 'Ireland', 'Malta',
+            'Poland', 'Germany', 'Holand', 'China', 'Malaysia',
+            'Turkey', 'Samoa,Djibouti',
+        ];
 
-                    $customOrder = [
-                        "United States", "Canada", "United Kingdom", "Australia",
-                        "United Arab Emirates", "Hungary", "Ireland", "Malta",
-                        "Poland", "Germany", "Holand", "China", "Malaysia",
-                        "Turkey", "Samoa,Djibouti"
-                    ];
+        // Reorder statuses
+        $sortedStatuses = [];
+        foreach ($customOrder as $country) {
+            if (isset($statuses[$country])) {
+                $sortedStatuses[$country] = $statuses[$country];
+            }
+        }
 
-                    // Reorder statuses
-                    $sortedStatuses = [];
-                    foreach ($customOrder as $country) {
-                        if (isset($statuses[$country])) {
-                            $sortedStatuses[$country] = $statuses[$country];
-                        }
-                    }
-
-                    // Final response
-                    return response()->json([
-                        'status' => 'success',
-                        'message' => 'University list retrieved successfully.',
-                        'data' => [
-                            'number_of_tiles' => 5,
-                            'statuses' => $sortedStatuses,
-                            'universities' => $universities->items(),
-                            'current_page' => $universities->currentPage(),
-                            'last_page' => $universities->lastPage(),
-                            'total_records' => $universities->total(),
-                            'per_page' => $universities->perPage(),
-                        ]
-                    ]);
+        // Final response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'University list retrieved successfully.',
+            'data' => [
+                'number_of_tiles' => 5,
+                'statuses' => $sortedStatuses,
+                'universities' => $universities->items(),
+                'current_page' => $universities->currentPage(),
+                'last_page' => $universities->lastPage(),
+                'total_records' => $universities->total(),
+                'per_page' => $universities->perPage(),
+            ],
+        ]);
     }
- 
+
     public function getPublicUniversities(Request $request)
-{
-    // Fetch universities with country_name accessor
-    $universities = University::select([
-            'id', 
-            'name', 
+    {
+        // Fetch universities with country_name accessor
+        $universities = University::select([
+            'id',
+            'name',
             'country',
             'website_link',
             'territory',
-            'commission', 
+            'commission',
             'notes',
             'created_by',
             'rank_id',
             'level_id',
             'payment_type_id',
-            'pay_out_id'
+            'pay_out_id',
         ])
-        ->with([
-            'createdBy:id,name',
-            'rank:id,name',
-            'ToolkitLevel:id,name',
-            'PaymentType:id,name',
-            'InstallmentPayOut:id,name'
-        ])
-        ->get()
-        ->append('country_name');
+            ->with([
+                'createdBy:id,name',
+                'rank:id,name',
+                'ToolkitLevel:id,name',
+                'PaymentType:id,name',
+                'InstallmentPayOut:id,name',
+            ])
+            ->get()
+            ->append('country_name');
 
-    // University statistics grouped by country (use actual column 'country')
-   $universityStatsByCountries = University::query()
-    ->selectRaw("
-        COUNT(universities.id) AS total_universities,
+        // University statistics grouped by country (use actual column 'country')
+        $universityStatsByCountries = University::query()
+            ->selectRaw("
+                        COUNT(universities.id) AS total_universities,
 
-        COALESCE(
-            CASE
-                WHEN universities.country REGEXP '^[0-9]+$'
-                    THEN country_by_id.name        -- numeric → join countries.id
-                ELSE country_by_name.name          -- text → join countries.name
-            END,
-            universities.country                    -- fallback (already text)
-        ) AS country_name
-    ")
-    ->leftJoin('countries AS country_by_id', function ($join) {
-        $join->on('country_by_id.id', '=', DB::raw('CAST(universities.country AS UNSIGNED)'));
-    })
-    ->leftJoin('countries AS country_by_name', function ($join) {
-        $join->on(DB::raw('LOWER(country_by_name.name)'), '=', DB::raw('LOWER(universities.country)'));
-    })
-    ->groupBy('country_name')
-    ->get();
+                        COALESCE(
+                            CASE
+                                WHEN universities.country REGEXP '^[0-9]+$'
+                                    THEN c_id.name        
+                                ELSE c_name.name         
+                            END,
+                            universities.country         
+                        ) AS resolved_country_name,
 
+                        COALESCE(
+                            CASE
+                                WHEN universities.country REGEXP '^[0-9]+$'
+                                    THEN c_id.country_code      
+                                ELSE c_name.country_code        
+                            END,
+                            NULL
+                        ) AS resolved_country_code
+                    ")
+            ->leftJoin('countries AS c_id', function ($join) {
+                $join->on('c_id.id', '=', DB::raw('CAST(universities.country AS UNSIGNED)'));
+            })
+            ->leftJoin('countries AS c_name', function ($join) {
+                $join->on(DB::raw('LOWER(c_name.name)'), '=', DB::raw('LOWER(universities.country)'));
+            })
+            ->groupBy('resolved_country_name', 'resolved_country_code')
+            ->get();
 
-    // Build statuses array keyed by country name
-    $statuses = [];
-    foreach ($universityStatsByCountries as $u) {
-        $countryName = $u->country_name;  // accessor returns full country name
-        $statuses[$countryName] = [
-            'country_code' => $u->country_code, // estore original cod test
-            'count' => $u->total_universities
+        // Build statuses array keyed by country name
+        $statuses = [];
+        foreach ($universityStatsByCountries as $u) {
+
+            // dd($u,$u->resolved_country_name,$u->total_universities);
+
+            $countryName = $u->resolved_country_name;  // accessor returns full country name
+            $statuses[$countryName] = [
+                'country_code' => $u->resolved_country_code, // estore original cod test
+                'count' => $u->total_universities,
+            ];
+
+        }
+
+        $general_country = Utility::getValByName('general_country');
+
+        // Custom display order
+        $customOrder = array_filter(
+            array_map('trim', explode(',', $general_country))
+        );
+
+        // dd($customOrder);
+
+        // -------------------------------
+        // EMEA REGION LISTS FOR COUNTING
+        // -------------------------------
+
+        $europe_country = Utility::getValByName('europe_country');
+        $europeEMEA = array_filter(
+            array_map('trim', explode(',', $europe_country))
+        );
+
+        $middle_east_country = Utility::getValByName('middle_east_country');
+
+        $middleEastEMEA = array_filter(
+            array_map('trim', explode(',', $middle_east_country))
+        );
+
+        // Fast lookup arrays for counting
+        $europeMap = array_flip($europeEMEA);
+        $middleEastMap = array_flip($middleEastEMEA);
+
+        $europeCount = 0;
+        $middleEastCount = 0;
+
+        // Single loop to compute totals for Europe & Middle East
+        foreach ($statuses as $countryName => $data) {
+            $count = $data['count'];
+
+            if (isset($europeMap[$countryName])) {
+                $europeCount += $count;
+            }
+
+            if (isset($middleEastMap[$countryName])) {
+                $middleEastCount += $count;
+            }
+        }
+
+        $statuses['Europe'] = [
+            'country_code' => 'eu', // estore original cod test
+            'count' => $europeCount,
         ];
-    }
+        $statuses['Middle East'] = [
+            'country_code' => 'me', // estore original cod test
+            'count' => $middleEastCount,
+        ];
 
-    $general_country = Utility::getValByName('general_country');
-
-    // Custom display order
-    $customOrder = [
-       $general_country
-    ];
-
-    // Reorder statuses
-    $sortedStatuses = [];
-    foreach ($customOrder as $country) {
-        if (isset($statuses[$country])) {
-            $sortedStatuses[$country] = $statuses[$country];
-        }
-    }
-
-    // -------------------------------
-    // EMEA REGION LISTS FOR COUNTING
-    // -------------------------------
-
-     $europe_country = Utility::getValByName('europe_country');
-    $europeEMEA = [
-         $europe_country
-    ];
-
-
-    $middle_east_country = Utility::getValByName('middle_east_country');
-
-    $middleEastEMEA = [
-        $middle_east_country
-    ];
-
-    // Fast lookup arrays for counting
-    $europeMap = array_flip($europeEMEA);
-    $middleEastMap = array_flip($middleEastEMEA);
-
-    $europeCount = 0;
-    $middleEastCount = 0;
-
-    // Single loop to compute totals for Europe & Middle East
-    foreach ($statuses as $countryName => $data) {
-        $count = $data['count'];
-
-        if (isset($europeMap[$countryName])) {
-            $europeCount += $count;
+        // Reorder statuses
+        $sortedStatuses = [];
+        foreach ($customOrder as $country) {
+            if (isset($statuses[$country])) {
+                $sortedStatuses[$country] = $statuses[$country];
+            }
         }
 
-        if (isset($middleEastMap[$countryName])) {
-            $middleEastCount += $count;
-        }
+        $sortedStatuses['Middle East'] = $statuses['Middle East'];
+        $sortedStatuses['Europe'] = $statuses['Europe'];
+
+        // Supporting dropdowns
+        $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
+        $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
+        $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
+        $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
+
+        // Final Response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'University list retrieved successfully.',
+            'data' => [
+                'number_of_tiles' => 5,
+                'statuses' => $sortedStatuses,
+                'universities' => $universities,
+                'europe_total' => $europeCount,
+                'middle_east_total' => $middleEastCount,
+                'payOuts' => $payOuts,
+                'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
+                'toolkitLevels' => $toolkitLevels,
+                'general_country' => $general_country.',Middle East,Europe',
+                'middle_east_country' => $middle_east_country,
+                'europe_country' => $europe_country,
+                'Country' => $Country,
+            ],
+        ]);
     }
 
-    // Supporting dropdowns
-    $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
-    $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
-    $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
-    $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
-    // Final Response
-    return response()->json([
-        'status' => 'success',
-        'message' => 'University list retrieved successfully.',
-        'data' => [
-            'number_of_tiles' => 5,
-            'statuses' => $sortedStatuses,
-            'universities' => $universities,
-            'europe_total' => $europeCount,
-            'middle_east_total' => $middleEastCount,
-            'payOuts' => $payOuts,
-            'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
-            'toolkitLevels' => $toolkitLevels,
-            'general_country' =>  $general_country,
-            'middle_east_country' => $middle_east_country,
-            'europe_country' => $europe_country,
-            'Country' => $Country
-        ]
-    ]);
-}
+    public function download()
+    {
 
-
-    public function download(){
-
-        $universities = University::when(!empty($_GET['name']), function ($query) {
-            return $query->where('name', 'like', '%' . $_GET['name'] . '%');
+        $universities = University::when(! empty($_GET['name']), function ($query) {
+            return $query->where('name', 'like', '%'.$_GET['name'].'%');
         })
-        ->when(!empty($_GET['country']), function ($query) {
-            return $query->where('country', 'like', '%' . $_GET['country'] . '%');
-        })
-
-        ->when(!empty($_GET['city']), function ($query) {
-            return $query->where('city', 'like', '%' . $_GET['city'] . '%');
-        })
-
-        ->when(!empty($_GET['note']), function ($query) {
-            return $query->where('note', 'like', '%' . $_GET['note'] . '%');
-        })
-
-        ->when(!empty($_GET['created_by']), function ($query) {
-            return $query->where('created_by', 'like', '%' . $_GET['created_by'] . '%');
-        })
-
-        ->get();
+            ->when(! empty($_GET['country']), function ($query) {
+                return $query->where('country', 'like', '%'.$_GET['country'].'%');
+            })
+            ->when(! empty($_GET['city']), function ($query) {
+                return $query->where('city', 'like', '%'.$_GET['city'].'%');
+            })
+            ->when(! empty($_GET['note']), function ($query) {
+                return $query->where('note', 'like', '%'.$_GET['note'].'%');
+            })
+            ->when(! empty($_GET['created_by']), function ($query) {
+                return $query->where('created_by', 'like', '%'.$_GET['created_by'].'%');
+            })
+            ->get();
 
         $users = User::get()->pluck('name', 'id');
         $universityStatsByCountries = University::selectRaw('count(id) as total_universities, country')
             ->groupBy('country')
             ->get();
 
-
-        //dd($universities);
+        // dd($universities);
 
         $header = [
             'Sr.No.',
@@ -324,27 +341,25 @@ class UniversityController extends Controller
             'Territory',
             'Band',
             'Resource',
-            'Application Method'
+            'Application Method',
         ];
 
         $data = [];
-        foreach($universities as $key => $university){
+        foreach ($universities as $key => $university) {
             $data[] = [
-                $key+1,
+                $key + 1,
                 $university->name,
                 $university->campuses,
                 $university->intake_months,
                 $university->territory,
                 $users[$university->company_id] ?? '',
                 $university->resource_drive_link,
-                $university->application_method_drive_link
+                $university->application_method_drive_link,
             ];
         }
         downloadCSV($header, $data, 'toolkit.csv');
-        return;
+
     }
-
-
 
     /**
      * Show the form for creating a new resource.
@@ -356,13 +371,13 @@ class UniversityController extends Controller
         //
         if (\Auth::user()->can('create university')) {
 
-            //getting countries
+            // getting countries
             $countries = countries();
 
-            //months
+            // months
             $months = months();
 
-            //getting companies
+            // getting companies
             $companies = FiltersBrands();
 
             $categories = InstituteCategory::pluck('name', 'id')->prepend('Select Category', 0);
@@ -370,8 +385,8 @@ class UniversityController extends Controller
             $data = [
                 'countries' => $countries,
                 'companies' => $companies,
-                'months'  => $months,
-                'categories' => $categories
+                'months' => $months,
+                'categories' => $categories,
             ];
 
             return view('university.create', $data);
@@ -382,10 +397,10 @@ class UniversityController extends Controller
 
     public function addUniversities(Request $request)
     {
-        if (!Auth::user()->can('create university')) {
+        if (! Auth::user()->can('create university')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Permission Denied.'
+                'message' => 'Permission Denied.',
             ], 403);
         }
 
@@ -399,35 +414,35 @@ class UniversityController extends Controller
             'territory' => 'required|array|min:1',
             'territory.*' => 'required|string',
             'company_id' => 'nullable|exists:users,id',
-           // 'rank_id' => 'required|exists:university_ranks,id',
+            // 'rank_id' => 'required|exists:university_ranks,id',
             'phone' => 'nullable|max:20',
             'note' => 'nullable|string',
             'institution_link' => 'nullable|string',
             'resource_drive_link' => 'nullable|string',
             'application_method_drive_link' => 'nullable|string',
-            'category_id' => 'nullable|exists:institute_categories,id'
+            'category_id' => 'nullable|exists:institute_categories,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()
+                'message' => $validator->errors(),
             ], 422);
         }
 
-        $university = new University();
+        $university = new University;
         $university->status = '1';
         $university->name = $request->name;
         $university->company_id = 1;
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         $university->campuses = $request->campuses;
-      //  $university->rank_id = $request->rank_id;
+        //  $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
         $university->intake_months = implode(',', $request->months);
-        if($request->territory!=''){
+        if ($request->territory != '') {
             $university->territory = implode(',', $request->territory);
         }
 
@@ -441,8 +456,8 @@ class UniversityController extends Controller
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $university->name. '  created',
-                'message' => $university->name. '  created'
+                'title' => $university->name.'  created',
+                'message' => $university->name.'  created',
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
@@ -452,16 +467,15 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'University created successfully.',
-            'data' => $university
+            'data' => $university,
         ]);
     }
-
 
     public function updateUniversities(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
-           // 'rank_id' => 'required|exists:university_ranks,id', // 
+            // 'rank_id' => 'required|exists:university_ranks,id', //
             'name' => 'required|max:200',
             'country' => 'required|array|min:1',
             'country.*' => 'required|string|max:200',
@@ -476,20 +490,20 @@ class UniversityController extends Controller
             'institution_link' => 'nullable|string',
             'resource_drive_link' => 'nullable|string',
             'application_method_drive_link' => 'nullable|string',
-            'category_id' => 'nullable|exists:institute_categories,id'
+            'category_id' => 'nullable|exists:institute_categories,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()
+                'message' => $validator->errors(),
             ], 422);
         }
 
-        if (!Auth::user()->can('edit university')) {
+        if (! Auth::user()->can('edit university')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Permission Denied.'
+                'message' => 'Permission Denied.',
             ], 403);
         }
 
@@ -501,7 +515,7 @@ class UniversityController extends Controller
         $university->country = implode(',', $request->country);
         $university->city = $request->city;
         // $university->campuses = $request->city;
-       // $university->rank_id = $request->rank_id;
+        // $university->rank_id = $request->rank_id;
         $university->phone = $request->phone;
         $university->institution_link = $request->institution_link;
         $university->note = $request->note;
@@ -515,132 +529,129 @@ class UniversityController extends Controller
 
         // Log changed fields only
         $changes = [];
-         $updatedFields = [];
+        $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at'])) {
-                    continue;
-                }
-            if ($university->$field != $oldValue) {
+            if (in_array($field, ['created_at', 'updated_at'])) {
+                continue;
+            }
+            if ($oldValue != $university->$field) {
                 $changes[$field] = [
                     'old' => $oldValue,
-                    'new' => $university->$field
+                    'new' => $university->$field,
                 ];
                 $updatedFields[] = $field;
             }
         }
 
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             addLogActivity([
                 'type' => 'info',
                 'note' => json_encode([
-                    'title' => $university->name . ' updated ',
-                    'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                    'changes' => $changes
+                    'title' => $university->name.' updated ',
+                    'message' => 'Fields updated: '.implode(', ', $updatedFields),
+                    'changes' => $changes,
                 ]),
                 'module_id' => $university->id,
                 'module_type' => 'university',
-                'notification_type' => 'University Updated'
+                'notification_type' => 'University Updated',
             ]);
         }
 
         return response()->json([
             'status' => 'success',
             'message' => 'University updated successfully.',
-            'data' => $university
+            'data' => $university,
         ]);
     }
 
-    
-   public function updateUniversitiesByKey(Request $request)
-        {
-            // Validate request
-            $validator = Validator::make($request->all(), [
-                'id' => 'required|exists:universities,id'
-            ]);
+    public function updateUniversitiesByKey(Request $request)
+    {
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:universities,id',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $validator->errors()
-                ], 422);
-            }
-
-            // Permission check
-            if (!Auth::user()->can('edit scorp commission')) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Permission Denied.'
-                ], 403);
-            }
-
-            // Get university
-            $university = University::findOrFail($request->id);
-            $originalData = $university->toArray();
-
-            // Exclude ID from update
-            $metaData = $request->except('id');
-
-            // Update each field dynamically
-            foreach ($metaData as $key => $newValue) {
-
-                // Handle array fields
-                if (in_array($key, ['country', 'territory'])) {
-                    $newValue = implode(',', (array) $newValue);
-                }
-
-                if ($key === 'months') {
-                    $key = 'intake_months';
-                    $newValue = implode(',', (array) $newValue);
-                }
-
-                // Assign only if column exists in table
-                if (\Schema::hasColumn('universities', $key)) {
-                    $university->$key = $newValue;
-                }
-            }
-
-            // Save updated university
-            $university->save();
-
-            // Detect changes
-            $changes = [];
-            $updatedFields = [];
-            foreach ($originalData as $field => $oldValue) {
-                if (in_array($field, ['created_at', 'updated_at'])) {
-                    continue;
-                }
-                if ($university->$field != $oldValue) {
-                    $changes[$field] = [
-                        'old' => $oldValue,
-                        'new' => $university->$field
-                    ];
-                    $updatedFields[] = $field;
-                }
-            }
-
-            // Log changes if any
-            if (!empty($changes)) {
-                addLogActivity([
-                    'type' => 'info',
-                    'note' => json_encode([
-                        'title' => $university->name . ' updated',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
-                    'module_id' => $university->id,
-                    'module_type' => 'university',
-                    'notification_type' => 'University Updated'
-                ]);
-            }
-
+        if ($validator->fails()) {
             return response()->json([
-                'status' => 'success',
-                'message' => 'University updated successfully.',
-                'data' => $university
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 422);
+        }
+
+        // Permission check
+        if (! Auth::user()->can('edit scorp commission')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Permission Denied.',
+            ], 403);
+        }
+
+        // Get university
+        $university = University::findOrFail($request->id);
+        $originalData = $university->toArray();
+
+        // Exclude ID from update
+        $metaData = $request->except('id');
+
+        // Update each field dynamically
+        foreach ($metaData as $key => $newValue) {
+
+            // Handle array fields
+            if (in_array($key, ['country', 'territory'])) {
+                $newValue = implode(',', (array) $newValue);
+            }
+
+            if ($key === 'months') {
+                $key = 'intake_months';
+                $newValue = implode(',', (array) $newValue);
+            }
+
+            // Assign only if column exists in table
+            if (\Schema::hasColumn('universities', $key)) {
+                $university->$key = $newValue;
+            }
+        }
+
+        // Save updated university
+        $university->save();
+
+        // Detect changes
+        $changes = [];
+        $updatedFields = [];
+        foreach ($originalData as $field => $oldValue) {
+            if (in_array($field, ['created_at', 'updated_at'])) {
+                continue;
+            }
+            if ($oldValue != $university->$field) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $university->$field,
+                ];
+                $updatedFields[] = $field;
+            }
+        }
+
+        // Log changes if any
+        if (! empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $university->name.' updated',
+                    'message' => 'Fields updated: '.implode(', ', $updatedFields),
+                    'changes' => $changes,
+                ]),
+                'module_id' => $university->id,
+                'module_type' => 'university',
+                'notification_type' => 'University Updated',
             ]);
         }
 
-
+        return response()->json([
+            'status' => 'success',
+            'message' => 'University updated successfully.',
+            'data' => $university,
+        ]);
+    }
 
     public function updateAboutUniversity(Request $request)
     {
@@ -651,20 +662,20 @@ class UniversityController extends Controller
             'website_link' => 'string',
             'territory.*' => 'required|string',
             'campuses' => 'required|array|min:1',
-            'campuses.*' => 'required|string'
+            'campuses.*' => 'required|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => $validator->errors()
+                'message' => $validator->errors(),
             ], 422);
         }
 
-        if (!Auth::user()->can('edit university')) {
+        if (! Auth::user()->can('edit university')) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Permission Denied.'
+                'message' => 'Permission Denied.',
             ], 403);
         }
 
@@ -680,39 +691,39 @@ class UniversityController extends Controller
 
         // Log changed fields only
         $changes = [];
-         $updatedFields = [];
+        $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
-             if (in_array($field, ['created_at', 'updated_at', 'rank', 'created_by'])) {
-                    continue;
-                }
-            if ($university->$field != $oldValue) {
+            if (in_array($field, ['created_at', 'updated_at', 'rank', 'created_by'])) {
+                continue;
+            }
+            if ($oldValue != $university->$field) {
                 $changes[$field] = [
                     'old' => $oldValue,
-                    'new' => $university->$field
+                    'new' => $university->$field,
                 ];
 
-                 $updatedFields[] = $field;
+                $updatedFields[] = $field;
             }
         }
 
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             addLogActivity([
                 'type' => 'info',
-                 'note' => json_encode([
-                        'title' => $university->name . ' updated ',
-                        'message' => 'Fields updated: ' . implode(', ', $updatedFields),
-                        'changes' => $changes
-                    ]),
+                'note' => json_encode([
+                    'title' => $university->name.' updated ',
+                    'message' => 'Fields updated: '.implode(', ', $updatedFields),
+                    'changes' => $changes,
+                ]),
                 'module_id' => $university->id,
                 'module_type' => 'university',
-                'notification_type' => 'University Updated'
+                'notification_type' => 'University Updated',
             ]);
         }
 
         return response()->json([
             'status' => 'success',
             'message' => 'University about updated successfully.',
-            'data' => $university
+            'data' => $university,
         ]);
     }
 
@@ -731,10 +742,10 @@ class UniversityController extends Controller
         }
 
         // Check permission
-        if (!\Auth::user()->can('delete university')) {
+        if (! \Auth::user()->can('delete university')) {
             return response()->json([
                 'status' => 'error',
-                'message' => __('Permission Denied.')
+                'message' => __('Permission Denied.'),
             ], 403);
         }
 
@@ -755,12 +766,12 @@ class UniversityController extends Controller
         // ];
         // addLogActivity($logData);
 
-          addLogActivity([
+        addLogActivity([
             'type' => 'warning',
             'note' => json_encode([
-                'title' => $university->name. '  deleted',
-                'message' => $university->name. '  deleted',
-                'changes' => $university
+                'title' => $university->name.'  deleted',
+                'message' => $university->name.'  deleted',
+                'changes' => $university,
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
@@ -773,10 +784,9 @@ class UniversityController extends Controller
         // Return success response
         return response()->json([
             'status' => 'success',
-            'message' => __('University successfully deleted!')
+            'message' => __('University successfully deleted!'),
         ], 200);
     }
-
 
     public function universityDetail(Request $request)
     {
@@ -788,18 +798,17 @@ class UniversityController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
         }
 
-        $id =    $request->id;
+        $id = $request->id;
         $university = University::findOrFail($id);
 
         // related applications
-        $applications = []; //DealApplication::where('university_id', $id)->get();
+        $applications = []; // DealApplication::where('university_id', $id)->get();
 
         // related admissions
-        $deals = []; //Deal::where('university_id', $id)->get();
+        $deals = []; // Deal::where('university_id', $id)->get();
 
         $stages = Stage::pluck('name', 'id')->toArray();
         $organizations = User::where('type', 'organization')->pluck('name', 'id')->toArray();
-
 
         $course = Course::where('university_id', $id);
 
@@ -816,17 +825,16 @@ class UniversityController extends Controller
             'deals' => $deals,
             'stages' => $stages,
             'organizations' => $organizations,
-            'courses' => $courses
+            'courses' => $courses,
         ]);
     }
-
 
     // public function getIntakeMonthByUniversity()
     // {
     //     $id = $_POST['id'];
     //     $university = University::where('id', $id)->first();
     //     $courses = Course::where('university_id', $id)->get();
-    
+
     //     $monthNames = [
     //         'JAN' => 'JAN',
     //         'FEB' => 'FEB',
@@ -841,7 +849,7 @@ class UniversityController extends Controller
     //         'NOV' => 'NOV',
     //         'DEC' => 'DEC'
     //     ];
-        
+
     //     // Process intake months
     //     $intake_months = [];
     //     if ($university && $university->intake_months) {
@@ -855,7 +863,7 @@ class UniversityController extends Controller
     //             ->values()
     //             ->toArray();
     //     }
-    
+
     //     // Process courses
     //     $course_options = [];
     //     foreach ($courses as $course) {
@@ -863,7 +871,7 @@ class UniversityController extends Controller
     //             $course->id => $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')'
     //         ];
     //     }
-    
+
     //     // Process intake years
     //     $intake_years = [];
     //     $years = intakeYear() ?? [];
@@ -872,7 +880,7 @@ class UniversityController extends Controller
     //             $year => $year
     //         ];
     //     }
-    
+
     //     return [
     //         'status' => 'success',
     //         'university_status' => $university->status ?? null,
@@ -882,59 +890,61 @@ class UniversityController extends Controller
     //     ];
     // }
     public function getIntakeMonthByUniversity()
-     {
-            $id = $_POST['id'];
-            $university = University::where('id', $id)->first();
-            $courses = Course::where('university_id', $id)->get();
+    {
+        $id = $_POST['id'];
+        $university = University::where('id', $id)->first();
+        $courses = Course::where('university_id', $id)->get();
 
-            $monthNames = [
-                'JAN' => 'JAN',
-                'FEB' => 'FEB',
-                'MAR' => 'MAR',
-                'APR' => 'APR',
-                'MAY' => 'MAY',
-                'JUN' => 'JUN',
-                'JUL' => 'JUL',
-                'AUG' => 'AUG',
-                'SEP' => 'SEP',
-                'OCT' => 'OCT',
-                'NOV' => 'NOV',
-                'DEC' => 'DEC'
-            ];
-            
-            // Process intake months - already in pluck-like format
-            $intake_months = [];
-            if ($university && $university->intake_months) {
-                $intake_months = collect(explode(',', $university->intake_months))
-                    ->mapWithKeys(function ($monthAbbr) use ($monthNames) {
-                        $trimmed = trim($monthAbbr);
-                        $value = $monthNames[$trimmed] ?? $trimmed;
-                        return [$value => $value];
-                    })
-                    ->filter()
-                    ->unique()
-                    ->toArray();
-            }
+        $monthNames = [
+            'JAN' => 'JAN',
+            'FEB' => 'FEB',
+            'MAR' => 'MAR',
+            'APR' => 'APR',
+            'MAY' => 'MAY',
+            'JUN' => 'JUN',
+            'JUL' => 'JUL',
+            'AUG' => 'AUG',
+            'SEP' => 'SEP',
+            'OCT' => 'OCT',
+            'NOV' => 'NOV',
+            'DEC' => 'DEC',
+        ];
 
-            // Process courses in pluck-like format
-            $course_options = $courses->mapWithKeys(function ($course) {
-                $label = $course->name . ' - ' . $course->campus . ' - ' . $course->intake_month . ' - ' . $course->intakeYear . ' (' . $course->duration . ')';
-                return [$course->id => $label];
-            })->toArray();
+        // Process intake months - already in pluck-like format
+        $intake_months = [];
+        if ($university && $university->intake_months) {
+            $intake_months = collect(explode(',', $university->intake_months))
+                ->mapWithKeys(function ($monthAbbr) use ($monthNames) {
+                    $trimmed = trim($monthAbbr);
+                    $value = $monthNames[$trimmed] ?? $trimmed;
 
-            // Process intake years in pluck-like format
-            $intake_years = collect(intakeYear() ?? [])->mapWithKeys(function ($year) {
-                return [$year => $year];
-            })->toArray();
-
-            return [
-                'status' => 'success',
-                'university_status' => $university->status ?? null,
-                'intake_months' => $intake_months,
-                'courses' => $course_options,
-                'intake_years' => $intake_years
-            ];
+                    return [$value => $value];
+                })
+                ->filter()
+                ->unique()
+                ->toArray();
         }
+
+        // Process courses in pluck-like format
+        $course_options = $courses->mapWithKeys(function ($course) {
+            $label = $course->name.' - '.$course->campus.' - '.$course->intake_month.' - '.$course->intakeYear.' ('.$course->duration.')';
+
+            return [$course->id => $label];
+        })->toArray();
+
+        // Process intake years in pluck-like format
+        $intake_years = collect(intakeYear() ?? [])->mapWithKeys(function ($year) {
+            return [$year => $year];
+        })->toArray();
+
+        return [
+            'status' => 'success',
+            'university_status' => $university->status ?? null,
+            'intake_months' => $intake_months,
+            'courses' => $course_options,
+            'intake_years' => $intake_years,
+        ];
+    }
 
     public function SaveToggleCourse(Request $request)
     {
@@ -951,259 +961,258 @@ class UniversityController extends Controller
     }
 
     public function updateUniversityStatus(Request $request)
-{
-    // Validate the request
-    $validator = Validator::make($request->all(), [
-        'university_id' => 'required|exists:universities,id',
-        'status' => 'required|in:0,1' // Assuming 0 or 1 as status values
-    ]);
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+            'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors(),
-        ], 400);
-    }
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
 
-    // Check permission
-    if (!\Auth::user()->can('edit university')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Permission Denied.')
-        ], 403);
-    }
+        // Check permission
+        if (! \Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
 
-    // Find university
-    $university = University::find($request->university_id);
+        // Find university
+        $university = University::find($request->university_id);
 
-    if (!$university) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('University not found.')
-        ], 404);
-    }
+        if (! $university) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University not found.'),
+            ], 404);
+        }
 
-    // Update status
-    $university->uni_status = $request->status;
-    $university->save();
+        // Update status
+        $university->uni_status = $request->status;
+        $university->save();
 
-    // Log activity
-   $statusText = $request->status == 1 ? 'Active' : 'Inactive';
+        // Log activity
+        $statusText = $request->status == 1 ? 'Active' : 'Inactive';
 
-    $logData = [
-        'type' => 'info',
-        'note' => json_encode([
-            'title' => $university->name . ' status updated to ' . $statusText,
-            'message' => $university->name . ' status updated to ' . $statusText,
-        ]),
-        'module_id' => $university->id,
-        'module_type' => 'university',
-        'notification_type' => 'University Updated'
-    ];
-    addLogActivity($logData);
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $university->name.' status updated to '.$statusText,
+                'message' => $university->name.' status updated to '.$statusText,
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
 
-    // Success response
-    return response()->json([
-        'status' => 'success',
-        'message' => __('University successfully updated!')
-    ], 200);
-}
-
-    public function updateUniversityCourseStatus(Request $request)
-{
-    // Validate the request
-    $validator = Validator::make($request->all(), [
-        'university_id' => 'required|exists:universities,id',
-        'status' => 'required|in:0,1' // Assuming 0 or 1 as status values
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors(),
-        ], 400);
-    }
-
-    // Check permission
-    if (!\Auth::user()->can('edit university')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Permission Denied.')
-        ], 403);
-    }
-
-    // Find university
-    $university = University::find($request->university_id);
-
-    if (!$university) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('University not found.')
-        ], 404);
-    }
-
-    // Update status
-    $university->uni_status = $request->status;
-    $university->save();
-
-    // Log activity
-    $logData = [
-        'type' => 'info',
-        'note' => json_encode([
-            'title' => 'University course Status Updated',
-            'message' => 'University status changed to ' . $request->status,
-        ]),
-        'module_id' => $university->id,
-        'module_type' => 'university',
-        'notification_type' => 'University Updated'
-    ];
-    addLogActivity($logData);
-
-    // Success response
-    return response()->json([
-        'status' => 'success',
-        'message' => __('University successfully updated!')
-    ], 200);
-}
-    public function updateUniversityMOIStatus(Request $request)
-{
-    // Validate the request
-    $validator = Validator::make($request->all(), [
-        'university_id' => 'required|exists:universities,id',
-        'status' => 'required|in:0,1' // Assuming 0 or 1 as status values
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 'error',
-            'errors' => $validator->errors(),
-        ], 400);
-    }
-
-    // Check permission
-    if (!\Auth::user()->can('edit university')) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('Permission Denied.')
-        ], 403);
-    }
-
-    // Find university
-    $university = University::find($request->university_id);
-
-    if (!$university) {
-        return response()->json([
-            'status' => 'error',
-            'message' => __('University not found.')
-        ], 404);
-    }
-
-    // Update status
-    $university->moi_status = $request->status;
-    $university->save();
- 
-
-
-    $statusText = $request->status == 1 ? 'active' : 'inactive';
-
-    $logData = [
-        'type' => 'info',
-        'note' => json_encode([
-            'title' => $university->name . ' MOI status updated to ' . $statusText,
-            'message' => $university->name . ' MOI status updated to ' . $statusText,
-        ]),
-        'module_id' => $university->id,
-        'module_type' => 'university',
-        'notification_type' => 'University Updated'
-    ];
-    addLogActivity($logData);
-
-    // Success response
-    return response()->json([
-        'status' => 'success',
-        'message' => __('University successfully updated!')
-    ], 200);
-}
-
-public function pluckInstitutes(Request $request)
-{
-    $University = University::pluck('name', 'id')->toArray();
-    return response()->json([
-        'status' => 'success',
-        'data' => $University
-        
-    ]);
-}
-
-
-public function get_course_campus()
-{
-    $id = $_POST['id'];
-    // Fetch campus details
-    $campus = Course::where('id', $id)
-        ->whereNotNull('campus')
-        ->pluck('campus')
-        ->flatMap(function ($campusString) {
-            return array_map('trim', explode(',', $campusString));
-        })
-        ->first();
-
-    if (empty($campus)) {
+        // Success response
         return response()->json([
             'status' => 'success',
-            'campus' => [],
-            'intake_month' => [],
-            'intake_year' => null,
+            'message' => __('University successfully updated!'),
+        ], 200);
+    }
+
+    public function updateUniversityCourseStatus(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+            'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
+
+        // Check permission
+        if (! \Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
+
+        // Find university
+        $university = University::find($request->university_id);
+
+        if (! $university) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University not found.'),
+            ], 404);
+        }
+
+        // Update status
+        $university->uni_status = $request->status;
+        $university->save();
+
+        // Log activity
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => 'University course Status Updated',
+                'message' => 'University status changed to '.$request->status,
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
+
+        // Success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('University successfully updated!'),
+        ], 200);
+    }
+
+    public function updateUniversityMOIStatus(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+            'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
+
+        // Check permission
+        if (! \Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
+
+        // Find university
+        $university = University::find($request->university_id);
+
+        if (! $university) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University not found.'),
+            ], 404);
+        }
+
+        // Update status
+        $university->moi_status = $request->status;
+        $university->save();
+
+        $statusText = $request->status == 1 ? 'active' : 'inactive';
+
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $university->name.' MOI status updated to '.$statusText,
+                'message' => $university->name.' MOI status updated to '.$statusText,
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
+
+        // Success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('University successfully updated!'),
+        ], 200);
+    }
+
+    public function pluckInstitutes(Request $request)
+    {
+        $University = University::pluck('name', 'id')->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $University,
+
         ]);
     }
 
-    // Fetch intake month details
+    public function get_course_campus()
+    {
+        $id = $_POST['id'];
+        // Fetch campus details
+        $campus = Course::where('id', $id)
+            ->whereNotNull('campus')
+            ->pluck('campus')
+            ->flatMap(function ($campusString) {
+                return array_map('trim', explode(',', $campusString));
+            })
+            ->first();
 
-    $intake_month = Course::where('id', $id)
-    ->whereNotNull('intake_month')
-    ->pluck('intake_month')
-    ->flatMap(function ($campusString) {
-        return array_map('trim', explode(',', $campusString));
-    })
-    ->map(function ($month) {
-        // Convert full month name to 3-letter abbreviation
-        return substr(strtoupper($month), 0, 3);
-    })
-    ->toArray();
+        if (empty($campus)) {
+            return response()->json([
+                'status' => 'success',
+                'campus' => [],
+                'intake_month' => [],
+                'intake_year' => null,
+            ]);
+        }
 
-    // Then you can compare with your monthNames array
-    $monthNames = [
-        'JAN' => 'JAN',
-        'FEB' => 'FEB',
-        'MAR' => 'MAR',
-        'APR' => 'APR',
-        'MAY' => 'MAY',
-        'JUN' => 'JUN',
-        'JUL' => 'JUL',
-        'AUG' => 'AUG',
-        'SEP' => 'SEP',
-        'OCT' => 'OCT',
-        'NOV' => 'NOV',
-        'DEC' => 'DEC'
-    ];
+        // Fetch intake month details
 
-    // Filter only valid month abbreviations
-    $validMonths = array_filter($intake_month, function ($month) use ($monthNames) {
-        return isset($monthNames[$month]);
-    });
+        $intake_month = Course::where('id', $id)
+            ->whereNotNull('intake_month')
+            ->pluck('intake_month')
+            ->flatMap(function ($campusString) {
+                return array_map('trim', explode(',', $campusString));
+            })
+            ->map(function ($month) {
+                // Convert full month name to 3-letter abbreviation
+                return substr(strtoupper($month), 0, 3);
+            })
+            ->toArray();
 
-    // If you need unique values
-    $validMonths = implode(',', array_unique($validMonths));
+        // Then you can compare with your monthNames array
+        $monthNames = [
+            'JAN' => 'JAN',
+            'FEB' => 'FEB',
+            'MAR' => 'MAR',
+            'APR' => 'APR',
+            'MAY' => 'MAY',
+            'JUN' => 'JUN',
+            'JUL' => 'JUL',
+            'AUG' => 'AUG',
+            'SEP' => 'SEP',
+            'OCT' => 'OCT',
+            'NOV' => 'NOV',
+            'DEC' => 'DEC',
+        ];
 
-    // Fetch intake year
-    $campusfetch = Course::find($id);
-    $intake_year = $campusfetch ? $campusfetch->intakeYear : null;
+        // Filter only valid month abbreviations
+        $validMonths = array_filter($intake_month, function ($month) use ($monthNames) {
+            return isset($monthNames[$month]);
+        });
 
-    return response()->json([
-        'status' => 'success',
-        'campus' => $campus,
-        'intake_month' => $validMonths,
-        'intake_year' => $intake_year,
-    ]);
-}
+        // If you need unique values
+        $validMonths = implode(',', array_unique($validMonths));
+
+        // Fetch intake year
+        $campusfetch = Course::find($id);
+        $intake_year = $campusfetch ? $campusfetch->intakeYear : null;
+
+        return response()->json([
+            'status' => 'success',
+            'campus' => $campus,
+            'intake_month' => $validMonths,
+            'intake_year' => $intake_year,
+        ]);
+    }
 }
