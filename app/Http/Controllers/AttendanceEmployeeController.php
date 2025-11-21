@@ -3211,6 +3211,7 @@ public function backuplist(Request $request)
                     ])
                     ->whereNotIn('users.type', $excludedTypes)
                     ->where('users.is_attendance_required', 1)
+                    ->where('users.is_active', 1)
                     ->where(function ($query) {
                         $query->whereNull('attendances.id')                            // Not marked
                             ->orWhere('attendances.clock_out', '=', '00:00:00')      // Marked but no clock out
