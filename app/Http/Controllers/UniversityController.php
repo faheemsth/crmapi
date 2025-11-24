@@ -27,7 +27,7 @@ class UniversityController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function getUniversities(Request $request)
+      public function getUniversities(Request $request)
     {
         // Check permission
         if (! Auth::user()->type == 'super admin' && ! Gate::check('show university') && ! Gate::check('manage university')) {
@@ -38,26 +38,33 @@ class UniversityController extends Controller
         }
 
         // European countries for filtering
-        $europeanCountries = [
-            'Albania', 'Andorra', 'Armenia', 'Austria', 'Azerbaijan',
-            'Belarus', 'Belgium', 'Bosnia and Herzegovina', 'Bulgaria',
-            'Croatia', 'Cyprus', 'Czech Republic', 'Denmark', 'Estonia',
-            'Finland', 'France', 'Georgia', 'Germany', 'Greece',
-            'Hungary', 'Iceland', 'Ireland', 'Italy', 'Kazakhstan',
-            'Kosovo', 'Latvia', 'Liechtenstein', 'Lithuania',
-            'Luxembourg', 'Malta', 'Moldova', 'Monaco', 'Montenegro',
-            'Netherlands', 'North Macedonia', 'Norway', 'Poland',
-            'Portugal', 'Romania', 'Russia', 'San Marino', 'Serbia',
-            'Slovakia', 'Slovenia', 'Spain', 'Sweden', 'Switzerland',
-            'Turkey', 'Ukraine', 'Vatican City',
-        ];
+           $europe_country = Utility::getValByName('europe_country');
+        $europeEMEA = array_filter(
+            array_map('trim', explode(',', $europe_country))
+        );
+        $europeanCountries = $europeEMEA;
 
         // Pagination control
         $perPage = $request->input('perPage', env('RESULTS_ON_PAGE', 50));
         $page = $request->input('page', 1);
 
+        $caseCountry = "
+                COALESCE(
+                    CASE
+                        WHEN universities.country REGEXP '^[0-9]+$'
+                            THEN c_id.name
+                        ELSE c_name.name
+                    END,
+                    universities.country
+                )
+            ";
+
         // Build query
-        $query = University::query();
+        $query = University::query()
+            ->leftJoin('countries as c_id', 'universities.country', '=', 'c_id.id')
+            ->leftJoin('countries as c_name', 'universities.country', '=', 'c_name.name')
+            ->select('universities.*')
+            ->selectRaw("$caseCountry AS resolved_country_name");
 
         // Filters
         if ($request->filled('name')) {
@@ -69,14 +76,17 @@ class UniversityController extends Controller
         }
 
         if ($request->filled('country')) {
+
             if ($request->country === 'Europe') {
-                $query->whereIn('country', $europeanCountries);
+                $placeholders = implode(',', array_fill(0, count($europeanCountries), '?'));
+                $query->whereRaw("$caseCountry IN ($placeholders)", $europeanCountries);
             } else {
                 $country = Country::find($request->country);
+
                 if (! empty($country)) {
-                    $query->where('country', 'like', '%'.$country->name.'%');
+                    $query->whereRaw("$caseCountry LIKE ?", ['%'.$country->name.'%']);
                 } else {
-                    $query->where('country', 'like', '%'.$request->country.'%');
+                    $query->whereRaw("$caseCountry LIKE ?", ['%'.$request->country.'%']);
                 }
             }
         }
@@ -158,7 +168,7 @@ class UniversityController extends Controller
             'level_id',
             'payment_type_id',
             'pay_out_id',
-        ])->where('uni_status','0')
+        ])->where('uni_status', '0')
             ->with([
                 'createdBy:id,name',
                 'rank:id,name',
@@ -170,7 +180,7 @@ class UniversityController extends Controller
             ->append('country_name');
 
         // University statistics grouped by country (use actual column 'country')
-        $universityStatsByCountries = University::query()->where('uni_status','0')
+        $universityStatsByCountries = University::query()->where('uni_status', '0')
             ->selectRaw("
                         COUNT(universities.id) AS total_universities,
 
@@ -306,10 +316,8 @@ class UniversityController extends Controller
         ]);
     }
 
-
-     public function getPublicUniversitiesTiles(Request $request)
+    public function getPublicUniversitiesTiles(Request $request)
     {
-        
 
         // University statistics grouped by country (use actual column 'country')
         $universityStatsByCountries = University::query()
@@ -433,7 +441,7 @@ class UniversityController extends Controller
             'message' => 'University list retrieved successfully.',
             'data' => [
                 'number_of_tiles' => 10,
-                'statuses' => $sortedStatuses, 
+                'statuses' => $sortedStatuses,
                 'europe_total' => $europeCount,
                 'middle_east_total' => $middleEastCount,
                 'payOuts' => $payOuts,
@@ -801,7 +809,7 @@ class UniversityController extends Controller
             'territory' => 'required|array|min:1',
             'agency' => 'required|string',
             'website_link' => 'string',
-            //'product_coordinator_id' => 'nullable|exists:users,id',
+            // 'product_coordinator_id' => 'nullable|exists:users,id',
             'territory.*' => 'required|string',
             'campuses' => 'required|array|min:1',
             'campuses.*' => 'required|string',
@@ -829,10 +837,10 @@ class UniversityController extends Controller
         $university->campuses = implode(',', $request->campuses);
         $university->agency = $request->agency;
         $university->website_link = $request->website_link;
-        if( $request->product_coordinator_id!='N/A'){
-             $university->product_coordinator_id = $request->product_coordinator_id;
+        if ($request->product_coordinator_id != 'N/A') {
+            $university->product_coordinator_id = $request->product_coordinator_id;
         }
-       
+
         $university->save();
 
         // Log changed fields only
