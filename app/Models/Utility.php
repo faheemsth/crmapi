@@ -21,13 +21,18 @@ class Utility extends Model
     public static function settings()
     {
         $data = DB::table('settings');
-
-        if (\Auth::check()) {
-            $data = $data->where('created_by', '=', \Auth::user()->creatorId())->get();
-            if (count($data) == 0) {
-                $data = DB::table('settings')->where('created_by', '=', 1)->get();
+        $currentUrl = url()->current();
+        if(!str_contains($currentUrl, '/api/getPublicUniversitiesTiles')){
+            if (\Auth::check()) {
+                $data = $data->where('created_by', '=', \Auth::user()->creatorId())->get();
+                if (count($data) == 0) {
+                    $data = DB::table('settings')->where('created_by', '=', 1)->get();
+                }
+            } else {
+                $data->where('created_by', '=', 1);
+                $data = $data->get();
             }
-        } else {
+        }else{
             $data->where('created_by', '=', 1);
             $data = $data->get();
         }
