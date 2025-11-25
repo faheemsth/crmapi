@@ -852,6 +852,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/ApplicationStagPluck', [GeneralController::class, 'ApplicationStagPluck']);
     Route::post('/getemailTags', [GeneralController::class, 'getemailTags']);
     Route::post('/getemailTagstype', [GeneralController::class, 'getemailTagstype']);
+    // check is live
     Route::post('/totalSummary', [GeneralController::class, 'totalSummary']);
     Route::post('/getAttendanceReport', [GeneralController::class, 'getAttendanceReport']);
     Route::post('/saveSystemSettings', [GeneralController::class, 'saveSystemSettings']);
