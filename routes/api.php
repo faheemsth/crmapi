@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\LoginRegisterController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AllowanceController;
 use App\Http\Controllers\AllowanceOptionController;
+use App\Http\Controllers\AnnouncementCategoryController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ApplicationsController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PaySlipController;
@@ -665,6 +667,18 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::get('/getInstituteCategories', [InstituteCategoryController::class, 'getInstituteCategories']);
      Route::post('/updateInstituteCategory', [InstituteCategoryController::class, 'updateInstituteCategory']);
      Route::post('/deleteInstituteCategory', [InstituteCategoryController::class, 'deleteInstituteCategory']);
+     //   Announcement Category
+     Route::post('/addAnnouncementCategory', [AnnouncementCategoryController::class, 'addAnnouncementCategory']);
+     Route::get('/getAnnouncementCategoryPluck', [AnnouncementCategoryController::class, 'getAnnouncementCategoryPluck']);
+     Route::get('/getAnnouncementCategories', [AnnouncementCategoryController::class, 'getAnnouncementCategories']);
+     Route::post('/updateAnnouncementCategory', [AnnouncementCategoryController::class, 'updateAnnouncementCategory']);
+     Route::post('/deleteAnnouncementCategory', [AnnouncementCategoryController::class, 'deleteAnnouncementCategory']);
+     //   Announcement  
+     Route::post('/addAnnouncement', [AnnouncementController::class, 'addAnnouncement']); 
+     Route::post('/getAnnouncement', [AnnouncementController::class, 'index']);
+     Route::post('/updateAnnouncement', [AnnouncementController::class, 'updateAnnouncement']);
+     Route::post('/deleteAnnouncement', [AnnouncementController::class, 'deleteAnnouncement']);
+     Route::post('/announcementDetail', [AnnouncementController::class, 'announcementDetail']);
 
      //   Institute Category
      Route::post('/addTag', [TagController::class, 'addTag']);
