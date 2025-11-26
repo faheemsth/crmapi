@@ -136,7 +136,7 @@ class AnnouncementController extends Controller
 
         // Fetch category name from ID
         $categoryName = \DB::table('announcement_categories')->where('id', $request->category_id)->value('name');
-
+         $rules['role_id'] = [];
         if ($categoryName == 'Brand_Specific') {
             $rules['brand_id'] = [
                 'required',
