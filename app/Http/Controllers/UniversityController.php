@@ -102,6 +102,25 @@ class UniversityController extends Controller
                 }
             });
         }
+        if ($request->filled('territory_id')) {
+            $ids = $request->territory_id;
+            $territoryNames = \DB::table('countries')
+                ->whereIn('id', $ids)
+                ->pluck('name', 'id')
+                ->toArray();
+            $query->where(function ($sub) use ($ids, $territoryNames) {
+                foreach ($ids as $id) {
+                    $name = $territoryNames[$id] ?? null;
+                    $sub->orWhere(function ($q) use ($id, $name) {
+                        $q->whereRaw("FIND_IN_SET(?, territory)", [$id]);
+                        if ($name) {
+                            $q->orWhere('territory', 'LIKE', '%' . $name . '%');
+                        }
+                    });
+
+                }
+            });
+        }
 
         // Retrieve paginated data
 
