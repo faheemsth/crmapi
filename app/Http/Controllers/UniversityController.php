@@ -736,8 +736,7 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'University updated successfully.',
-            'data' => $university,
-            'baseurl' =>  asset('/'),
+            'data' => $university
         ]);
     }
 
@@ -1025,6 +1024,7 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'university' => $university,
+            'baseurl' =>  asset('/'),
             'applications' => $applications,
             'deals' => $deals,
             'stages' => $stages,
