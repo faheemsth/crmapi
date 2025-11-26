@@ -732,14 +732,12 @@ class UniversityController extends Controller
                 'notification_type' => 'University Updated',
             ]);
         }
-        $university = array_merge($university, [
-            'baseurl' => asset('/'),
-        ]);
+
         return response()->json([
             'status' => 'success',
             'message' => 'University updated successfully.',
             'data' => $university,
-            
+            'baseurl' =>  asset('/'),
         ]);
     }
 
