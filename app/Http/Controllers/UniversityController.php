@@ -70,6 +70,14 @@ class UniversityController extends Controller
         if ($request->filled('name')) {
             $query->where('universities.name', 'like', '%'.$request->name.'%');
         }
+        if ($request->filled('is_active')) {
+            if($request->is_active === '1' || $request->is_active === '0'){
+               $query->where('universities.uni_status', $request->is_active);
+            }
+        }
+        if ($request->filled('team_id')) {
+            $query->where('universities.team_id', $request->team_id);
+        }
 
         if ($request->filled('city')) {
             $query->where('campuses', 'like', '%'.$request->city.'%');
