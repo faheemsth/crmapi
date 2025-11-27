@@ -10,21 +10,19 @@ class SendQueuedEmailsController extends Controller
 {
     public function handle(Request $request)
     {
-        $queues = EmailSendingQueue::where('is_send','0')
+        $queues = EmailSendingQueue::where('is_send', '0')
             ->where('status', '1')
             ->where('priority', '3')
-            ->limit(200) // batch size
+            ->limit(200)
             ->get();
-            
-           // dd( $queues);
-           
-           $sendcount = 0;
-           $failcount = 0;
+
+        $sendcount = 0;
+        $failcount = 0;
 
         foreach ($queues as $queue) {
 
             // Replace placeholders dynamically
-            $content = str_replace(
+            $queue->content = str_replace(
                 ['{email}', '{name}', '{activation_link}'],
                 [
                     $queue->to,
@@ -34,20 +32,21 @@ class SendQueuedEmailsController extends Controller
                 $queue->content
             );
 
-            $queue->content = $content;
-
             try {
                 Mail::to($queue->to)->send(new CampaignEmail($queue));
-              //  $queue->is_send = '1';
+
+                // only update after successful send
+                $queue->is_send = 1;
                 $queue->save();
-                 $sendcount++; 
+
+                $sendcount++;
+
             } catch (\Exception $e) {
-                
-               // dd($e);
-                $queue->status = '2'; // failed
+                $queue->status = '2';
                 $queue->mailerror = $e->getMessage();
-                $queue->save(); 
-           $failcount++;
+                $queue->save();
+
+                $failcount++;
             }
         }
 

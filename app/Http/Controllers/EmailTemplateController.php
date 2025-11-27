@@ -494,147 +494,191 @@ class EmailTemplateController extends Controller
             }
         }
     }
-    private function executeLeadQuery()
-    {
-        $usr = \Auth::user();
+   private function executeLeadQuery()
+{
+    $usr = \Auth::user();
 
-        // Pagination calculation
-        $start = 0;
-        if (!empty($_GET['perPage'])) {
-            $num_results_on_page = $_GET['perPage'];
-        } else {
-            $num_results_on_page = env("RESULTS_ON_PAGE",50);
-        }
-        if (isset($_GET['page'])) {
-            $page = $_GET['page'];
-            $num_results_on_page = isset($_GET['num_results_on_page']) ? $_GET['num_results_on_page'] : $num_results_on_page;
-            $start = ($page - 1) * $num_results_on_page;
-        } else {
-            $num_results_on_page = isset($_GET['num_results_on_page']) ? $_GET['num_results_on_page'] : $num_results_on_page;
-        }
-
-        // Filters
-        $filters = $this->leadsFilter();
-
-        if ($usr->can('view lead') || $usr->can('manage lead') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
-
-
-            $pipeline = Pipeline::first();
-
-            // Initialize variables
-            $companies = FiltersBrands();
-            $brand_ids = array_keys($companies);
-
-            // Build the leads query
-            $subquery = \DB::table('email_sending_queues')
-                ->select(
-                    'subject', 
-                    'sender_id', 
-                    \DB::raw('MIN(id) as id'), // or MAX(id)
-                    \DB::raw('SUM(CASE WHEN is_send = \'0\' THEN 1 ELSE 0 END) as count_status_0'),
-                    \DB::raw('SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END) as count_status_1')
-                )
-                ->groupBy('subject', 'sender_id');
-            
-                // Use DB::raw to wrap the subquery
-                $email_sending_queues_query = \DB::table(\DB::raw("({$subquery->toSql()}) as sq"))
-                    ->mergeBindings($subquery) // Merge bindings to the outer query
-                    ->join('email_sending_queues as esq', function($join) {
-                        $join->on('sq.subject', '=', 'esq.subject')
-                             ->on('sq.sender_id', '=', 'esq.sender_id')
-                             ->on('sq.id', '=', 'esq.id');
-                    });
-                
-                if (!empty($_GET['Assigned'])) {
-                    $email_sending_queues_query->whereNotNull('esq.sender_id'); // Ensure to use the alias
-                }
-                if (!empty($_GET['Unassigned'])) {
-                    $email_sending_queues_query->whereNull('esq.sender_id'); // Ensure to use the alias
-                }
-                
-                // Apply user type-based filtering
-                $userType = \Auth::user()->type;
-                if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
-                    // No additional filtering needed
-                } elseif ($userType === 'company') {
-                    $email_sending_queues_query->where('esq.brand_id', \Auth::user()->id);
-                } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
-                    $email_sending_queues_query->whereIn('esq.brand_id', $brand_ids);
-                } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
-                    $email_sending_queues_query->where('esq.region_id', \Auth::user()->region_id);
-                } elseif (($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
-                    $email_sending_queues_query->where('esq.branch_id', \Auth::user()->branch_id);
-                } else {
-                    $email_sending_queues_query->where('esq.sender_id', \Auth::user()->id);
-                }
-                
-                // Apply dynamic filters
-                foreach ($filters as $column => $value) {
-                    switch ($column) {
-                        case 'name':
-                            $email_sending_queues_query->whereIn('esq.id', $value);
-                            break;
-                        case 'brand_id':
-                            $email_sending_queues_query->where('esq.brand_id', $value);
-                            break;
-                        case 'region_id':
-                            $email_sending_queues_query->where('esq.region_id', $value);
-                            break;
-                        case 'branch_id':
-                            $email_sending_queues_query->where('esq.branch_id', $value);
-                            break;
-                        case 'stage_id':
-                            $email_sending_queues_query->whereIn('stage_id', $value);
-                            break;
-                        case 'lead_assigned_user':
-                            if ($value == null) {
-                                $email_sending_queues_query->whereNull('esq.sender_id');
-                            } else {
-                                $email_sending_queues_query->where('esq.sender_id', $value);
-                            }
-                            break;
-                        case 'users':
-                            $email_sending_queues_query->whereIn('esq.sender_id', $value);
-                            break;
-                        case 'status':
-                            $email_sending_queues_query->where('esq.status', $value);
-                            break;
-                        case 'created_at_from':
-                            $email_sending_queues_query->whereDate('esq.created_at', '>=', $value);
-                            break;
-                        case 'created_at_to':
-                            $email_sending_queues_query->whereDate('esq.created_at', '<=', $value);
-                            break;
-                        case 'search':
-                            $email_sending_queues_query
-                                ->where(function($q) use ($value) {
-                                    $q->where('esq.subject', 'like', "%{$value}%")
-                                    ->orWhere('esq.content', 'like', "%{$value}%")
-                                    ->orWhere('esq.to', 'like', "%{$value}%");
-                                });
-                            break;
-                        case 'tag':
-                            $email_sending_queues_query->whereRaw('FIND_IN_SET(?, esq.tag_ids)', [$value]);
-                            break;
-                    }
-                }
-                
-                // Count total records and retrieve paginated email_sending_queues
-                $total_records = $email_sending_queues_query->paginate($num_results_on_page)->total();
-                $email_sending_queues = $email_sending_queues_query->orderBy('esq.created_at', 'desc')
-                    ->skip($start)
-                    ->limit($num_results_on_page)
-                    ->get();
-
-            return [
-                'total_records' => $total_records,
-                'email_sending_queues' => $email_sending_queues,
-                'companies' => $companies,
-                'pipeline' => $pipeline,
-                'num_results_on_page' => $num_results_on_page
-            ];
-        }
+    // Pagination calculation
+    $start = 0;
+    if (!empty($_GET['perPage'])) {
+        $num_results_on_page = $_GET['perPage'];
+    } else {
+        $num_results_on_page = env("RESULTS_ON_PAGE", 50);
     }
+    if (isset($_GET['page'])) {
+        $page = $_GET['page'];
+        $num_results_on_page = isset($_GET['num_results_on_page']) ? $_GET['num_results_on_page'] : $num_results_on_page;
+        $start = ($page - 1) * $num_results_on_page;
+    } else {
+        $num_results_on_page = isset($_GET['num_results_on_page']) ? $_GET['num_results_on_page'] : $num_results_on_page;
+    }
+
+    // Filters
+    $filters = $this->leadsFilter();
+
+    if ($usr->can('view lead') || $usr->can('manage lead') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
+
+        $pipeline = Pipeline::first();
+
+        // Initialize variables
+        $companies = FiltersBrands();
+        $brand_ids = array_keys($companies);
+
+        // Build the leads query with email statistics
+        $subquery = \DB::table('email_sending_queues')
+            ->select(
+                'subject',
+                'sender_id',
+                \DB::raw('MIN(id) as id'),
+                \DB::raw('SUM(CASE WHEN is_send = \'0\' THEN 1 ELSE 0 END) as count_status_0'),
+                \DB::raw('SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END) as count_status_1'),
+                // Email engagement statistics
+                \DB::raw('COUNT(*) as total_emails'),
+                \DB::raw('SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END) as sent_emails'),
+                \DB::raw('SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END) as delivered_emails'),
+                \DB::raw('SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) as opened_emails'),
+                \DB::raw('SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) as clicked_emails'),
+                \DB::raw('SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) as bounced_emails'),
+                // Engagement rates
+                \DB::raw('ROUND((SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END), 0)), 2) as open_rate'),
+                \DB::raw('ROUND((SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END), 0)), 2) as click_rate'),
+                \DB::raw('ROUND((SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END), 0)), 2) as bounce_rate')
+            )
+            ->groupBy('subject', 'sender_id');
+
+        // Use DB::raw to wrap the subquery
+        $email_sending_queues_query = \DB::table(\DB::raw("({$subquery->toSql()}) as sq"))
+            ->mergeBindings($subquery)
+            ->join('email_sending_queues as esq', function($join) {
+                $join->on('sq.subject', '=', 'esq.subject')
+                     ->on('sq.sender_id', '=', 'esq.sender_id')
+                     ->on('sq.id', '=', 'esq.id');
+            })
+            ->select(
+                'esq.*',
+                'sq.total_emails',
+                'sq.sent_emails',
+                'sq.delivered_emails',
+                'sq.opened_emails',
+                'sq.clicked_emails',
+                'sq.bounced_emails',
+                'sq.open_rate',
+                'sq.click_rate',
+                'sq.bounce_rate'
+            );
+
+        if (!empty($_GET['Assigned'])) {
+            $email_sending_queues_query->whereNotNull('esq.sender_id');
+        }
+        if (!empty($_GET['Unassigned'])) {
+            $email_sending_queues_query->whereNull('esq.sender_id');
+        }
+
+        // Apply user type-based filtering
+        $userType = \Auth::user()->type;
+        if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
+            // No additional filtering needed
+        } elseif ($userType === 'company') {
+            $email_sending_queues_query->where('esq.brand_id', \Auth::user()->id);
+        } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
+            $email_sending_queues_query->whereIn('esq.brand_id', $brand_ids);
+        } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
+            $email_sending_queues_query->where('esq.region_id', \Auth::user()->region_id);
+        } elseif (($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) || (\Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id))) {
+            $email_sending_queues_query->where('esq.branch_id', \Auth::user()->branch_id);
+        } else {
+            $email_sending_queues_query->where('esq.sender_id', \Auth::user()->id);
+        }
+
+        // Apply dynamic filters
+        foreach ($filters as $column => $value) {
+            switch ($column) {
+                case 'name':
+                    $email_sending_queues_query->whereIn('esq.id', $value);
+                    break;
+                case 'brand_id':
+                    $email_sending_queues_query->where('esq.brand_id', $value);
+                    break;
+                case 'region_id':
+                    $email_sending_queues_query->where('esq.region_id', $value);
+                    break;
+                case 'branch_id':
+                    $email_sending_queues_query->where('esq.branch_id', $value);
+                    break;
+                case 'stage_id':
+                    $email_sending_queues_query->whereIn('stage_id', $value);
+                    break;
+                case 'lead_assigned_user':
+                    if ($value == null) {
+                        $email_sending_queues_query->whereNull('esq.sender_id');
+                    } else {
+                        $email_sending_queues_query->where('esq.sender_id', $value);
+                    }
+                    break;
+                case 'users':
+                    $email_sending_queues_query->whereIn('esq.sender_id', $value);
+                    break;
+                case 'status':
+                    $email_sending_queues_query->where('esq.status', $value);
+                    break;
+                case 'created_at_from':
+                    $email_sending_queues_query->whereDate('esq.created_at', '>=', $value);
+                    break;
+                case 'created_at_to':
+                    $email_sending_queues_query->whereDate('esq.created_at', '<=', $value);
+                    break;
+                case 'search':
+                    $email_sending_queues_query
+                        ->where(function($q) use ($value) {
+                            $q->where('esq.subject', 'like', "%{$value}%")
+                              ->orWhere('esq.content', 'like', "%{$value}%")
+                              ->orWhere('esq.to', 'like', "%{$value}%");
+                        });
+                    break;
+                case 'tag':
+                    $email_sending_queues_query->whereRaw('FIND_IN_SET(?, esq.tag_ids)', [$value]);
+                    break;
+                // Add email engagement filters
+                case 'delivery_status':
+                    if ($value === 'delivered') {
+                        $email_sending_queues_query->whereNotNull('esq.delivered_at');
+                    } elseif ($value === 'not_delivered') {
+                        $email_sending_queues_query->whereNull('esq.delivered_at')->where('esq.is_send', '1');
+                    }
+                    break;
+                case 'open_status':
+                    if ($value === 'opened') {
+                        $email_sending_queues_query->whereNotNull('esq.opened_at');
+                    } elseif ($value === 'not_opened') {
+                        $email_sending_queues_query->whereNull('esq.opened_at')->whereNotNull('esq.delivered_at');
+                    }
+                    break;
+                case 'bounce_status':
+                    if ($value === 'bounced') {
+                        $email_sending_queues_query->whereNotNull('esq.bounced_at');
+                    } elseif ($value === 'not_bounced') {
+                        $email_sending_queues_query->whereNull('esq.bounced_at')->where('esq.is_send', '1');
+                    }
+                    break;
+            }
+        }
+
+        // Count total records and retrieve paginated email_sending_queues
+        $total_records = $email_sending_queues_query->paginate($num_results_on_page)->total();
+        $email_sending_queues = $email_sending_queues_query->orderBy('esq.created_at', 'desc')
+            ->skip($start)
+            ->limit($num_results_on_page)
+            ->get();
+
+        return [
+            'total_records' => $total_records,
+            'email_sending_queues' => $email_sending_queues,
+            'companies' => $companies,
+            'pipeline' => $pipeline,
+            'num_results_on_page' => $num_results_on_page
+        ];
+    }
+}
         private function leadsFilter()
     {
         $filters = [];
