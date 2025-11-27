@@ -494,7 +494,7 @@ class EmailTemplateController extends Controller
             }
         }
     }
-   private function executeLeadQuery()
+private function executeLeadQuery()
 {
     $usr = \Auth::user();
 
@@ -516,7 +516,7 @@ class EmailTemplateController extends Controller
     // Filters
     $filters = $this->leadsFilter();
 
-    if ($usr->can('view lead') || $usr->can('manage lead') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
+    if ($usr->can('view email marketing queue') || $usr->can('view email marketing queue') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
 
         $pipeline = Pipeline::first();
 
@@ -524,7 +524,7 @@ class EmailTemplateController extends Controller
         $companies = FiltersBrands();
         $brand_ids = array_keys($companies);
 
-        // Build the leads query with email statistics
+        // Build the leads query with complete email statistics
         $subquery = \DB::table('email_sending_queues')
             ->select(
                 'subject',
@@ -535,14 +535,18 @@ class EmailTemplateController extends Controller
                 // Email engagement statistics
                 \DB::raw('COUNT(*) as total_emails'),
                 \DB::raw('SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END) as sent_emails'),
+                \DB::raw('SUM(CASE WHEN processed_at IS NOT NULL THEN 1 ELSE 0 END) as processed_emails'),
                 \DB::raw('SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END) as delivered_emails'),
                 \DB::raw('SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) as opened_emails'),
                 \DB::raw('SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) as clicked_emails'),
                 \DB::raw('SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) as bounced_emails'),
-                // Engagement rates
+                // Complete engagement rates
+                \DB::raw('ROUND((SUM(CASE WHEN processed_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)), 2) as processing_rate'),
+                \DB::raw('ROUND((SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END), 0)), 2) as delivery_rate'),
                 \DB::raw('ROUND((SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END), 0)), 2) as open_rate'),
                 \DB::raw('ROUND((SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END), 0)), 2) as click_rate'),
-                \DB::raw('ROUND((SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END), 0)), 2) as bounce_rate')
+                \DB::raw('ROUND((SUM(CASE WHEN bounced_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN is_send = \'1\' THEN 1 ELSE 0 END), 0)), 2) as bounce_rate'),
+                \DB::raw('ROUND((SUM(CASE WHEN clicked_at IS NOT NULL THEN 1 ELSE 0 END) * 100.0 / NULLIF(SUM(CASE WHEN opened_at IS NOT NULL THEN 1 ELSE 0 END), 0)), 2) as click_to_open_rate')
             )
             ->groupBy('subject', 'sender_id');
 
@@ -558,13 +562,17 @@ class EmailTemplateController extends Controller
                 'esq.*',
                 'sq.total_emails',
                 'sq.sent_emails',
+                'sq.processed_emails',
                 'sq.delivered_emails',
                 'sq.opened_emails',
                 'sq.clicked_emails',
                 'sq.bounced_emails',
+                'sq.processing_rate',
+                'sq.delivery_rate',
                 'sq.open_rate',
                 'sq.click_rate',
-                'sq.bounce_rate'
+                'sq.bounce_rate',
+                'sq.click_to_open_rate'
             );
 
         if (!empty($_GET['Assigned'])) {
@@ -658,6 +666,13 @@ class EmailTemplateController extends Controller
                         $email_sending_queues_query->whereNotNull('esq.bounced_at');
                     } elseif ($value === 'not_bounced') {
                         $email_sending_queues_query->whereNull('esq.bounced_at')->where('esq.is_send', '1');
+                    }
+                    break;
+                case 'processing_status':
+                    if ($value === 'processed') {
+                        $email_sending_queues_query->whereNotNull('esq.processed_at');
+                    } elseif ($value === 'not_processed') {
+                        $email_sending_queues_query->whereNull('esq.processed_at');
                     }
                     break;
             }
