@@ -9,6 +9,8 @@ class SendGridWebhookController extends Controller
 {
     public function handle(Request $request)
     {
+
+         \Log::info('SendGrid Webhook Received:', $request->all());
         foreach ($request->all() as $event) {
 
             if (!isset($event['unique_args']['queue_id'])) continue;

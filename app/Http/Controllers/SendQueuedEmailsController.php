@@ -10,11 +10,16 @@ class SendQueuedEmailsController extends Controller
 {
     public function handle(Request $request)
     {
-        $queues = EmailSendingQueue::where('is_send', 0)
-            ->where('status', 1)
+        $queues = EmailSendingQueue::where('is_send','0')
+            ->where('status', '1')
             ->where('priority', '3')
             ->limit(200) // batch size
             ->get();
+            
+           // dd( $queues);
+           
+           $sendcount = 0;
+           $failcount = 0;
 
         foreach ($queues as $queue) {
 
@@ -33,18 +38,23 @@ class SendQueuedEmailsController extends Controller
 
             try {
                 Mail::to($queue->to)->send(new CampaignEmail($queue));
-                $queue->is_send = 1;
+              //  $queue->is_send = '1';
                 $queue->save();
+                 $sendcount++; 
             } catch (\Exception $e) {
-                $queue->status = 2; // failed
-                $queue->rejectapprovecoment = $e->getMessage();
-                $queue->save();
+                
+               // dd($e);
+                $queue->status = '2'; // failed
+                $queue->mailerror = $e->getMessage();
+                $queue->save(); 
+           $failcount++;
             }
         }
 
         return response()->json([
-            'status' => 'ok',
-            'emails_sent' => $queues->count()
+            'status' => 'completed',
+            'sendcount' => $sendcount,
+            'failcount' => $failcount,
         ]);
     }
 }
