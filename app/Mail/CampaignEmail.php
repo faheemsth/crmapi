@@ -14,10 +14,11 @@ class CampaignEmail extends Mailable
 
     public function build()
     {
+        // SendGrid custom headers
         $headerData = [
             'category' => 'convosoft-campaign',
             'unique_args' => [
-                'queue_id' => $this->queue->id
+                'queue_id' => $this->queue->id // Important!
             ]
         ];
 

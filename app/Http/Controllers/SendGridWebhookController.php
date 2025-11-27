@@ -4,15 +4,17 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\EmailSendingQueue;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class SendGridWebhookController extends Controller
 {
     public function handle(Request $request)
     {
+        Log::info('SendGrid Webhook Received: ' . json_encode($request->all()));
 
-         \Log::info('SendGrid Webhook Received:', $request->all());
         foreach ($request->all() as $event) {
 
+            // Check if queue_id exists in unique_args
             if (!isset($event['unique_args']['queue_id'])) continue;
 
             $queue = EmailSendingQueue::find($event['unique_args']['queue_id']);
@@ -33,10 +35,10 @@ class SendGridWebhookController extends Controller
                     $queue->bounced_at = Carbon::now();
                     break;
             }
+
             $queue->save();
         }
 
         return response()->json(['status'=>'ok']);
     }
 }
-
