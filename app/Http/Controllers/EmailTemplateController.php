@@ -336,6 +336,7 @@ class EmailTemplateController extends Controller
                             'pipeline_id' => $lead->pipeline_id,
                             'template_id' => $request->id,
                             'related_type' => 'lead',
+                            'priority' => '3',
                             'related_id' => $lead->id,
                             'created_at' => now(),
                             'updated_at' => now(),
@@ -383,6 +384,7 @@ class EmailTemplateController extends Controller
                         'pipeline_id' => $EmailMarkitting->pipeline_id,
                         'template_id' => $request->id,
                         'related_type' => 'organization',
+                         'priority' => '3',
                         'related_id' => $EmailMarkitting->id,
                         'created_at' => now(),
                         'updated_at' => now()
@@ -425,6 +427,7 @@ class EmailTemplateController extends Controller
                         'pipeline_id' => $EmailMarkitting->pipeline_id,
                         'template_id' => $request->id,
                         'related_type' => 'organization',
+                         'priority' => '3',
                         'related_id' => $EmailMarkitting->id,
                         'created_at' => now(),
                         'updated_at' => now()
@@ -468,6 +471,7 @@ class EmailTemplateController extends Controller
                         'pipeline_id' => $EmailMarkitting->pipeline_id,
                         'template_id' => $request->id,
                         'related_type' => 'file_import',
+                         'priority' => '3',
                         'related_id' => $EmailMarkitting->id,
                         'created_at' => now(),
                         'updated_at' => now()

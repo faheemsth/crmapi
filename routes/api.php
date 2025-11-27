@@ -85,6 +85,8 @@ use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\AttendanceEmployee;
 use Carbon\Carbon;
+use App\Http\Controllers\SendQueuedEmailsController;
+use App\Http\Controllers\SendGridWebhookController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -95,6 +97,10 @@ use Carbon\Carbon;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+Route::get('/sendQueuedEmails', [SendQueuedEmailsController::class, 'handle']);
+Route::post('/sendgrid/webhook', [SendGridWebhookController::class, 'handle']);
+
 Route::get('/proxy-image', function (Request $request) {
     $url = $request->query('url');
 
