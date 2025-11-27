@@ -70,6 +70,14 @@ class UniversityController extends Controller
         if ($request->filled('name')) {
             $query->where('universities.name', 'like', '%'.$request->name.'%');
         }
+        if ($request->filled('is_active')) {
+            if($request->is_active === '1' || $request->is_active === '0'){
+               $query->where('universities.uni_status', $request->is_active);
+            }
+        }
+        if ($request->filled('team_id')) {
+            $query->where('universities.team_id', $request->team_id);
+        }
 
         if ($request->filled('city')) {
             $query->where('campuses', 'like', '%'.$request->city.'%');
@@ -728,7 +736,7 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'University updated successfully.',
-            'data' => $university,
+            'data' => $university
         ]);
     }
 
@@ -761,16 +769,39 @@ class UniversityController extends Controller
         // Exclude ID from update
         $metaData = $request->except('id');
 
-        // Update each field dynamically
+        // Map frontend keys to DB columns (snake_case)
+        $mapping = [
+            'contract_start' => 'contract_start',
+            'contract_end'   => 'contract_end',
+            'contract_file'  => 'contract_file', // DB column
+            'months'         => 'intake_months',
+        ];
+
+        // Handle Contract_file separately
+        if ($request->hasFile('contract_file')) {
+            $image = $request->file('contract_file');
+            $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+
+            // Move uploaded file to public/EmployeeDocument
+            $image->move(public_path('EmployeeDocument'), $imageName);
+
+            // Save relative path to database
+            $university->contract_file = 'EmployeeDocument/' . $imageName;
+        }
+
+        // Update other fields dynamically
         foreach ($metaData as $key => $newValue) {
 
-            // Handle array fields
-            if (in_array($key, ['country', 'territory'])) {
-                $newValue = implode(',', (array) $newValue);
+            // Skip Contract_file as we already handled
+            if ($key === 'contract_file') continue;
+
+            // Map frontend key to DB column
+            if (isset($mapping[$key])) {
+                $key = $mapping[$key];
             }
 
-            if ($key === 'months') {
-                $key = 'intake_months';
+            // Handle array fields
+            if (in_array($key, ['country', 'territory', 'intake_months'])) {
                 $newValue = implode(',', (array) $newValue);
             }
 
@@ -787,9 +818,8 @@ class UniversityController extends Controller
         $changes = [];
         $updatedFields = [];
         foreach ($originalData as $field => $oldValue) {
-            if (in_array($field, ['created_at', 'updated_at'])) {
-                continue;
-            }
+            if (in_array($field, ['created_at', 'updated_at'])) continue;
+
             if ($oldValue != $university->$field) {
                 $changes[$field] = [
                     'old' => $oldValue,
@@ -994,6 +1024,7 @@ class UniversityController extends Controller
         return response()->json([
             'status' => 'success',
             'university' => $university,
+            'baseurl' =>  asset('/'),
             'applications' => $applications,
             'deals' => $deals,
             'stages' => $stages,
