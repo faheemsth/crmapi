@@ -306,11 +306,11 @@ class AnnouncementController extends Controller
     }
 
     // Fix date format if sent as d-m-Y
-    if ($request->filled('reminder_date')) {
-        $request->merge([
-            'reminder_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $request->reminder_date)->format('Y-m-d')
-        ]);
-    }
+    // if ($request->filled('reminder_date')) {
+    //     $request->merge([
+    //         'reminder_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $request->reminder_date)->format('Y-m-d')
+    //     ]);
+    // }
 
     $validator = \Validator::make($request->all(), $rules);
     if ($validator->fails()) {
@@ -331,7 +331,7 @@ class AnnouncementController extends Controller
     $announcement->title = $request->title;
     $announcement->category_id = $request->category_id;
     $announcement->description = $request->description;
-    $announcement->reminder_date = $request->reminder_date;
+    $announcement->reminder_date =  date('Y-m-d', strtotime($request->reminder_date));;
     $announcement->department = $request->department_id;
 
     // Brand Specific
