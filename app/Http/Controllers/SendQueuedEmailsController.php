@@ -36,7 +36,7 @@ class SendQueuedEmailsController extends Controller
                 Mail::to($queue->to)->send(new CampaignEmail($queue));
 
                 // only update after successful send
-                $queue->is_send = 1;
+                $queue->is_send = '1';
                 $queue->save();
 
                 $sendcount++;
