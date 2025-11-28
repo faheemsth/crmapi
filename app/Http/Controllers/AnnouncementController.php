@@ -136,7 +136,7 @@ class AnnouncementController extends Controller
 
         // Fetch category name from ID
         $categoryName = \DB::table('announcement_categories')->where('id', $request->category_id)->value('name');
-
+         $rules['role_id'] = [];
         if ($categoryName == 'Brand_Specific') {
             $rules['brand_id'] = [
                 'required',
@@ -160,9 +160,9 @@ class AnnouncementController extends Controller
                 },
             ];
         }
-        $request->merge([
-            'reminder_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $request->reminder_date)->format('Y-m-d')
-        ]);
+        // $request->merge([
+        //     'reminder_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $request->reminder_date)->format('Y-m-d')
+        // ]);
         $validator = \Validator::make($request->all(), $rules);
         if ($validator->fails()) {
             return response()->json([
@@ -184,7 +184,7 @@ class AnnouncementController extends Controller
         $announcement->announcement_file = $fileName;
         $announcement->category_id = $request->category_id;
         $announcement->description = $request->description;
-        $announcement->reminder_date = $request->reminder_date;
+        $announcement->reminder_date = date('Y-m-d', strtotime($request->reminder_date));
         $announcement->department = $request->department_id;
         $announcement->announcement_counter = 0;
         $announcement->created_by = auth()->id();
@@ -306,11 +306,12 @@ class AnnouncementController extends Controller
     }
 
     // Fix date format if sent as d-m-Y
-    if ($request->filled('reminder_date')) {
-        $request->merge([
-            'reminder_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $request->reminder_date)->format('Y-m-d')
-        ]);
-    }
+ 
+    // if ($request->filled('reminder_date')) {
+    //     $request->merge([
+    //         'reminder_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $request->reminder_date)->format('Y-m-d')
+    //     ]);
+    // } 
 
     $validator = \Validator::make($request->all(), $rules);
     if ($validator->fails()) {
@@ -331,7 +332,7 @@ class AnnouncementController extends Controller
     $announcement->title = $request->title;
     $announcement->category_id = $request->category_id;
     $announcement->description = $request->description;
-    $announcement->reminder_date = $request->reminder_date;
+    $announcement->reminder_date =  date('Y-m-d', strtotime($request->reminder_date));;
     $announcement->department = $request->department_id;
 
     // Brand Specific

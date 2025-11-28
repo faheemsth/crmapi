@@ -85,6 +85,8 @@ use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\AttendanceEmployee;
 use Carbon\Carbon;
+use App\Http\Controllers\SendQueuedEmailsController;
+use App\Http\Controllers\SendGridWebhookController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -95,6 +97,10 @@ use Carbon\Carbon;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+Route::get('/sendQueuedEmails', [SendQueuedEmailsController::class, 'handle']);
+Route::post('/sendgrid/webhook', [SendGridWebhookController::class, 'handle']);
+
 Route::get('/proxy-image', function (Request $request) {
     $url = $request->query('url');
 
@@ -866,6 +872,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/ApplicationStagPluck', [GeneralController::class, 'ApplicationStagPluck']);
     Route::post('/getemailTags', [GeneralController::class, 'getemailTags']);
     Route::post('/getemailTagstype', [GeneralController::class, 'getemailTagstype']);
+    // check is live
     Route::post('/totalSummary', [GeneralController::class, 'totalSummary']);
     Route::post('/getAttendanceReport', [GeneralController::class, 'getAttendanceReport']);
     Route::post('/saveSystemSettings', [GeneralController::class, 'saveSystemSettings']);
