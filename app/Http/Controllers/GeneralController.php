@@ -1442,7 +1442,7 @@ public function GetBranchByType()
                     [
                         $data,
                         $key,
-                        $user->creatorId(),
+                        1,
                         now(),
                         now(),
                     ]

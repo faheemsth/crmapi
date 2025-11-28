@@ -68,7 +68,7 @@ class UniversityController extends Controller
 
         // Filters
         if ($request->filled('name')) {
-            $query->where('name', 'like', '%'.$request->name.'%');
+            $query->where('universities.name', 'like', '%'.$request->name.'%');
         }
 
         if ($request->filled('city')) {
