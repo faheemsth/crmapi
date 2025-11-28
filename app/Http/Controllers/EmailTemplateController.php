@@ -62,13 +62,20 @@ class EmailTemplateController extends Controller
             ], 403);
         }
 
-        $validator = \Validator::make(
-            $request->all(),
-            [
-                'id' => 'required|exists:email_templates,id'
-            ]
-        );
-
+        // $validator = \Validator::make(
+        //     $request->all(),
+        //     [
+        //         'id' => 'required|exists:email_templates,id'
+        //     ]
+        // );
+        $validator = \Validator::make($request->all(), [
+            'id' => ['required', function ($attr, $value, $fail) {
+                if ($value == -1) return; // ignore validation for -1
+                if (!\DB::table('email_templates')->where('id', $value)->exists()) {
+                    $fail('The selected id is invalid.');
+                }
+            }],
+        ]);
         if($validator->fails()) {
             return response()->json([
                 'status' => 'error',
