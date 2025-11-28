@@ -1953,6 +1953,7 @@ public function backuplist(Request $request)
             ->whereNotIn('users.type', $excludedTypes)
             ->where('users.is_attendance_required', 1)
             ->where('users.is_active', 1)
+            ->where('users.is_active', 1)
             ->when($request->filled('search'), fn($q) =>
                 $q->where('users.name', 'like', '%' . $request->search . '%'))
             ->when($request->filled('emp_id'), fn($q) =>
