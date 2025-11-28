@@ -23,7 +23,7 @@ class CampaignEmail extends Mailable
             ]
         ];
 
-        return $this->from('no-reply@convosoftserver.com')
+        return $this->from('no-reply@convosoftmail.com')
                     ->subject($this->queue->subject)
                     ->html($this->queue->content)
                     ->withSymfonyMessage(function (\Symfony\Component\Mime\Email $message) use ($headerData) {
