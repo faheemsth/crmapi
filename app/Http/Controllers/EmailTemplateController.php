@@ -636,6 +636,16 @@ private function executeLeadQuery()
                     $email_sending_queues_query->whereIn('esq.sender_id', $value);
                     break;
                 case 'status':
+
+                    if ($value == 'nonprocessed') {
+                        $email_sending_queues_query->where('esq.status', '1');
+                        $email_sending_queues_query->where('esq.is_send', '0');
+                    } else if ($value == 'failed') {
+                        $email_sending_queues_query->where('esq.status', '1');
+                        $email_sending_queues_query->where('esq.is_send', '2');
+                    } else {
+                        $email_sending_queues_query->where('esq.sender_id', $value);
+                    }
                     $email_sending_queues_query->where('esq.status', $value);
                     break;
                 case 'nonprocessed':
