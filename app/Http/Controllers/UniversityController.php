@@ -186,6 +186,7 @@ class UniversityController extends Controller
             'id',
             'name',
             'country',
+            'campuses',
             'website_link',
             'territory',
             'commission',
