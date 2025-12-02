@@ -114,6 +114,7 @@ class UniversityController extends Controller
             $ids = $request->territory_id;
             $territoryNames = \DB::table('countries')
                 ->whereIn('id', $ids)
+                ->orWhere('id', 253)
                 ->pluck('name', 'id')
                 ->toArray();
             $query->where(function ($sub) use ($ids, $territoryNames) {
