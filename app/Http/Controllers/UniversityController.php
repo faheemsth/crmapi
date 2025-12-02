@@ -187,6 +187,8 @@ class UniversityController extends Controller
             'id',
             'name',
             'country',
+            'city',
+            'intake_months',
             'campuses',
             'website_link',
             'territory',
@@ -197,6 +199,7 @@ class UniversityController extends Controller
             'level_id',
             'payment_type_id',
             'pay_out_id',
+            'team_id',
         ])->where('uni_status', '0')
             ->with([
                 'createdBy:id,name',

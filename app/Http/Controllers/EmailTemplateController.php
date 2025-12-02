@@ -605,6 +605,8 @@ private function executeLeadQuery()
             $email_sending_queues_query->where('esq.sender_id', \Auth::user()->id);
         }
 
+         $email_sending_queues_query->where('esq.priority', '3');
+
         // Apply dynamic filters
         foreach ($filters as $column => $value) {
             switch ($column) {
