@@ -13,7 +13,7 @@ class SendQueuedEmailsController extends Controller
         $queues = EmailSendingQueue::where('is_send', '0')
             ->where('status', '1')
             ->where('priority', '3')
-            ->limit(200)
+            ->limit(350)
             ->get();
 
         $sendcount = 0;

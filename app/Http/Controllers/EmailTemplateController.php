@@ -638,6 +638,14 @@ private function executeLeadQuery()
                 case 'status':
                     $email_sending_queues_query->where('esq.status', $value);
                     break;
+                case 'nonprocessed':
+                    $email_sending_queues_query->where('esq.status', '1');
+                    $email_sending_queues_query->where('esq.is_send', '0');
+                    break;
+                case 'failed':
+                    $email_sending_queues_query->where('esq.status', '1');
+                    $email_sending_queues_query->where('esq.is_send', '2');
+                    break;
                 case 'created_at_from':
                     $email_sending_queues_query->whereDate('esq.created_at', '>=', $value);
                     break;
