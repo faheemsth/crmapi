@@ -112,9 +112,9 @@ class UniversityController extends Controller
         }
         if ($request->filled('territory_id')) {
             $ids = $request->territory_id;
+            $ids[] = 253;
             $territoryNames = \DB::table('countries')
                 ->whereIn('id', $ids)
-                ->orWhere('id', 253)
                 ->pluck('name', 'id')
                 ->toArray();
             $query->where(function ($sub) use ($ids, $territoryNames) {
