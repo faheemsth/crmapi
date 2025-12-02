@@ -10,6 +10,7 @@ use App\Models\InstituteCategory;
 use App\Models\Stage;
 use App\Models\ToolkitInstallmentPayOut;
 use App\Models\ToolkitLevel;
+use App\Models\ToolkitTeam;
 use App\Models\ToolkitPaymentType;
 use App\Models\University;
 use App\Models\User;
@@ -326,6 +327,7 @@ class UniversityController extends Controller
         $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
         $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
         $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
+        $ToolkitTeam = ToolkitTeam::pluck('name', 'id')->toArray();
         $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
 
         // Final Response
@@ -341,6 +343,7 @@ class UniversityController extends Controller
                 'payOuts' => $payOuts,
                 'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
                 'toolkitLevels' => $toolkitLevels,
+                'ToolkitTeam' => $ToolkitTeam,
                 'general_country' => $general_country.',Europe',
                 'middle_east_country' => $middle_east_country,
                 'europe_country' => $europe_country,

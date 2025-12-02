@@ -10,7 +10,7 @@ class University extends Model
     use HasFactory;
     protected $appends = ['country_code', 'meta_data' ];
     protected $hidden = ['universityMeta'];
-    protected $with = ['createdBy:id,name','rank','productcoordinator:id,name,email,ToolkitTeam'];
+    protected $with = ['createdBy:id,name','rank','productcoordinator:id,name,email','ToolkitTeam'];
 
 
     public function course()
