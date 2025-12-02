@@ -562,8 +562,7 @@ private function executeLeadQuery()
             ->mergeBindings($subquery)
             ->join('email_sending_queues as esq', function($join) {
                 $join->on('sq.subject', '=', 'esq.subject')
-                     ->on('sq.sender_id', '=', 'esq.sender_id')
-                     ->on('sq.id', '=', 'esq.id');
+                     ->on('sq.sender_id', '=', 'esq.sender_id') ;
             })
             ->select(
                 'esq.*',
@@ -645,8 +644,7 @@ private function executeLeadQuery()
                         $email_sending_queues_query->where('esq.is_send', '2');
                     } else {
                         $email_sending_queues_query->where('esq.sender_id', $value);
-                    }
-                    $email_sending_queues_query->where('esq.status', $value);
+                    } 
                     break;
                 case 'nonprocessed':
                     $email_sending_queues_query->where('esq.status', '1');
@@ -782,7 +780,7 @@ private function executeLeadQuery()
             $filters['tag'] = $_GET['tag'];
         }
 
-        if (isset($_GET['status']) && !empty($_GET['status'])) {
+         if ($_GET['status'] != '') {
             $filters['status'] = $_GET['status'];
         }
         if (isset($_GET['search']) && !empty($_GET['search'])) {
