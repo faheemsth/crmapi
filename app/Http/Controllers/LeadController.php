@@ -2373,7 +2373,55 @@ class LeadController extends Controller
             'Allemails' => $Allemails,
         ]);
     }
+    private function ApplicationFilters()
+    {
+        $filters = [];
+        if (isset($_GET['applications']) && !empty($_GET['applications'])) {
+            $filters['name'] = $_GET['applications'];
+        }
 
+
+        if (isset($_GET['stages']) && !empty($_GET['stages'])) {
+            $filters['stage_id'] = $_GET['stages'];
+        }
+
+        if (isset($_GET['created_by']) && !empty($_GET['created_by'])) {
+            $filters['created_by'] = $_GET['created_by'];
+        }
+
+        if (isset($_GET['universities']) && !empty($_GET['universities'])) {
+            $filters['university_id'] = $_GET['universities'];
+        }
+
+        if (isset($_GET['brand']) && !empty($_GET['brand'])) {
+            $filters['brand'] = $_GET['brand'];
+        }
+
+        if (isset($_GET['region_id']) && !empty($_GET['region_id'])) {
+            $filters['region_id'] = $_GET['region_id'];
+        }
+
+        if (isset($_GET['branch_id']) && !empty($_GET['branch_id'])) {
+            $filters['branch_id'] = $_GET['branch_id'];
+        }
+
+        if (isset($_GET['created_at_from']) && !empty($_GET['created_at_from'])) {
+            $filters['created_at_from'] = $_GET['created_at_from'];
+        }
+
+        if (isset($_GET['created_at_to']) && !empty($_GET['created_at_to'])) {
+            $filters['created_at_to'] = $_GET['created_at_to'];
+        }
+
+        if (isset($_GET['lead_assigned_user']) && !empty($_GET['lead_assigned_user'])) {
+            $filters['assigned_to'] = $_GET['lead_assigned_user'];
+        }
+        if (isset($_GET['tag']) && !empty($_GET['tag'])) {
+            $filters['tag'] = $_GET['tag'];
+        }
+
+        return $filters;
+    }
     private function EmailMarketingLeadQuery()
     {
         $usr = \Auth::user();
@@ -2480,110 +2528,172 @@ class LeadController extends Controller
                     'num_results_on_page' => $num_results_on_page
                 ];
 
+            }else if(empty($_POST['type']) || $_POST['type'] == "applications")
+            {
+                $user = \Auth::user();
+                $companies = FiltersBrands();
+                $brand_ids = array_keys($companies);
+
+                $where = [];
+                $params = [];
+
+                /* -------------------------
+                JOIN + BASE QUERY
+                ---------------------------*/
+                $sql = "
+                    SELECT deal_applications.*
+                    FROM deal_applications
+                    INNER JOIN deals ON deals.id = deal_applications.deal_id
+                    LEFT JOIN leads ON leads.is_converted = deal_applications.deal_id
+                    WHERE deal_applications.contact_id IS NOT NULL
+                ";
+
+                /* -------------------------
+                USER PERMISSION FILTERS
+                ---------------------------*/
+
+                // super admin / admin team / level 1 (no filter)
+                if (!(
+                    $user->type == 'super admin' ||
+                    $user->type == 'Admin Team' ||
+                    $user->can('level 1')
+                )) {
+                    if ($user->type == 'company') {
+                        $where[] = "deals.brand_id = ?";
+                        $params[] = $user->id;
+
+                    } elseif ($user->type == 'Project Director' ||
+                            $user->type == 'Project Manager' ||
+                            $user->can('level 2')) {
+
+                        if (!empty($brand_ids)) {
+                            $where[] = "deals.brand_id IN (" . implode(",", array_fill(0, count($brand_ids), "?")) . ")";
+                            $params = array_merge($params, $brand_ids);
+                        }
+
+                    } elseif (($user->type == 'Region Manager' || $user->can('level 3')) &&
+                            !empty($user->region_id)) {
+
+                        $where[] = "deals.region_id = ?";
+                        $params[] = $user->region_id;
+
+                    } elseif (($user->type == 'Branch Manager' ||
+                            $user->type == 'Admissions Officer' ||
+                            $user->type == 'Careers Consultant' ||
+                            $user->type == 'Admissions Manager' ||
+                            $user->type == 'Marketing Officer' ||
+                            $user->can('level 4')) &&
+                            !empty($user->branch_id)) {
+
+                        $where[] = "deals.branch_id = ?";
+                        $params[] = $user->branch_id;
+
+                    } elseif ($user->type === 'Agent') {
+
+                        $where[] = "(deals.assigned_to = ? OR deals.created_by = ?)";
+                        $params[] = $user->id;
+                        $params[] = $user->id;
+
+                    } else {
+
+                        $where[] = "deals.assigned_to = ?";
+                        $params[] = $user->id;
+                    }
+                }
+
+                /* -------------------------
+                    FILTERS
+                ---------------------------*/
+                $filters = $this->ApplicationFilters();
+
+                foreach ($filters as $column => $value) {
+
+                    if (in_array($column, ['name','stage_id','university_id','created_by'])) {
+                        $placeholders = implode(",", array_fill(0, count($value), "?"));
+                        $where[] = "deal_applications.$column IN ($placeholders)";
+                        $params = array_merge($params, $value);
+
+                    } elseif (in_array($column, ['brand','region_id','branch_id','assigned_to'])) {
+                        $field = [
+                            'brand' => 'deals.brand_id',
+                            'region_id' => 'deals.region_id',
+                            'branch_id' => 'deals.branch_id',
+                            'assigned_to' => 'deals.assigned_to'
+                        ][$column];
+
+                        $where[] = "$field = ?";
+                        $params[] = $value;
+
+                    } elseif ($column == 'created_at_from') {
+                        $where[] = "DATE(deal_applications.created_at) >= ?";
+                        $params[] = $value;
+
+                    } elseif ($column == 'created_at_to') {
+                        $where[] = "DATE(deal_applications.created_at) <= ?";
+                        $params[] = $value;
+
+                    } elseif ($column == 'tag') {
+                        $where[] = "FIND_IN_SET(?, deal_applications.tag_ids)";
+                        $params[] = $value;
+                    }
+                }
+
+                /* -------------------------
+                    SEARCH
+                ---------------------------*/
+                if (request()->ajax() && request()->filled("search")) {
+
+                    $search = request()->get("search");
+
+                    if (str_starts_with($search, 'APC')) {
+
+                        $numericId = preg_replace('/^[A-Z]+/', '', $search);
+                        $where[] = "deal_applications.id = ?";
+                        $params[] = $numericId;
+
+                    } else {
+
+                        $where[] = "(deal_applications.name LIKE ? 
+                                    OR deal_applications.application_key LIKE ?
+                                    OR deal_applications.course LIKE ?)";
+                        $params[] = "%$search%";
+                        $params[] = "%$search%";
+                        $params[] = "%$search%";
+                    }
+                }
+
+                /* -------------------------
+                FINAL WHERE CLAUSE
+                ---------------------------*/
+
+                if (!empty($where)) {
+                    $sql .= " WHERE " . implode(" AND ", $where);
+                }
+
+                $sql .= " ORDER BY deal_applications.created_at DESC 
+                        LIMIT ?, ?";
+
+                $params[] = $start;
+                $params[] = $num_results_on_page;
+
+                /* -------------------------
+                EXECUTE RAW SQL
+                ---------------------------*/
+                $applications = DB::select($sql, $params);
+                $appIds = array_column($applications, 'contact_id');
+                $appIdsString = implode(',', $appIds);
+
+                return [
+                    'total_records' => count($appIds),
+                    'leadIds' => $appIdsString,
+                    'companies' => $companies,
+                    'pipeline' => $stages ?? [],
+                    'num_results_on_page' => $num_results_on_page,
+                ];
+
+
             }else if(empty($_POST['type']) || $_POST['type'] == "lead")
             {
-                // if ($usr->can('view lead') || $usr->can('manage lead') || \Auth::user()->type == 'super admin' || \Auth::user()->type == 'Admin Team') {
-
-                //     $leads_query = Lead::select('leads.id','leads.email');
-        
-                //     if (!empty($_POST['Assigned'])) {
-                //         $leads_query->whereNotNull('leads.user_id');
-                //     }
-                //     if (!empty($_POST['Unassigned'])) {
-                //         $leads_query->whereNull('leads.user_id');
-                //     }
-                //     // Apply user type-based filtering
-                //     $userType = \Auth::user()->type;
-                //     if (in_array($userType, ['super admin', 'Admin Team']) || \Auth::user()->can('level 1')) {
-                //         // No additional filtering needed
-                //     } elseif ($userType === 'company') {
-                //         $leads_query->where('leads.brand_id', \Auth::user()->id);
-                //     } elseif (in_array($userType, ['Project Director', 'Project Manager']) || \Auth::user()->can('level 2')) {
-                //         $leads_query->whereIn('leads.brand_id', $brand_ids);
-                //     } elseif (($userType === 'Region Manager' || \Auth::user()->can('level 3')) && !empty(\Auth::user()->region_id)) {
-                //         $leads_query->where('leads.region_id', \Auth::user()->region_id);
-                //     } elseif (($userType === 'Branch Manager' || in_array($userType, ['Admissions Officer', 'Admissions Manager', 'Marketing Officer'])) || \Auth::user()->can('level 4') && !empty(\Auth::user()->branch_id)) {
-                //         $leads_query->where('leads.branch_id', \Auth::user()->branch_id);
-                //     }  elseif ($userType === 'Agent') {
-                //         $Agency = Agency::where('user_id',\Auth::user()->id)->first();
-                //         if($Agency){
-                //             $leads_query->where('organization_link',$Agency->id)->Orwhere('user_id', \Auth::user()->id)->Orwhere('leads.created_by', \Auth::user()->id);
-                //         }else{
-                //             $leads_query->where('user_id', \Auth::user()->id)->Orwhere('leads.created_by', \Auth::user()->id);
-                //         }
-                        
-                //     } else {
-                //         $leads_query->where('user_id', \Auth::user()->id);
-                //     }
-        
-                //     // Apply dynamic filters
-                //     foreach ($filters as $column => $value) {
-                //         switch ($column) {
-                //             case 'name':
-                //                 $leads_query->whereIn('leads.id', $value);
-                //                 break;
-                //             case 'brand_id':
-                //                 $leads_query->where('leads.brand_id', $value);
-                //                 break;
-                //             case 'region_id':
-                //                 $leads_query->where('leads.region_id', $value);
-                //                 break;
-                //             case 'branch_id':
-                //                 $leads_query->where('leads.branch_id', $value);
-                //                 break;
-                //             case 'stage_id':
-                //                 $leads_query->whereIn('stage_id', $value);
-                //                 break;
-                //             case 'lead_assigned_user':
-                //                 if ($value == null) {
-                //                     $leads_query->whereNull('leads.user_id');
-                //                 } else {
-                //                     $leads_query->where('leads.user_id', $value);
-                //                 }
-                //                 break;
-                //             case 'users':
-                //                 $leads_query->whereIn('leads.user_id', $value);
-                //                 break;
-                //             case 'created_at_from':
-                //                 $leads_query->whereDate('leads.created_at', '>=', $value);
-                //                 break;
-                //             case 'created_at_to':
-                //                 $leads_query->whereDate('leads.created_at', '<=', $value);
-                //                 break;
-                //             case 'tag':
-                //                 $leads_query->whereRaw('FIND_IN_SET(?, leads.tag_ids)', [$value]);
-                //                 break;
-                //         }
-                //     }
-        
-                //     // Apply default filters when $_POST is empty
-                //     if (empty($_POST['stages']) || (!in_array("6", $_POST['stages']) && !in_array("7", $_POST['stages']))) {
-                //         $leads_query->whereNotIn('leads.stage_id', [6, 7])->where('leads.is_converted', 0);
-                //     }
-        
-                //     // Count total records and retrieve paginated leads
-                //     $total_records = !empty($_POST) ? $leads_query->count() : 0;
-        
-                //    $leads = [];
-                //    $leads_query->chunk(1000, function ($chunk) use (&$leads) {
-                //         foreach ($chunk as $lead) {
-                //             $leads[$lead->id] = $lead->email;
-                //         }
-                //     });
-                    
-                //     // $leadEmails = array_values($leads);
-                    
-                //     $leadIds = implode(',', array_keys($leads));
-        
-                //     return [
-                //         'total_records' => $total_records,
-                //         // 'leadEmails' => $leadEmails,
-                //         'leadIds' => $leadIds,
-                //         'companies' => $companies,
-                //         'pipeline' => $pipeline,
-                //         'num_results_on_page' => $num_results_on_page
-                //     ];
-                // }
                 if ($usr->can('view lead') || $usr->can('manage lead') || 
                 \Auth::user()->type == 'super admin' || 
                 \Auth::user()->type == 'Admin Team') {
