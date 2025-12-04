@@ -287,6 +287,9 @@ Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 
 // Protected routes of product and logout
 Route::middleware('auth:sanctum')->group(function () {
+    
+    Route::post('/resendAgentOTP', [LoginRegisterController::class, 'resendAgentOTP']);
+    Route::post('/verifyOtp', [LoginRegisterController::class, 'verifyOtp']);
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
 
     Route::post('AttendanceSetting', [UserController::class, 'AttendanceSetting']);

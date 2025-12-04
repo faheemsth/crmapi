@@ -688,4 +688,177 @@ public function registerAgent(Request $request)
     return response()->json($responseData);
 }
 
+/**
+ * Verify OTP after login
+ * This endpoint requires authentication via Bearer token
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @return \Illuminate\Http\Response
+ */
+public function verifyOtp(Request $request)
+{
+    try {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'otp' => 'required|string|min:6|max:6'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Get authenticated user from token
+        $user =   $user = \Auth::user();
+        
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unauthorized. Please login first.'
+            ], 401);
+        }
+
+        
+
+        // Check if OTP matches
+        if ($user->remember_token !== $request->otp) {
+            
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid OTP code'
+            ], 400);
+        }
+
+        // Check if OTP is expired (optional - using created_at timestamp)
+        $otpExpiryMinutes = 10; // OTP valid for 10 minutes
+        if ($user->updated_at) {
+            $expiryTime = Carbon::parse($user->updated_at)->addMinutes($otpExpiryMinutes);
+            
+            if (Carbon::now()->gt($expiryTime)) {
+                 
+                
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'OTP has expired. Please request a new one.',
+                    'otp_expired' => true
+                ], 400);
+            }
+        }
+
+        // OTP is valid - mark email as verified
+        $user->email_verified_at = Carbon::now(); 
+        $user->remember_token = null; // Clear OTP
+        $user->save();
+
+        
+
+        // Prepare response data
+        $responseData = [
+            'status' => 'success',
+            'message' => 'OTP verified successfully. Your account is now active.',
+            'data' => [
+                'user' => $user,
+                'verification' => [
+                    'verified_at' => $user->email_verified_at->toDateTimeString(),
+                    'account_status' => 'active'
+                ]
+            ]
+        ];
+
+        return response()->json($responseData, 200);
+
+    } catch (\Exception $e) {
+         
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'OTP verification failed',
+            'error' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
+    }
+}
+
+public function resendAgentOTP(Request $request)
+{
+    try {
+        // Validate email
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        // Get user
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found.'
+            ], 404);
+        }
+
+        // Generate new OTP
+        $newOtp = generateDigitOTP(6);
+        $user->remember_token = $newOtp; 
+        $user->save();
+
+        // Email template
+        $new_agent_email_template = Utility::getValByName('new_agent_email_template');
+        $template = EmailTemplate::find($new_agent_email_template);
+
+         $user->otp = $user->remember_token; 
+
+        // Prepare queued email data
+        $insertData = buildEmailData($template, $user, $cc = null);
+
+        // Insert into queue
+        $queueId = EmailSendingQueue::insertGetId($insertData);
+        $queue = EmailSendingQueue::find($queueId);
+
+        // Try sending email
+        try {
+            Mail::to($queue->to)->send(new CampaignEmail($queue));
+
+            $queue->is_send = '1';
+            $queue->save();
+        } 
+        catch (\Exception $e) {
+            $queue->status = '2';
+            $queue->mailerror = $e->getMessage();
+            $queue->save();
+
+          
+
+            return response()->json([
+                'message' => 'OTP could not be emailed.',
+                'error' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'OTP resent successfully.',
+            'email' => $user->email
+        ], 200);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json(['errors' => $e->errors()], 422);
+    } catch (\Exception $e) {
+        \Log::error('Resend OTP failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'message' => 'Something went wrong.',
+            'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+        ], 500);
+    }
+}
+
+ 
+
+
+
 }
