@@ -3645,4 +3645,116 @@ public function getDashboardholiday(Request $request)
 
         return strtr($content, $replacePairs);
     }
+
+    public function completeProfile(Request $request)
+{
+    
+
+    // Validation for NEW business profile fields
+    $validator = \Validator::make($request->all(), [
+        'emp_id' => 'required|exists:users,id',
+
+        // Name fields
+        'fullname' => 'required|string|max:255', 
+
+        // Business info
+        'business_name' => 'required|string|max:500',
+        'business_address' => 'nullable|string|max:500',
+
+        // National ID
+        'passport_number' => 'required|string|max:20', 
+
+        // Business location
+        'country' => 'required|string',
+        'street_address' => 'required|string',
+        'city' => 'required|string',
+        'state' => 'required|string',
+        'postal_code' => 'nullable|string',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => $validator->errors(),
+        ], 400);
+    }
+
+    \DB::beginTransaction();
+    try {
+
+        $user = User::find($request->emp_id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User not found.',
+            ], 400);
+        }
+
+        // Save original values for logging
+        $originalData = $user->toArray();
+
+        // Update name
+        $user->name = $request->fullname;
+
+        // Update business profile fields
+        $user->business_name = $request->business_name;
+        $user->business_address = $request->business_address ?? $user->business_address;
+        $user->passport_number = $request->passport_number;
+
+        // Update address components
+        $user->country = $request->country;
+        $user->country_id = $request->country;
+        $user->Province = $request->state;
+        $user->City = $request->city;
+       $user->Postal = $request->postal_code ?? $user->Postal;
+        $user->address = $request->street_address;
+        $user->is_agent_profile_completed = 1;
+
+        $user->save();
+
+        // Detect changed fields
+        $changes = [];
+        foreach ($originalData as $field => $oldValue) {
+            if (in_array($field, ['created_at','updated_at','password'])) continue;
+
+            if ($user->$field != $oldValue) {
+                $changes[$field] = [
+                    'old' => $oldValue,
+                    'new' => $user->$field
+                ];
+            }
+        }
+
+        if (!empty($changes)) {
+            addLogActivity([
+                'type' => 'info',
+                'note' => json_encode([
+                    'title' => $user->name." agent profile updated",
+                    'message' => "Fields updated: " . implode(", ", array_keys($changes)),
+                    'changes' => $changes
+                ]),
+                'module_id' => $user->id,
+                'module_type' => 'agent_profile',
+                'notification_type' => 'Profile Updated',
+            ]);
+        }
+
+        \DB::commit();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Profile updated successfully.',
+            'data' => $user
+        ]);
+
+    } catch (\Exception $e) {
+        \DB::rollBack();
+        return response()->json([
+            'status' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }

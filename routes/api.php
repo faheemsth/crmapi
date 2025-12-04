@@ -510,6 +510,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
     Route::post('/newEmployeeEmailSend', [UserController::class, 'newEmployeeEmailSend']);
     Route::post('/UpdateEmployee', [UserController::class, 'UpdateEmployee']);
+    Route::post('/completeProfile', [UserController::class, 'completeProfile']);
     Route::post('/TerminateEmployee', [UserController::class, 'TerminateEmployee']);
 
     // Hrm Internal Employee Note Create

@@ -708,7 +708,7 @@ public function verifyOtp(Request $request)
                 'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $validator->errors()
-            ], 422);
+            ], 400);
         }
 
         // Get authenticated user from token
@@ -718,7 +718,7 @@ public function verifyOtp(Request $request)
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized. Please login first.'
-            ], 401);
+            ], 400);
         }
 
         
