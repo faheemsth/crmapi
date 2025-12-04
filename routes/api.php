@@ -128,6 +128,71 @@ Route::get('/proxy-image', function (Request $request) {
         return response('Proxy error: ' . $e->getMessage(), 500);
     }
 });
+    Route::get('/getencrypted', function (Request $request) {
+        $plaintext = $request->query('plaintext');
+        
+        // More comprehensive validation
+        if (!$plaintext ) {
+            return response()->json([
+                'error' => 'Valid plaintext parameter is required'
+            ], 400);
+        }
+        
+        // Make sure encryptData function is available
+        if (!function_exists('encryptData')) {
+            return response()->json([
+                'error' => 'Encryption service unavailable'
+            ], 500);
+        }
+        
+        try {
+            $encrypted = encryptData($plaintext);
+            
+            return response()->json([
+                'encrypted' => $encrypted,
+                'plaintext_length' => $plaintext
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Encryption failed',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    });
+
+    Route::get('/getdecrypted', function (Request $request) {
+        $encryptedtext = $request->query('encryptedtext');
+        
+        // More comprehensive validation
+        if (!$encryptedtext ) {
+            return response()->json([
+                'error' => 'Valid encryptedtext parameter is required'
+            ], 400);
+        }
+        
+        // Make sure encryptData function is available
+        if (!function_exists('decryptData')) {
+            return response()->json([
+                'error' => 'decryption service unavailable'
+            ], 500);
+        }
+        
+        try {
+            $plaintext = decryptData($encryptedtext);
+            
+            return response()->json([
+                'encryptedtext' => $encryptedtext,
+                'plaintext_length' => $plaintext
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Encryption failed',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    });
 
     Route::get('PayslipAutoGenerateEachMonth/', [PaySlipController::class, 'PayslipAutoGenerateEachMonth']);
     Route::get('/sendexpiredDocumentEmail', [UserController::class, 'sendexpiredDocumentEmail']);
