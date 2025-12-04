@@ -84,6 +84,7 @@ class User extends Authenticatable
         'admin_action_attachments',
         'tag_ids',
         "department_id",
+        "remember_token",
     ];
 
     protected $hidden = [
