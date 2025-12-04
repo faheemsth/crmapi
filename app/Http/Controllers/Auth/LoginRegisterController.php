@@ -724,7 +724,7 @@ public function verifyOtp(Request $request)
         
 
         // Check if OTP matches
-        if ($user->remember_token != $request->otp) {
+        if ($user->remember_token !== $request->otp) {
             
             
             return response()->json([
