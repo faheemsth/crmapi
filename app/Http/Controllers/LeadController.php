@@ -2528,8 +2528,8 @@ class LeadController extends Controller
                     'num_results_on_page' => $num_results_on_page
                 ];
 
-            }else if(empty($_POST['type']) || $_POST['type'] == "applications")
-            {
+            }if (empty($_POST['type']) || $_POST['type'] == "applications") {
+
                 $user = \Auth::user();
                 $companies = FiltersBrands();
                 $brand_ids = array_keys($companies);
@@ -2537,27 +2537,27 @@ class LeadController extends Controller
                 $where = [];
                 $params = [];
 
-                /* -------------------------
-                JOIN + BASE QUERY
-                ---------------------------*/
+                /* --------------------------------
+                BASE RAW QUERY
+                -----------------------------------*/
                 $sql = "
                     SELECT deal_applications.*
                     FROM deal_applications
                     INNER JOIN deals ON deals.id = deal_applications.deal_id
                     LEFT JOIN leads ON leads.is_converted = deal_applications.deal_id
-                    WHERE deal_applications.contact_id IS NOT NULL
+                    WHERE 1 = 1
+                    AND deal_applications.contact_id IS NOT NULL
                 ";
 
-                /* -------------------------
-                USER PERMISSION FILTERS
-                ---------------------------*/
-
-                // super admin / admin team / level 1 (no filter)
+                /* --------------------------------
+                USER PERMISSION SYSTEM
+                -----------------------------------*/
                 if (!(
                     $user->type == 'super admin' ||
                     $user->type == 'Admin Team' ||
                     $user->can('level 1')
                 )) {
+
                     if ($user->type == 'company') {
                         $where[] = "deals.brand_id = ?";
                         $params[] = $user->id;
@@ -2595,91 +2595,116 @@ class LeadController extends Controller
                         $params[] = $user->id;
 
                     } else {
-
                         $where[] = "deals.assigned_to = ?";
                         $params[] = $user->id;
                     }
                 }
 
-                /* -------------------------
-                    FILTERS
-                ---------------------------*/
-                $filters = $this->ApplicationFilters();
+                /* --------------------------------
+                    PAYLOAD FILTERS
+                -----------------------------------*/
 
-                foreach ($filters as $column => $value) {
-
-                    if (in_array($column, ['name','stage_id','university_id','created_by'])) {
-                        $placeholders = implode(",", array_fill(0, count($value), "?"));
-                        $where[] = "deal_applications.$column IN ($placeholders)";
-                        $params = array_merge($params, $value);
-
-                    } elseif (in_array($column, ['brand','region_id','branch_id','assigned_to'])) {
-                        $field = [
-                            'brand' => 'deals.brand_id',
-                            'region_id' => 'deals.region_id',
-                            'branch_id' => 'deals.branch_id',
-                            'assigned_to' => 'deals.assigned_to'
-                        ][$column];
-
-                        $where[] = "$field = ?";
-                        $params[] = $value;
-
-                    } elseif ($column == 'created_at_from') {
-                        $where[] = "DATE(deal_applications.created_at) >= ?";
-                        $params[] = $value;
-
-                    } elseif ($column == 'created_at_to') {
-                        $where[] = "DATE(deal_applications.created_at) <= ?";
-                        $params[] = $value;
-
-                    } elseif ($column == 'tag') {
-                        $where[] = "FIND_IN_SET(?, deal_applications.tag_ids)";
-                        $params[] = $value;
-                    }
+                if (!empty($_POST['brandId'])) {
+                    $where[] = "deals.brand_id = ?";
+                    $params[] = $_POST['brandId'];
                 }
 
-                /* -------------------------
-                    SEARCH
-                ---------------------------*/
+                if (!empty($_POST['regionId'])) {
+                    $where[] = "deals.region_id = ?";
+                    $params[] = $_POST['regionId'];
+                }
+
+                if (!empty($_POST['branchId'])) {
+                    $where[] = "deals.branch_id = ?";
+                    $params[] = $_POST['branchId'];
+                }
+
+                if (!empty($_POST['employeesId'])) {
+                    $where[] = "deals.assigned_to = ?";
+                    $params[] = $_POST['employeesId'];
+                }
+
+                if (!empty($_POST['title'])) {
+                    $where[] = "deal_applications.name LIKE ?";
+                    $params[] = "%{$_POST['title']}%";
+                }
+
+                if (!empty($_POST['previousUniversityId'])) {
+                    $where[] = "deal_applications.university_id = ?";
+                    $params[] = $_POST['previousUniversityId'];
+                }
+
+                if (!empty($_POST['taskType'])) {
+                    $where[] = "deal_applications.stage_id = ?";
+                    $params[] = $_POST['taskType'];
+                }
+
+                if (!empty($_POST['createdAtFrom'])) {
+                    $where[] = "DATE(deal_applications.created_at) >= ?";
+                    $params[] = $_POST['createdAtFrom'];
+                }
+
+                if (!empty($_POST['createdAtTo'])) {
+                    $where[] = "DATE(deal_applications.created_at) <= ?";
+                    $params[] = $_POST['createdAtTo'];
+                }
+
+                // if (!empty($_POST['dueDate'])) {
+                //     $where[] = "DATE(deal_applications.due_date) = ?";
+                //     $params[] = $_POST['dueDate'];
+                // }
+
+                if (!empty($_POST['tag'])) {
+                    $where[] = "FIND_IN_SET(?, deal_applications.tag_ids)";
+                    $params[] = $_POST['tag'];
+                }
+
+                /* --------------------------------
+                ADD FILTERS TO SQL
+                -----------------------------------*/
+                if (!empty($where)) {
+                    $sql .= " AND " . implode(" AND ", $where);
+                }
+
+                /* --------------------------------
+                SEARCH BAR
+                -----------------------------------*/
                 if (request()->ajax() && request()->filled("search")) {
 
                     $search = request()->get("search");
 
                     if (str_starts_with($search, 'APC')) {
-
                         $numericId = preg_replace('/^[A-Z]+/', '', $search);
-                        $where[] = "deal_applications.id = ?";
+
+                        $sql .= " AND deal_applications.id = ?";
                         $params[] = $numericId;
 
                     } else {
+                        $sql .= " AND (
+                            deal_applications.name LIKE ?
+                            OR deal_applications.application_key LIKE ?
+                            OR deal_applications.course LIKE ?
+                        )";
 
-                        $where[] = "(deal_applications.name LIKE ? 
-                                    OR deal_applications.application_key LIKE ?
-                                    OR deal_applications.course LIKE ?)";
                         $params[] = "%$search%";
                         $params[] = "%$search%";
                         $params[] = "%$search%";
                     }
                 }
 
-                /* -------------------------
-                FINAL WHERE CLAUSE
-                ---------------------------*/
-
-                if (!empty($where)) {
-                    $sql .= " WHERE " . implode(" AND ", $where);
-                }
-
-                $sql .= " ORDER BY deal_applications.created_at DESC 
-                        LIMIT ?, ?";
+                /* --------------------------------
+                ORDER & PAGINATION
+                -----------------------------------*/
+                $sql .= " ORDER BY deal_applications.created_at DESC LIMIT ?, ?";
 
                 $params[] = $start;
                 $params[] = $num_results_on_page;
 
-                /* -------------------------
-                EXECUTE RAW SQL
-                ---------------------------*/
+                /* --------------------------------
+                EXECUTE SQL
+                -----------------------------------*/
                 $applications = DB::select($sql, $params);
+
                 $appIds = array_column($applications, 'contact_id');
                 $appIdsString = implode(',', $appIds);
 
@@ -2690,9 +2715,8 @@ class LeadController extends Controller
                     'pipeline' => $stages ?? [],
                     'num_results_on_page' => $num_results_on_page,
                 ];
-
-
-            }else if(empty($_POST['type']) || $_POST['type'] == "lead")
+            }
+            else if(empty($_POST['type']) || $_POST['type'] == "lead")
             {
                 if ($usr->can('view lead') || $usr->can('manage lead') || 
                 \Auth::user()->type == 'super admin' || 
