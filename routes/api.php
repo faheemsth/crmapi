@@ -379,6 +379,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
     Route::post('/BrandAttachments', [UserController::class, 'BrandAttachments']);
     Route::post('/UserEmployeeFileDocument', [UserController::class, 'UserEmployeeFileDocument']);
+    Route::post('/agentFileDocument', [UserController::class, 'agentFileDocument']);
     Route::post('/employeeFileAttachments', [UserController::class, 'employeeFileAttachments']);
     Route::post('/employeeDocuments', [UserController::class, 'employeeDocuments']);
     Route::post('/UserEmployeeFileDocumentDelete', [UserController::class, 'UserEmployeeFileDocumentDelete']);

@@ -2032,6 +2032,138 @@ public function getDashboardholiday(Request $request)
             'data' => $employeeDocument,
         ]);
     }
+    public function agentFileDocument(Request $request)
+    {
+        
+          if (!\Auth::user()->type == 'Agent') {
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'Permission Denied',
+            ]);
+        }
+        // Validation
+        $validator = \Validator::make($request->all(), [
+            'cv' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'id_card' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'academic_documents' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'profile_picture' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'avatar' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'document_link' => 'required|file|mimes:jpg,jpeg,png,pdf|max:4096',
+
+            //'id' => 'required|exists:users,id',
+            'passport_expiry_date' => 'nullable|date',
+
+            'documenttypeID' => 'required|exists:document_types,id',
+
+            'issue_date' => 'nullable|date',
+            'renewal_date' => 'nullable|date',
+            'comments' => 'nullable|string',
+            'set_as_reminder' => 'nullable|boolean',
+            'reminder_date' => 'nullable|date',
+        ]);
+
+
+       $request->id = \Auth::user()->id;
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'validation error',
+                'data' => $validator->errors(),
+            ]);
+        }
+
+        // Upload files
+        $files = ['cv', 'academic_documents', 'id_card', 'avatar', 'document_link', 'profile_picture'];
+        $uploadedFiles = [];
+
+        foreach ($files as $fileType) {
+            if ($request->hasFile($fileType)) {
+                $filename = time() . '-' . uniqid() . '.' . $request->file($fileType)->extension();
+                $request->file($fileType)->move(public_path('EmployeeDocument'), $filename);
+                $uploadedFiles[$fileType] = $filename;
+            } else {
+                $uploadedFiles[$fileType] = null;
+            }
+        }
+
+        // Load employee and document
+        $employeeDocument = new EmployeeDocument();
+        $employeeDocument->employee_id = $request->id;
+        $user = User::find($request->id);
+        $originalData = $employeeDocument->toArray();
+
+        // Apply uploaded file paths
+        if (!empty($uploadedFiles['profile_picture'])) {
+            $employeeDocument->profile_picture = $uploadedFiles['profile_picture'];
+        }
+
+        if (!empty($uploadedFiles['academic_documents'])) {
+            $employeeDocument->academic_documents = $uploadedFiles['academic_documents'];
+        }
+
+        if (!empty($uploadedFiles['id_card'])) {
+            $employeeDocument->id_card = $uploadedFiles['id_card'];
+        }
+
+        if (!empty($uploadedFiles['avatar'])) {
+            $user->avatar = $uploadedFiles['avatar'];
+        }
+
+        if (!empty($uploadedFiles['cv'])) {
+            $employeeDocument->resume = $uploadedFiles['cv'];
+        }
+
+        if (!empty($uploadedFiles['document_link'])) {
+            $employeeDocument->document_link = $uploadedFiles['document_link'];
+            $employeeDocument->documenttypeID = $request->documenttypeID;
+        }
+
+        $employeeDocument->created_by = \Auth::id();
+        $employeeDocument->description = $request->description;
+        $employeeDocument->renewal_date = $request->renewal_date;
+        $employeeDocument->comments = $request->comments;
+        $employeeDocument->set_as_reminder = $request->set_as_reminder;
+        $employeeDocument->reminder_date = $request->reminder_date;
+        $employeeDocument->issue_date = $request->issue_date;
+        $employeeDocument->set_is_renewable = $request->set_is_renewable;
+        $user->save();
+
+
+
+        $employeeDocument->save();
+
+        // Log updated fields
+              //  ========== add ============
+                $typeoflog = $employeeDocument->documentType->name ?? 'document';
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.' created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employee',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $user->name. ' '.$typeoflog.'  created',
+                        'message' => $user->name. ' '.$typeoflog.'  created'
+                    ]),
+                    'module_id' => $user->id,
+                    'module_type' => 'employeeprofile',
+                    'notification_type' => ' '.$typeoflog.'  Created',
+                ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Employee updated successfully',
+            'data' => $employeeDocument,
+        ]);
+    }
 
     public function UserEmployeeFileDocumentDelete(Request $request)
     {
