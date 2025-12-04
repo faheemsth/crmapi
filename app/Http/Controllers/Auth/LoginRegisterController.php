@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use Carbon\Carbon;
 use App\Models\User;
+use App\Models\EmailTemplate;
+use App\Models\EmailSendingQueue;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +25,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Crypt;
+
+use App\Mail\CampaignEmail;
 
 use Validator;
 
@@ -515,6 +519,7 @@ public function registerAgent(Request $request)
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'remember_token' =>generateDigitOTP(6),
             'type' => 'Agent',
             'default_pipeline' => 1,
             'plan' => 1,
@@ -574,13 +579,42 @@ public function registerAgent(Request $request)
         if ($user->email) {
             try {
                 // Generate proper verification token
-                $verificationToken = hash_hmac('sha256', $user->email, config('app.key'));
                 
-                $data = [
-                    'name' => $user->name,
-                    'verificationUrl' => url('/verify?token=' . $verificationToken),
-                    'email' => $user->email
-                ];
+                
+                
+                $user->otp  = $user->remember_token;
+                 $new_agent_email_template = Utility::getValByName('new_agent_email_template');
+
+
+
+                $newagntTemplate = EmailTemplate::find($new_agent_email_template);
+
+               $insertData = buildEmailData($newagntTemplate, $user,$cc=null);
+
+               
+
+                // FIX: Create the queue record and get the ID
+                $queueId = EmailSendingQueue::insertGetId($insertData);
+                
+                // FIX: Now retrieve the queue record
+                $queue = EmailSendingQueue::find($queueId);
+
+                 try {
+                    Mail::to($queue->to)->send(new CampaignEmail($queue));
+
+                    // only update after successful send
+                    $queue->is_send = '1';
+                    $queue->save();
+
+                    
+
+                } catch (\Exception $e) {
+                    $queue->status = '2';
+                    $queue->mailerror = $e->getMessage();
+                    $queue->save();
+
+                    
+                }
 
                 // Mail::to($user->email)->send(new WelcomeEmail($data));
                 
