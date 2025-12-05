@@ -194,6 +194,7 @@ class UniversityController extends Controller
             'website_link',
             'territory',
             'commission',
+            'pak_commission',
             'notes',
             'created_by',
             'rank_id',
