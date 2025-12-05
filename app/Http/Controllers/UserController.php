@@ -3795,6 +3795,7 @@ public function getDashboardholiday(Request $request)
 
         // update status
         $user->is_active = $request->is_active;
+        $user->blocked_reason = $request->comment ?? null;
         $user->save();
 
          // inject manager objects for email template tags
@@ -3812,6 +3813,7 @@ public function getDashboardholiday(Request $request)
         ];
         $statusText = $statusMap[$request->is_active] ?? 'Unknown';
         $user->profile_status = $statusText;
+        $user->comment = $user->blocked_reason;
 
         // email template
         $templateId = Utility::getValByName('account_status_agent_email_template');
