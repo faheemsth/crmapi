@@ -1936,6 +1936,55 @@ public function getDashboardholiday(Request $request)
             ], 500);
         }
     }
+    public function brandDetailPublic(Request $request)
+    {
+        // Validate request
+
+         $brandId = urldecode($request->id); 
+            
+            // Then decrypt them
+            $decryptedBrandId = decryptData($brandId); 
+            
+            // Validate decrypted values are numeric
+            if (!is_numeric($decryptedBrandId)  ) {
+                return response()->json([
+                    'errors' => ['general' => 'Invalid encrypted data format']
+                ], 422);
+            }
+            
+            // Cast to integers and merge back to request
+            $request->merge([
+                'id' => (int)$decryptedBrandId
+            ]);
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Fetch user
+            $user = User::with(['manager', 'director', 'created_by'])->findOrFail($request->id);
+
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $user,
+                'baseurl' =>  asset('/'),
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('An error occurred while fetching user details.'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function employeeFileAttachments(Request $request)
     {

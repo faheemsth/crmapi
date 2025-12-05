@@ -101,6 +101,8 @@ use App\Http\Controllers\SendGridWebhookController;
 Route::get('/sendQueuedEmails', [SendQueuedEmailsController::class, 'handle']);
 Route::post('/sendgrid/webhook', [SendGridWebhookController::class, 'handle']);
 
+Route::post('/brandDetailPublic', [UserController::class, 'brandDetailPublic']);
+
 Route::get('/proxy-image', function (Request $request) {
     $url = $request->query('url');
 
