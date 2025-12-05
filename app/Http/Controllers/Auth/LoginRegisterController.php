@@ -523,7 +523,7 @@ public function registerAgent(Request $request)
             'type' => 'Agent',
             'default_pipeline' => 1,
             'plan' => 1,
-            'is_active' => 0,
+            'is_active' => 1,
             'lang' => Utility::getValByName('default_language'),
             'avatar' => '',
             'created_by' => 1,
