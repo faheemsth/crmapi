@@ -3750,6 +3750,109 @@ public function getDashboardholiday(Request $request)
 }
 
 
+
+  public function change_agent_status(Request $request)
+{
+    // if (!\Auth::user()->can('edit employee')) {
+    //     return response()->json([
+    //         'status' => 'error',
+    //         'msg' => 'Permission Denied',
+    //     ], 403);
+    // }
+
+    $validator = \Validator::make($request->all(), [
+        'id' => 'required|exists:users,id',
+        'is_active' => 'required|in:0,1,2,3,4',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 'error',
+            'msg' => $validator->errors()->first(),
+        ], 400);
+    }
+
+    try {
+        $user = User::with([
+            'branch.manager',
+            'region.manager',
+            'brand.manager',
+        ])->findOrFail($request->id);
+
+        // resolve manager details via relations
+        $branch_manager_detail  = $user->branch?->manager;
+        $region_manager_detail  = $user->region?->manager;
+        $project_manager_detail = $user->brand?->manager;
+
+        // CC list
+        $ccList = [];
+        if (!empty($branch_manager_detail?->email))  $ccList[] = $branch_manager_detail->email;
+        if (!empty($region_manager_detail?->email))  $ccList[] = $region_manager_detail->email;
+        if (!empty($project_manager_detail?->email)) $ccList[] = $project_manager_detail->email;
+        $ccList[] = 'scorp-erp_attendance@convosoft.com';
+
+
+        // update status
+        $user->is_active = $request->is_active;
+        $user->save();
+
+         // inject manager objects for email template tags
+        $user->branch_manager  = $branch_manager_detail;
+        $user->region_manager  = $region_manager_detail;
+        $user->project_manager = $project_manager_detail;
+
+
+        $statusMap = [
+            0 => 'Inactive',
+            1 => 'Approved',
+            2 => 'Terminated',
+            3 => 'Suspended',
+            4 => 'Rejected',
+        ];
+        $statusText = $statusMap[$request->is_active] ?? 'Unknown';
+        $user->employee_status = $statusText;
+
+        // email template
+        $templateId = Utility::getValByName('account_status_agent_email_template');
+        $emailTemplate = EmailTemplate::find($templateId);
+
+        $insertData = [];
+        $insertData[] = $this->buildEmailData($emailTemplate, $user,implode(',', $ccList));
+
+        if (!empty($insertData)) {
+            EmailSendingQueue::insert($insertData);
+        }
+
+        // logs
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $user->name . ' status updated to ' . $statusText,
+                'message' => $user->name . ' status updated to ' . $statusText,
+            ]),
+            'module_id' => $user->id,
+            'module_type' => 'agent',
+            'notification_type' => 'agent Updated'
+        ];
+        addLogActivity($logData);
+
+        $logData['module_type'] = 'agentprofile';
+        addLogActivity($logData);
+
+        return response()->json([
+            'status' => 'success',
+            'msg' => $statusText . ' agent successfully',
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'msg' => 'Something went wrong: ' . $e->getMessage(),
+        ], 500);
+    }
+}
+
+
     public function BrandAttachments(Request $request)
     {
         if (!\Auth::user()->can('edit employee')) {

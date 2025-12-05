@@ -517,6 +517,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/UpdateEmployee', [UserController::class, 'UpdateEmployee']);
     Route::post('/completeProfile', [UserController::class, 'completeProfile']);
     Route::post('/TerminateEmployee', [UserController::class, 'TerminateEmployee']);
+    Route::post('/change_agent_status', [UserController::class, 'change_agent_status']);
 
     // Hrm Internal Employee Note Create
     Route::post('/EmployeeNoteGet', [UserController::class, 'HrmInternalEmployeeNoteGet']);
