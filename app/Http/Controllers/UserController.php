@@ -3819,8 +3819,8 @@ public function getDashboardholiday(Request $request)
         $templateId = Utility::getValByName('account_status_agent_email_template');
         $emailTemplate = EmailTemplate::find($templateId);
 
-        $insertData = [];
-        $insertData[] = $this->buildEmailData($emailTemplate, $user,implode(',', $ccList));
+        
+        $insertData = $this->buildEmailData($emailTemplate, $user,implode(',', $ccList));
 
         if (!empty($insertData)) {
            // EmailSendingQueue::insert($insertData);
