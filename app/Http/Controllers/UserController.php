@@ -511,7 +511,7 @@ class UserController extends Controller
         $perPage = $request->input('perPage', env("RESULTS_ON_PAGE", 50));
         $page = $request->input('page', 1);
 
-        if (!$user->can('manage employee')) {
+        if (!$user->can('manage agent')) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Unauthorized access'
