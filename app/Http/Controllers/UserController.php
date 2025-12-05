@@ -42,6 +42,7 @@ use App\Models\EmailTemplate;
 use App\Models\EmailSendingQueue;
 use App\Models\InternalEmployeeNotes;
 use Illuminate\Support\Facades\Validator;
+use App\Mail\CampaignEmail;
 
 class UserController extends Controller
 {
@@ -3820,7 +3821,30 @@ public function getDashboardholiday(Request $request)
         $insertData[] = $this->buildEmailData($emailTemplate, $user,implode(',', $ccList));
 
         if (!empty($insertData)) {
-            EmailSendingQueue::insert($insertData);
+           // EmailSendingQueue::insert($insertData);
+
+             // FIX: Create the queue record and get the ID
+                $queueId = EmailSendingQueue::insertGetId($insertData);
+                
+                // FIX: Now retrieve the queue record
+                $queue = EmailSendingQueue::find($queueId);
+
+                 try {
+                    Mail::to($queue->to)->send(new CampaignEmail($queue));
+
+                    // only update after successful send
+                    $queue->is_send = '1';
+                    $queue->save();
+
+                    
+
+                } catch (\Exception $e) {
+                    $queue->status = '2';
+                    $queue->mailerror = $e->getMessage();
+                    $queue->save();
+
+                    
+                }
         }
 
         // logs
