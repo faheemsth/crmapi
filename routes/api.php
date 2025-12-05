@@ -278,6 +278,9 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/googlelogin', 'googlelogin');
     Route::post('/checkemail', 'checkemail');  // for checking email already exist or not
     Route::post('/changePassword', 'changePassword');
+    Route::post('/forgotpasswordAgentOTP', 'forgotpasswordAgentOTP');
+    Route::post('/verifyforgotpasswordOtp', 'verifyforgotpasswordOtp');
+    Route::post('/changefogotPassword', 'changefogotPassword');
 });
 
 //Route::get('/appMeta', [ProductController::class, 'appMeta']);
