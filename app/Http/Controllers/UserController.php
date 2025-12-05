@@ -3810,7 +3810,7 @@ public function getDashboardholiday(Request $request)
             4 => 'Rejected',
         ];
         $statusText = $statusMap[$request->is_active] ?? 'Unknown';
-        $user->employee_status = $statusText;
+        $user->profile_status = $statusText;
 
         // email template
         $templateId = Utility::getValByName('account_status_agent_email_template');
