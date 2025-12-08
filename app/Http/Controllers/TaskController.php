@@ -1639,8 +1639,8 @@ class TaskController extends Controller
         $validator = Validator::make(
             $request->all(),
             [
-                'related_to' => 'required|exists:deal_tasks,related_to',
-                'related_type' => 'required|exists:deal_tasks,related_type',
+                'related_to' => 'required',
+                'related_type' => 'required',
             ]
         );
 
