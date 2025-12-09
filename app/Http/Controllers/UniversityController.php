@@ -10,6 +10,7 @@ use App\Models\InstituteCategory;
 use App\Models\Stage;
 use App\Models\ToolkitInstallmentPayOut;
 use App\Models\ToolkitLevel;
+use App\Models\ToolkitTeam;
 use App\Models\ToolkitPaymentType;
 use App\Models\University;
 use App\Models\User;
@@ -112,6 +113,7 @@ class UniversityController extends Controller
         }
         if ($request->filled('territory_id')) {
             $ids = $request->territory_id;
+            $ids[] = 253;
             $territoryNames = \DB::table('countries')
                 ->whereIn('id', $ids)
                 ->pluck('name', 'id')
@@ -132,7 +134,7 @@ class UniversityController extends Controller
 
         // Retrieve paginated data
 
-        $universities = $query->orderBy('rank_id', 'DESC')->orderBy('name', 'ASC')
+        $universities = $query->orderBy('name', 'ASC')
             ->paginate($perPage, ['*'], 'page', $page);
 
         // University statistics grouped by country
@@ -186,15 +188,20 @@ class UniversityController extends Controller
             'id',
             'name',
             'country',
+            'city',
+            'intake_months',
+            'campuses',
             'website_link',
             'territory',
             'commission',
+            'pak_commission',
             'notes',
             'created_by',
             'rank_id',
             'level_id',
             'payment_type_id',
             'pay_out_id',
+            'team_id',
         ])->where('uni_status', '0')
             ->with([
                 'createdBy:id,name',
@@ -202,6 +209,7 @@ class UniversityController extends Controller
                 'ToolkitLevel:id,name',
                 'PaymentType:id,name',
                 'InstallmentPayOut:id,name',
+                'ToolkitTeam:id,name',
             ])
             ->get()
             ->append('country_name');
@@ -320,6 +328,7 @@ class UniversityController extends Controller
         $payOuts = ToolkitInstallmentPayOut::pluck('name', 'id')->toArray();
         $ToolkitPaymentTypes = ToolkitPaymentType::pluck('name', 'id')->toArray();
         $toolkitLevels = ToolkitLevel::pluck('name', 'id')->toArray();
+        $ToolkitTeam = ToolkitTeam::pluck('name', 'id')->toArray();
         $Country = Country::orderBy('name', 'ASC')->pluck('name', 'id')->toArray();
 
         // Final Response
@@ -335,6 +344,7 @@ class UniversityController extends Controller
                 'payOuts' => $payOuts,
                 'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
                 'toolkitLevels' => $toolkitLevels,
+                'ToolkitTeam' => $ToolkitTeam,
                 'general_country' => $general_country.',Europe',
                 'middle_east_country' => $middle_east_country,
                 'europe_country' => $europe_country,

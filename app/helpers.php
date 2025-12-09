@@ -308,7 +308,27 @@ if (!function_exists('addToEmailQueue')) {
         }
     }
 }
-
+/**
+ * Generate a secure numeric OTP (One-Time Password)
+ * 
+ * @param int $len Length of OTP (default: 6)
+ * @return string Numeric OTP
+ */
+function generateDigitOTP($len = 6)
+{
+    // Validate length parameter
+    if (!is_int($len) || $len < 4 || $len > 10) {
+        $len = 6; // Default to 6 if invalid
+    }
+    
+    // Method 1: Using random_int (Most secure - PHP 7+)
+    $otp = '';
+    for ($i = 0; $i < $len; $i++) {
+        $otp .= random_int(0, 9);
+    }
+    
+    return $otp;
+}
 
  function buildEmailData($template, $user,$cc=null)
     {

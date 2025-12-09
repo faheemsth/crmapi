@@ -410,7 +410,124 @@ class EmailTemplateController extends Controller
                     'message' => 'You do not have any Agency Records.'
                 ]);
             }
-        } elseif ($request->type == 'organization') {
+        } elseif ($request->type == 'applications') {
+
+
+
+
+
+
+
+
+
+$leadIds = explode(',', $request->Leads);
+$users = collect(); 
+
+foreach (array_chunk($leadIds, 1000) as $chunkIds) {
+
+    $chunkUsers = User::select(
+        'users.id',
+        'users.name',
+        'users.email',
+        'users.phone',
+        'brands.name as BrandName',
+        'branches.name as BranchName',
+        'regions.name as RegionName',
+        'users.brand_id',
+        'users.branch_id',
+        'users.region_id',
+    )
+
+        // FIXED — changed alias to brands
+        ->leftJoin('users as brands', 'brands.id', '=', 'users.brand_id')
+        ->leftJoin('branches', 'branches.id', '=', 'users.branch_id')
+        ->leftJoin('regions', 'regions.id', '=', 'users.region_id')
+        ->whereIn('users.id', $chunkIds)
+        ->get();
+
+    $users = $users->merge($chunkUsers);
+}
+
+if ($users->isNotEmpty()) {
+
+    foreach ($users->chunk(1000) as $chunk) {
+
+        $insertData = [];
+
+        foreach ($chunk as $lead) {
+
+            // FIXED — use $lead not $users
+            $replacedHtml = str_replace(
+                ['{lead_name}', '{lead_email}', '{lead_pipeline}', '{lead_stage}', '{lead_subject}', '{sender}', '{student_name}'],
+                [
+                    $lead->name, 
+                    $lead->email, 
+                    $lead->PipelinesName,
+                    $lead->StageName,
+                    $lead->userSubject,
+                    auth()->user()->name,
+                    $lead->name
+                ],
+                $request->content
+            );
+
+            $insertData[] = [
+                'to' => $lead->email,
+                'subject' => $request->subject,
+                'created_by' => auth()->id(),
+                'brand_id' => $lead->brand_id,
+                'from_email' => $request->from,
+                'branch_id' => $lead->branch_id,
+                'region_id' => $lead->region_id,
+                'sender_id' => auth()->id(),
+                'content' => $replacedHtml,
+                'stage_id' => $lead->stage_id,
+                'pipeline_id' => $lead->pipeline_id,
+                'template_id' => $request->id,
+                'related_type' => 'applications',
+                'priority' => '3',
+                'related_id' => $lead->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        EmailSendingQueue::insert($insertData);
+    }
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Your email campaign has been successfully established.'
+    ]);
+}
+
+return response()->json([
+    'status' => 'error',
+    'message' => 'You do not have any applications Records.'
+]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        }elseif ($request->type == 'organization') {
             $EmailMarkittingOrgEmails = User::select(['users.*'])->join('organizations', 'organizations.user_id', '=', 'users.id')->where('users.type', 'organization')->whereIn('users.id', explode(',', $request->Leads))->get();
             if ($EmailMarkittingOrgEmails->isNotEmpty() || $EmailMarkittingOrgEmails->count() > 0) {
                 foreach ($EmailMarkittingOrgEmails as $EmailMarkitting) {
@@ -562,8 +679,7 @@ private function executeLeadQuery()
             ->mergeBindings($subquery)
             ->join('email_sending_queues as esq', function($join) {
                 $join->on('sq.subject', '=', 'esq.subject')
-                     ->on('sq.sender_id', '=', 'esq.sender_id')
-                     ->on('sq.id', '=', 'esq.id');
+                     ->on('sq.sender_id', '=', 'esq.sender_id') ;
             })
             ->select(
                 'esq.*',
@@ -605,6 +721,8 @@ private function executeLeadQuery()
             $email_sending_queues_query->where('esq.sender_id', \Auth::user()->id);
         }
 
+         $email_sending_queues_query->where('esq.priority', '3');
+
         // Apply dynamic filters
         foreach ($filters as $column => $value) {
             switch ($column) {
@@ -634,7 +752,24 @@ private function executeLeadQuery()
                     $email_sending_queues_query->whereIn('esq.sender_id', $value);
                     break;
                 case 'status':
-                    $email_sending_queues_query->where('esq.status', $value);
+
+                    if ($value == 'nonprocessed') {
+                        $email_sending_queues_query->where('esq.status', '1');
+                        $email_sending_queues_query->where('esq.is_send', '0');
+                    } else if ($value == 'failed') {
+                        $email_sending_queues_query->where('esq.status', '1');
+                        $email_sending_queues_query->where('esq.is_send', '2');
+                    } else {
+                        $email_sending_queues_query->where('esq.status', $value);
+                    } 
+                    break;
+                case 'nonprocessed':
+                    $email_sending_queues_query->where('esq.status', '1');
+                    $email_sending_queues_query->where('esq.is_send', '0');
+                    break;
+                case 'failed':
+                    $email_sending_queues_query->where('esq.status', '1');
+                    $email_sending_queues_query->where('esq.is_send', '2');
                     break;
                 case 'created_at_from':
                     $email_sending_queues_query->whereDate('esq.created_at', '>=', $value);
@@ -762,7 +897,7 @@ private function executeLeadQuery()
             $filters['tag'] = $_GET['tag'];
         }
 
-        if (isset($_GET['status']) && !empty($_GET['status'])) {
+         if ($_GET['status'] != '') {
             $filters['status'] = $_GET['status'];
         }
         if (isset($_GET['search']) && !empty($_GET['search'])) {

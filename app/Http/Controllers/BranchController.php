@@ -34,6 +34,9 @@ class BranchController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $Branch,
+            'encrpted_brand_id' => encryptData($Branch->brands), 
+            'encrpted_region_id' => encryptData($Branch->region_id), 
+            'encrpted_branch_id' => encryptData($Branch->id), 
         ], 200);
     }
 
