@@ -14,6 +14,7 @@ class MoiAccepted extends Model
     protected $fillable = [
         'university_id',
         'institute_id',
+        'type',
         'created_by'
     ];
 
@@ -43,21 +44,26 @@ class MoiAccepted extends Model
      * @param int $createdBy
      * @return array
      */
-    public static function addInstitutesToUniversity(int $universityId, array $instituteIds, int $createdBy): array
+    public static function addInstitutesToUniversity(int $universityId, array $instituteIds, int $createdBy,$type): array
     {
         $addedRecords = [];
         $existingRecords = self::where('university_id', $universityId)
             ->whereIn('institute_id', $instituteIds)
             ->pluck('institute_id')
+            ->where('type',$type)
             ->toArray();
 
         $university = University::findOrFail($universityId);
+        if($type == 2){
+            $university = Homeuniversity::findOrFail($universityId);
+        } 
         $instituteNames = Institute::whereIn('id', $instituteIds)->pluck('name', 'id');
 
         foreach ($instituteIds as $instituteId) {
             if (!in_array($instituteId, $existingRecords)) {
                 $record = self::create([
                     'university_id' => $universityId,
+                    'type' => $type,
                     'institute_id' => $instituteId,
                     'created_by' => $createdBy
                 ]);

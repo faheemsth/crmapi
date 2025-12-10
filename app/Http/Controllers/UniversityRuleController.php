@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\UniversityRule;
 use App\Models\University;
+use App\Models\Homeuniversity;
 use Illuminate\Http\Request;
 
 class UniversityRuleController extends Controller
@@ -60,6 +61,7 @@ class UniversityRuleController extends Controller
                 'university_id' => 'required|integer|exists:universities,id',
                 'name' => 'required|string',
                 'position' => 'required|integer',
+                'type' => 'required|integer|in:1,2',
                 'rule_type' => 'required|string|in:restriction,requirement,pipeline'
             ]
         );
@@ -75,18 +77,24 @@ class UniversityRuleController extends Controller
             'university_id' => $request->university_id,
             'name' => $request->name,
             'position' => $request->position,
+            'type' => $request->type,
             'rule_type' => $request->rule_type,
             'created_by' => \Auth::id()
         ]);
 
+        if($request->type == 1){
+            $university = University::find($request->university_id);
+        }else{
+            $university = Homeuniversity::find($request->university_id);
+        }  
         
-        $university = University::find($request->university_id);
+          $typetext = $request->type == 1 ? 'international' : 'home';
 
-        // Log activity
+        // Log activity 
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $university->name . ' ' . $request->rule_type .' created',
+                'title' =>  $typetext . ' ' . $university->name . ' ' . $request->rule_type .' created',
                 'message' => "A new rule '{$rule->name}' has been created successfully.",
             ]),
             'module_id' => $rule->university_id,
@@ -116,6 +124,7 @@ class UniversityRuleController extends Controller
                 'id' => 'required|exists:university_rules,id',
                 'name' => 'required|string',
                 'position' => 'required|integer',
+                'type' => 'required|integer|in:1,2',
                 'rule_type' => 'required|string|in:restriction,requirement,pipeline'
             ]
         );
@@ -151,13 +160,17 @@ class UniversityRuleController extends Controller
 
         // Log changed fields only
           $university = University::find($request->university_id);
+        if($request->type == 2){
+            $university = Homeuniversity::find($request->university_id);
+        }
 
         // Log activity
       // Log activity
+        $typetext = $request->type == 1 ? 'international' : 'home';
         addLogActivity([
             'type' => 'info',
             'note' => json_encode([
-                'title' => $university->name . ' ' . $request->rule_type . ' updated',
+                'title' => $typetext . ' ' .$university->name . ' ' . $request->rule_type . ' updated',
                 'message' => "The rule has been updated from '{$originalData['name']}' to '{$rule->name}'.",
             ]),
             'module_id' => $rule->university_id,
@@ -261,7 +274,10 @@ class UniversityRuleController extends Controller
 
         $validator = \Validator::make(
             $request->all(),
-            ['id' => 'required|exists:university_rules,id']
+            [
+                'id' => 'required|exists:university_rules,id',
+                'type' => 'required|integer|in:1,2',
+                ]
         );
 
         if ($validator->fails()) {
@@ -285,6 +301,9 @@ class UniversityRuleController extends Controller
         $ruleId = $rule->id;
 
         $university = University::find($rule->university_id);
+        if($request->type == 2){
+            $university = Homeuniversity::find($rule->university_id);
+        }   
 
         $rule->delete();
 
@@ -293,10 +312,11 @@ class UniversityRuleController extends Controller
         
 
         // Log activity
+          $typetext = $request->type == 1 ? 'international' : 'home';
         addLogActivity([
             'type' => 'warning',
             'note' => json_encode([
-                'title' => $university->name . ' ' . $rule_type .' deleted',
+                'title' => $typetext . ' ' .$university->name . ' ' . $rule_type .' deleted',
                 'message' => "A new rule '{$ruleName}' has been deleted successfully.",
             ]),
             'module_id' => $rule->university_id,

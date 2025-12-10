@@ -33,6 +33,7 @@ class CourseController extends Controller
         // Validate input
         $validator = Validator::make($request->all(), [
             'university_id' => 'required|exists:universities,id',
+            'type' => 'required|integer|in:1,2',
         ]);
 
         if ($validator->fails()) {
@@ -44,7 +45,7 @@ class CourseController extends Controller
 
         // Base query
         $query = Course::with(['instalments','university', 'created_by'])
-            ->where('university_id', $request->university_id);
+            ->where('university_id', $request->university_id)->where('type', $request->type);
 
 
 
@@ -125,6 +126,7 @@ class CourseController extends Controller
             'installments' => 'nullable|array',
             'installments.*' => 'nullable|numeric|min:0',
             'OfferletterDownloadenabled' => 'nullable|boolean',
+            'type' => 'required|integer|in:1,2',
         ]);
 
         if ($validator->fails()) {
@@ -136,6 +138,7 @@ class CourseController extends Controller
 
         $course = new Course();
         $course->name = $request->name;
+        $course->type = $request->type;
         $course->university_id = $request->university_id;
         $course->campus = is_array($request->campus) ? implode(',', $request->campus) : $request->campus;
         $course->intake_month = is_array($request->intake_month) ? implode(',', $request->intake_month) : $request->intake_month;
@@ -162,11 +165,12 @@ class CourseController extends Controller
         }
 
         // Optional: Log activity
+          $typetext = $request->type == 1 ? 'international' : 'home';
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => 'Course: ' . $course->name. ' created in ' . $course->university->name,
-                'message' => 'Course: ' . $course->name. ' created in ' . $course->university->name,
+                'title' => 'Course: ' . $course->name. ' created in ' . $typetext . ' ' .$course->university->name ,
+                'message' => 'Course: ' . $course->name. ' created in ' .$typetext . ' ' . $course->university->name,
             ]),
             'module_id' => $course->university_id,
             'module_type' => 'university',
@@ -467,10 +471,12 @@ class CourseController extends Controller
 
         // Log only if any field was actually changed
         if (!empty($updatedFields)) {
+
+              $typetext = $course->type == 1 ? 'international' : 'home';
             addLogActivity([
                 'type' => 'info',
                 'note' => json_encode([
-                    'title' => 'Course Updated',
+                    'title' => $typetext . ' ' .'Course Updated',
                     'message' => 'The following fields were updated:',
                     'changes' => $updatedFields
                 ]),
@@ -593,9 +599,9 @@ class CourseController extends Controller
         $user = \Auth::user();
         $universityName = University::where('id', $course->university_id)->value('name');
         $fieldList = implode(', ', array_map('ucwords', array_keys($updatedFields)));
-
+          $typetext = $course->type == 1 ? 'international' : 'home';
         $logDetails = [
-            'title' => "Course: {$course->name}  Updated in {$universityName}",
+            'title' => "Course: {$course->name}  Updated in {$typetext} {$universityName}",
             'message' => "Fields updated: {$fieldList}",
             'changes' => $updatedFields
         ];
@@ -652,12 +658,15 @@ class CourseController extends Controller
         // Find the Course
         $course = Course::find($request->id);
 
+
+          $typetext = $course->type == 1 ? 'international' : 'home';
+
         // Log the deletion
          addLogActivity([
             'type' => 'warning',
             'note' => json_encode([
-                'title' => 'Course: ' . $course->name. ' deleted in ' . $course->university->name,
-                'message' => 'Course: ' . $course->name. ' deleted in ' . $course->university->name,
+                'title' => 'Course: ' . $course->name. ' deleted in ' .$typetext . ' ' . $course->university->name,
+                'message' => 'Course: ' . $course->name. ' deleted in ' .$typetext . ' ' . $course->university->name,
             ]),
             'module_id' => $course->university_id,
             'module_type' => 'university',
@@ -763,7 +772,7 @@ class CourseController extends Controller
 
     public function pluckCourse(Request $request)
         {
-            $Course = Course::pluck('name', 'id')->toArray();
+            $Course = Course::pluck('name', 'id')->where('type',1)->toArray();
             return response()->json([
                 'status' => 'success',
                 'data' => $Course
