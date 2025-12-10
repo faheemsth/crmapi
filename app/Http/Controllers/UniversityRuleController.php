@@ -22,6 +22,7 @@ class UniversityRuleController extends Controller
             $request->all(),
             [
                 'university_id' => 'required|integer|exists:universities,id',
+                'type' => 'required|integer|in:1,2',
                 'rule_type' => 'required|string|in:restriction,requirement,pipeline'
             ]
         );
@@ -37,6 +38,7 @@ class UniversityRuleController extends Controller
         $rules = UniversityRule::with(['created_by:id,name'])
         ->where('university_id', $request->university_id)
         ->where('rule_type', $request->rule_type)
+        ->where('type', $request->type)
         ->orderBy('position', 'ASC')
         ->get();
 
