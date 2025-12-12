@@ -2987,4 +2987,105 @@ class LeadController extends Controller
 
         return $filters;
     }
+
+public function leadsKanban(Request $request)
+{
+    $usr = auth()->user();
+
+    /**
+     * 1. GET STAGES (RAW QUERY)
+     */
+    $stages = DB::select("SELECT id, name FROM lead_stages");
+
+    // Add fixed colors manually
+    $colors = [
+        1 => ['#4F46E5', '#eef2ff'], // New Leads
+        2 => ['#F59E0B', '#fff7ed'], // Contacted
+        3 => ['#22C55E', '#f0fdf4'], // Document Received
+        4 => ['#EC928E', '#fef2f2'], // Advised
+        5 => ['#0EA5E9', '#e0f2fe'], // Follow-up
+        6 => ['#6B7280', '#f3f4f6'], // Unqualified
+    ];
+
+    foreach ($stages as $stage) {
+        $stage->color = $colors[$stage->id][0] ?? "#000";
+        $stage->bg_color = $colors[$stage->id][1] ?? "#fff";
+    }
+
+    /**
+     * 2. BUILD RAW SQL FOR LEADS
+     */
+    $sql = "
+        SELECT id, name, phone, city, stage_id, created_at
+        FROM leads
+        WHERE is_converted = 0
+    ";
+
+    $params = [];
+
+    /** 3. PERMISSION LOGIC */
+    if ($usr->type == "company") {
+        $sql .= " AND brand_id = ? ";
+        $params[] = $usr->id;
+    } elseif ($usr->type == "Region Manager") {
+        $sql .= " AND region_id = ? ";
+        $params[] = $usr->region_id;
+    } elseif ($usr->type == "Branch Manager") {
+        $sql .= " AND branch_id = ? ";
+        $params[] = $usr->branch_id;
+    } elseif ($usr->type == "Agent") {
+        $sql .= " AND user_id = ? ";
+        $params[] = $usr->id;
+    }
+
+    /** 4. SEARCH FILTER */
+    if ($request->filled('search')) {
+        $sql .= " AND (name LIKE ? OR phone LIKE ?) ";
+        $params[] = "%{$request->search}%";
+        $params[] = "%{$request->search}%";
+    }
+
+    /** 5. APPLY LIMIT (FIRST 50 RECORDS ONLY) */
+    $sql .= " LIMIT 50 ";
+
+    /** 6. GET LEADS (RAW QUERY) */
+    $leads = DB::select($sql, $params);
+
+    /** 7. GROUP INTO KANBAN FORMAT */
+    $kanban = [];
+
+    foreach ($stages as $stage) {
+
+        $stageLeads = array_values(array_filter($leads, function ($lead) use ($stage) {
+            return $lead->stage_id == $stage->id;
+        }));
+
+        $formattedLeads = array_map(function ($lead) {
+            return [
+                "id" => $lead->id,
+                "name" => $lead->name,
+                "phone" => $lead->phone,
+                "city" => $lead->city,
+                "leadAge" => \Carbon\Carbon::parse($lead->created_at)->diffForHumans()
+            ];
+        }, $stageLeads);
+
+        $kanban[] = [
+            "stage_id" => $stage->id,
+            "title"    => $stage->name,
+            "count"    => count($formattedLeads),
+            "color"    => $stage->color,
+            "bgColor"  => $stage->bg_color,
+            "leads"    => $formattedLeads
+        ];
+    }
+
+    return response()->json([
+        "status" => "success",
+        "data" => $kanban
+    ]);
+}
+
+
+
 }
