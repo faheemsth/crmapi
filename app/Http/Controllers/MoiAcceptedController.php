@@ -19,6 +19,7 @@ class MoiAcceptedController extends Controller
         $validator = Validator::make($request->all(), [
             'university_id' => 'required|integer|exists:universities,id',
             'institute_id' => 'required|array|min:1',
+            'type' => 'required|integer|in:1,2',
             'institute_id.*' => 'integer|exists:institutes,id'
         ]);
 
@@ -34,7 +35,9 @@ class MoiAcceptedController extends Controller
             $addedRecords = MoiAccepted::addInstitutesToUniversity(
                 $request->university_id,
                 $request->institute_id,
-                auth()->id()
+                auth()->id(),
+                $request->type
+
             );
 
             if (empty($addedRecords)) {
@@ -66,6 +69,7 @@ class MoiAcceptedController extends Controller
         $validator = Validator::make($request->all(), [
             'university_id' => 'required|integer|exists:universities,id',
             'institute_id' => 'nullable|array',
+            'type' => 'required|integer|in:1,2',
             'institute_id.*' => 'integer|exists:institutes,id'
         ]);
 
@@ -124,6 +128,7 @@ class MoiAcceptedController extends Controller
         // Validate university_id is required and exists
         $validator = Validator::make($request->all(), [
             'university_id' => 'required|exists:universities,id',
+            'type' => 'required|integer|in:1,2',
         ]);
 
         if ($validator->fails()) {
@@ -148,6 +153,7 @@ class MoiAcceptedController extends Controller
         // ]);
         $query = MoiAccepted::with(['institute.country'])
             ->where('university_id', $request->university_id)
+            ->where('type', $request->type)
             ->get()
             ->pluck('institute')
             ->unique('id')

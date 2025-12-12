@@ -5,17 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class University extends Model
+class Homeuniversity extends Model
 {
     use HasFactory;
     protected $appends = ['country_code', 'meta_data' ];
     protected $hidden = ['universityMeta'];
-    protected $with = ['createdBy:id,name','rank','productcoordinator:id,name,email','ToolkitTeam','homeuniversity'];
+    protected $with = ['createdBy:id,name','rank','productcoordinator:id,name,email','ToolkitTeam'];
 
 
     public function course()
     {
-        return $this->hasOne(Course::class)->where('type', 1);
+        return $this->hasOne(Course::class)->where('type', 2);
     }
 
     public function getCountryCodeAttribute()
@@ -40,7 +40,7 @@ class University extends Model
 
     public function universityMeta()
     {
-        return $this->hasMany(UniversityMeta::class, 'university_id')->where('type', 1);
+        return $this->hasMany(UniversityMeta::class, 'university_id')->where('type', 2);
     }
 
     public function createdBy()
@@ -80,10 +80,7 @@ class University extends Model
     {
         return $this->belongsTo(ToolkitTeam::class, 'team_id');
     }
-    public function homeuniversity()
-    {
-        return $this->hasOne(Homeuniversity::class, 'main_uni_id', 'id');
-    }
+   
 
     public function getCountryNameAttribute()
     {

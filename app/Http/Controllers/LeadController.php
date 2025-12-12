@@ -280,6 +280,10 @@ class LeadController extends Controller
             'lead_state' => 'required',
             'lead_postal_code' => 'required',
             'lead_street' => 'required',
+            'lead_last_education' => 'required',
+            'lead_cgpa_percentage' => 'required',
+            'lead_passing_year' => 'required',
+            'lead_language_test' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -349,6 +353,10 @@ class LeadController extends Controller
         $lead->created_by = Session::get('auth_type_id') ?? $user->id;
         $lead->date = now()->format('Y-m-d');
         $lead->drive_link = $request->drive_link ?? '';
+        $lead->language_test = $request->lead_language_test ?? '';
+        $lead->passing_year = $request->lead_passing_year ?? '';
+        $lead->cgpa_percentage = $request->lead_cgpa_percentage ?? '';
+        $lead->last_education = $request->lead_last_education ?? '';
 
         $lead->save();
 
@@ -367,10 +375,10 @@ class LeadController extends Controller
 
         // Log Activity
         addLogActivity([
-            'type' => 'info',
+            'type' => 'success',
             'note' => json_encode([
-                'title' => 'Lead Created',
-                'message' => 'Lead created successfully'
+                'title' => $request->name.' Lead Created',
+                'message' => $request->name. ' Lead created successfully'
             ]),
             'module_id' => $lead->id,
             'module_type' => 'lead',
@@ -397,6 +405,7 @@ class LeadController extends Controller
                     return response()->json([
                         'status' => 'success',
                         'lead_id' => $lead->id,
+                        'lead' => $lead,
                         'message' => __('Lead successfully created!')
                     ]);
                 }
@@ -406,6 +415,7 @@ class LeadController extends Controller
         return response()->json([
             'status' => 'success',
             'lead_id' => $lead->id,
+            'lead' => $lead,
             'message' => __('Lead successfully created!')
         ], 201);
     }

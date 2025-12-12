@@ -107,6 +107,7 @@ class UniversityMetaController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'university_id' => 'required|integer|exists:universities,id',
+             'type' => 'required|integer|in:1,2',
         ]);
 
         if ($validator->fails()) {
@@ -117,6 +118,7 @@ class UniversityMetaController extends Controller
         }
 
         $universityId = $request->university_id;
+        $type = $request->type;
         $user = Auth::user();
         $metaData = $request->except('university_id');
         $changes = [];
@@ -124,6 +126,7 @@ class UniversityMetaController extends Controller
         foreach ($metaData as $key => $newValue) {
             $existingMeta = UniversityMeta::where([
                 'university_id' => $universityId,
+                'type' => $type,
                 'meta_key' => $key
             ])->first();
 
@@ -146,10 +149,12 @@ class UniversityMetaController extends Controller
             UniversityMeta::updateOrCreate(
                 [
                     'university_id' => $universityId,
+                    'type' => $type,
                     'meta_key' => $key,
                 ],
                 [
                     'meta_value' => $newValue,
+                    'type' => $type,
                     'created_by' => $user->id,
                 ]
             );
@@ -160,8 +165,10 @@ class UniversityMetaController extends Controller
             $universityName = University::where('id', $universityId)->value('name');
             $fieldList = implode(', ', array_map('ucwords', array_keys($changes)));
 
+             $typetext = $request->type == 1 ? 'international' : 'home';
+
             $logDetails = [
-                'title' => "{$universityName} updated",
+                'title' => "{$typetext} {$universityName} updated",
                 'message' => "Fields updated: {$fieldList}",
                 'changes' => $changes
             ];
@@ -176,7 +183,7 @@ class UniversityMetaController extends Controller
             ]);
         }
 
-        $metadata = UniversityMeta::where('university_id', $universityId)->get();
+        $metadata = UniversityMeta::where('university_id', $universityId)->where('type',$type)->get();
 
         $metas = new \stdClass();
         foreach ($metadata as $data) {

@@ -101,6 +101,8 @@ use App\Http\Controllers\SendGridWebhookController;
 Route::get('/sendQueuedEmails', [SendQueuedEmailsController::class, 'handle']);
 Route::post('/sendgrid/webhook', [SendGridWebhookController::class, 'handle']);
 
+Route::post('/brandDetailPublic', [UserController::class, 'brandDetailPublic']);
+
 Route::get('/proxy-image', function (Request $request) {
     $url = $request->query('url');
 
@@ -278,6 +280,9 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/googlelogin', 'googlelogin');
     Route::post('/checkemail', 'checkemail');  // for checking email already exist or not
     Route::post('/changePassword', 'changePassword');
+    Route::post('/forgotpasswordAgentOTP', 'forgotpasswordAgentOTP');
+    Route::post('/verifyforgotpasswordOtp', 'verifyforgotpasswordOtp');
+    Route::post('/changefogotPassword', 'changefogotPassword');
 });
 
 //Route::get('/appMeta', [ProductController::class, 'appMeta']);
@@ -287,6 +292,9 @@ Route::post('/jobApplyData', [JobController::class, 'jobApplyData']);
 
 // Protected routes of product and logout
 Route::middleware('auth:sanctum')->group(function () {
+    
+    Route::post('/resendAgentOTP', [LoginRegisterController::class, 'resendAgentOTP']);
+    Route::post('/verifyOtp', [LoginRegisterController::class, 'verifyOtp']);
     Route::post('/userDetail', [LoginRegisterController::class, 'userDetail']);
 
     Route::post('AttendanceSetting', [UserController::class, 'AttendanceSetting']);
@@ -377,6 +385,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/UserEmployeeFileUpdate', [UserController::class, 'UserEmployeeFileUpdate']);
     Route::post('/BrandAttachments', [UserController::class, 'BrandAttachments']);
     Route::post('/UserEmployeeFileDocument', [UserController::class, 'UserEmployeeFileDocument']);
+    Route::post('/agentFileDocument', [UserController::class, 'agentFileDocument']);
     Route::post('/employeeFileAttachments', [UserController::class, 'employeeFileAttachments']);
     Route::post('/employeeDocuments', [UserController::class, 'employeeDocuments']);
     Route::post('/UserEmployeeFileDocumentDelete', [UserController::class, 'UserEmployeeFileDocumentDelete']);
@@ -500,6 +509,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getDashboardLastLogin', [UserController::class, 'getDashboardLastLogin']);
     Route::post('/getDashboardEmployeesCount', [UserController::class, 'getDashboardEmployeesCount']);
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
+    Route::post('/getAgents', [UserController::class, 'getAgents']);
     Route::get('/employees', [UserController::class, 'employees']);
     Route::get('/Pluck_All_Users', [UserController::class, 'Pluck_All_Users']);
     Route::post('/Pluck_All_Users_by_filter', [UserController::class, 'Pluck_All_Users_by_filter']);
@@ -508,7 +518,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/createEmployee', [UserController::class, 'createEmployee']);
     Route::post('/newEmployeeEmailSend', [UserController::class, 'newEmployeeEmailSend']);
     Route::post('/UpdateEmployee', [UserController::class, 'UpdateEmployee']);
+    Route::post('/completeProfile', [UserController::class, 'completeProfile']);
     Route::post('/TerminateEmployee', [UserController::class, 'TerminateEmployee']);
+    Route::post('/change_agent_status', [UserController::class, 'change_agent_status']);
 
     // Hrm Internal Employee Note Create
     Route::post('/EmployeeNoteGet', [UserController::class, 'HrmInternalEmployeeNoteGet']);
