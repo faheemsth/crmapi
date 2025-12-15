@@ -13,6 +13,7 @@ use App\Models\ToolkitLevel;
 use App\Models\ToolkitTeam;
 use App\Models\ToolkitPaymentType;
 use App\Models\University;
+use App\Models\Homeuniversity;
 use App\Models\User;
 use App\Models\Utility;
 use Auth;
@@ -89,6 +90,16 @@ class UniversityController extends Controller
             if ($request->country === 'Europe') {
                 $placeholders = implode(',', array_fill(0, count($europeanCountries), '?'));
                 $query->whereRaw("$caseCountry IN ($placeholders)", $europeanCountries);
+            }else  if ($request->country === 'UK Home') {
+                $country = Country::find(216);
+
+                if (! empty($country)) {
+                    $query->whereRaw("$caseCountry LIKE ?", ['%'.$country->name.'%']);
+                } else {
+                    $query->whereRaw("$caseCountry LIKE ?", ['%United Kingdom%']);
+                }
+
+                $query->where('home_status', '=', 1);
             } else {
                 $country = Country::find($request->country);
 
@@ -388,6 +399,39 @@ class UniversityController extends Controller
             ->groupBy('resolved_country_name', 'resolved_country_code')
             ->get();
 
+            // University statistics grouped by country (use actual column 'country')
+        $homeuniversityStatsByCountries = University::query()
+            ->selectRaw("
+                        COUNT(universities.id) AS total_universities,
+
+                        COALESCE(
+                            CASE
+                                WHEN universities.country REGEXP '^[0-9]+$'
+                                    THEN c_id.name        
+                                ELSE c_name.name         
+                            END,
+                            universities.country         
+                        ) AS resolved_country_name,
+
+                        COALESCE(
+                            CASE
+                                WHEN universities.country REGEXP '^[0-9]+$'
+                                    THEN c_id.country_code      
+                                ELSE c_name.country_code        
+                            END,
+                            NULL
+                        ) AS resolved_country_code
+                    ")
+            ->leftJoin('countries AS c_id', function ($join) {
+                $join->on('c_id.id', '=', DB::raw('CAST(universities.country AS UNSIGNED)'));
+            })
+            ->leftJoin('countries AS c_name', function ($join) {
+                $join->on(DB::raw('LOWER(c_name.name)'), '=', DB::raw('LOWER(universities.country)'));
+            })
+            ->where('home_status', 1)
+            ->groupBy('resolved_country_name', 'resolved_country_code')
+            ->get();
+
         // Build statuses array keyed by country name
         $statuses = [];
         foreach ($universityStatsByCountries as $u) {
@@ -396,6 +440,19 @@ class UniversityController extends Controller
 
             $countryName = $u->resolved_country_name;  // accessor returns full country name
             $statuses[$countryName] = [
+                'country_code' => $u->resolved_country_code, // estore original cod test
+                'count' => $u->total_universities,
+            ];
+
+        }
+        // Build statuses array keyed by country name
+        $homestatuses = [];
+        foreach ($homeuniversityStatsByCountries as $u) {
+
+            // dd($u,$u->resolved_country_name,$u->total_universities);
+
+            $countryName = $u->resolved_country_name;  // accessor returns full country name
+            $homestatuses[$countryName] = [
                 'country_code' => $u->resolved_country_code, // estore original cod test
                 'count' => $u->total_universities,
             ];
@@ -440,6 +497,13 @@ class UniversityController extends Controller
             if (isset($europeMap[$countryName])) {
                 $europeCount += $count;
             }
+ 
+        }
+        // Single loop to compute totals for Europe & Middle East
+        foreach ($homestatuses as $countryName => $data) {
+            $count = $data['count'];
+
+           
 
             if (isset($middleEastMap[$countryName])) {
                 $middleEastCount += $count;
@@ -450,8 +514,8 @@ class UniversityController extends Controller
             'country_code' => 'eu', // estore original cod test
             'count' => $europeCount,
         ];
-        $statuses['Middle East'] = [
-            'country_code' => 'me', // estore original cod test
+        $statuses['UK Home'] = [
+            'country_code' => 'GB', // estore original cod test
             'count' => $middleEastCount,
         ];
 
@@ -463,7 +527,7 @@ class UniversityController extends Controller
             }
         }
 
-        $sortedStatuses['Middle East'] = $statuses['Middle East'];
+        $sortedStatuses['UK Home'] = $statuses['UK Home'];
         $sortedStatuses['Europe'] = $statuses['Europe'];
 
         // Supporting dropdowns
@@ -484,7 +548,7 @@ class UniversityController extends Controller
                 'payOuts' => $payOuts,
                 'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
                 'toolkitLevels' => $toolkitLevels,
-                'general_country' => $general_country.',Europe',
+                'general_country' => $general_country.',Europe,UK Home',
                 'middle_east_country' => $middle_east_country,
                 'europe_country' => $europe_country,
                 'Country' => $Country,
@@ -642,18 +706,55 @@ class UniversityController extends Controller
         addLogActivity([
             'type' => 'success',
             'note' => json_encode([
-                'title' => $university->name.'  created',
-                'message' => $university->name.'  created',
+                'title' => $university->name.' international  created',
+                'message' => $university->name.' international  created',
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
             'notification_type' => 'University Created',
         ]);
 
+        $homeuniversity = new Homeuniversity;
+        $homeuniversity->main_uni_id = $university->id;
+        $homeuniversity->status = '1';
+        $homeuniversity->name = $request->name;
+        $homeuniversity->company_id = 1;
+        $homeuniversity->country = implode(',', $request->country);
+        $homeuniversity->city = $request->city;
+        $homeuniversity->campuses = $request->campuses;
+        //  $homeuniversity->rank_id = $request->rank_id;
+        $homeuniversity->phone = $request->phone;
+        $homeuniversity->institution_link = $request->institution_link;
+        $homeuniversity->note = $request->note;
+        $homeuniversity->intake_months = implode(',', $request->months);
+        if ($request->territory != '') {
+            $homeuniversity->territory = implode(',', $request->territory);
+        }
+
+        $homeuniversity->company_id = $request->company_id;
+        $homeuniversity->resource_drive_link = $request->resource_drive_link;
+        $homeuniversity->application_method_drive_link = $request->application_method_drive_link;
+        $homeuniversity->institute_category_id = $request->category_id;
+        $homeuniversity->created_by = Auth::user()->id;
+        $homeuniversity->save();
+
+        addLogActivity([
+            'type' => 'success',
+            'note' => json_encode([
+                'title' => $homeuniversity->name.' home  created',
+                'message' => $homeuniversity->name.' home  created',
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Created',
+        ]);
+
+        
+
         return response()->json([
             'status' => 'success',
             'message' => 'University created successfully.',
-            'data' => $university,
+            'data' =>  $university->fresh(),
         ]);
     }
 
@@ -755,6 +856,7 @@ class UniversityController extends Controller
         // Validate request
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
+            'type' => 'required|integer|in:1,2',
         ]);
 
         if ($validator->fails()) {
@@ -773,7 +875,16 @@ class UniversityController extends Controller
         }
 
         // Get university
-        $university = University::findOrFail($request->id);
+
+         // Find university
+        if ($request->type == 1) {
+            $university = University::find($request->id);
+        } else {
+            $university = Homeuniversity::find($request->id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
+        
         $originalData = $university->toArray();
 
         // Exclude ID from update
@@ -844,7 +955,7 @@ class UniversityController extends Controller
             addLogActivity([
                 'type' => 'info',
                 'note' => json_encode([
-                    'title' => $university->name.' updated',
+                    'title' =>  $typetext . ' ' . $university->name.' updated',
                     'message' => 'Fields updated: '.implode(', ', $updatedFields),
                     'changes' => $changes,
                 ]),
@@ -872,6 +983,7 @@ class UniversityController extends Controller
             'territory.*' => 'required|string',
             'campuses' => 'required|array|min:1',
             'campuses.*' => 'required|string',
+             'type' => 'required|integer|in:1,2',
         ]);
 
         if ($validator->fails()) {
@@ -888,7 +1000,15 @@ class UniversityController extends Controller
             ], 403);
         }
 
-        $university = University::where('id', $request->id)->first();
+         // Find university
+        if ($request->type == 1) {
+            $university = University::find($request->id);
+        } else {
+            $university = Homeuniversity::find($request->id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
+ 
         $originalData = $university->toArray();
 
         // Update fields
@@ -923,7 +1043,7 @@ class UniversityController extends Controller
             addLogActivity([
                 'type' => 'info',
                 'note' => json_encode([
-                    'title' => $university->name.' updated ',
+                    'title' =>  $typetext . ' ' . $university->name.' updated ',
                     'message' => 'Fields updated: '.implode(', ', $updatedFields),
                     'changes' => $changes,
                 ]),
@@ -991,6 +1111,11 @@ class UniversityController extends Controller
             'notification_type' => 'University deleted',
         ]);
 
+        $homeuniversity = Homeuniversity::where('main_uni_id', $university->id)->first();
+
+        if ($homeuniversity) {
+            $homeuniversity->delete();
+        }
         // Delete the record
         $university->delete();
 
@@ -1005,6 +1130,7 @@ class UniversityController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id' => 'required|exists:universities,id',
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
         ]);
 
         if ($validator->fails()) {
@@ -1012,7 +1138,13 @@ class UniversityController extends Controller
         }
 
         $id = $request->id;
-        $university = University::findOrFail($id);
+
+        if($request->type == 1){
+            $university = University::findOrFail($id);
+        }else{
+            $university = Homeuniversity::findOrFail($id);
+        }   
+         
 
         // related applications
         $applications = []; // DealApplication::where('university_id', $id)->get();
@@ -1023,7 +1155,7 @@ class UniversityController extends Controller
         $stages = Stage::pluck('name', 'id')->toArray();
         $organizations = User::where('type', 'organization')->pluck('name', 'id')->toArray();
 
-        $course = Course::where('university_id', $id);
+        $course = Course::where('university_id', $id)->where('type', $request->type);
 
         if (\Auth::user()->type == 'super admin') {
             $courses = $course->get();
@@ -1103,11 +1235,21 @@ class UniversityController extends Controller
     //         'intake_years' => $intake_years
     //     ];
     // }
-    public function getIntakeMonthByUniversity()
+    public function getIntakeMonthByUniversity(Request $request)
     {
-        $id = $_POST['id'];
+       // $id = $_POST['id'];
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:universities,id',
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
+
+        $id = $request->id;
         $university = University::where('id', $id)->first();
-        $courses = Course::where('university_id', $id)->get();
+        $courses = Course::where('university_id', $id)->where('type',$request->type)->get();
 
         $monthNames = [
             'JAN' => 'JAN',
@@ -1162,10 +1304,44 @@ class UniversityController extends Controller
 
     public function SaveToggleCourse(Request $request)
     {
-        $University = University::find($request->id);
+
+         $validator = Validator::make($request->all(), [
+            'id' => 'required|exists:universities,id',
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => 'error', 'message' => $validator->errors()], 400);
+        }
+        
+
+         // Find university
+        if ($request->type == 1) {
+            $University = University::find($request->id);
+        } else {
+            $University = Homeuniversity::find($request->id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
         if ($University) {
             $University->status = $request->status;
             $University->save();
+
+
+             // Log activity
+        $statusText = $request->status == 1 ? 'Active' : 'Inactive';
+
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' =>  $typetext . ' ' . $University->name.' course status updated to '.$statusText,
+                'message' =>  $typetext . ' ' . $University->name.' course status updated to '.$statusText,
+            ]),
+            'module_id' => $University->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
 
             return json_encode([
                 'status' => 'success',
@@ -1296,6 +1472,7 @@ class UniversityController extends Controller
         $validator = Validator::make($request->all(), [
             'university_id' => 'required|exists:universities,id',
             'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
         ]);
 
         if ($validator->fails()) {
@@ -1314,7 +1491,14 @@ class UniversityController extends Controller
         }
 
         // Find university
-        $university = University::find($request->university_id);
+        if ($request->type == 1) {
+            $university = University::find($request->university_id);
+        } else {
+            $university = Homeuniversity::find($request->university_id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
+        
 
         if (! $university) {
             return response()->json([
@@ -1328,12 +1512,146 @@ class UniversityController extends Controller
         $university->save();
 
         $statusText = $request->status == 1 ? 'active' : 'inactive';
+       
 
         $logData = [
             'type' => 'info',
             'note' => json_encode([
-                'title' => $university->name.' MOI status updated to '.$statusText,
-                'message' => $university->name.' MOI status updated to '.$statusText,
+                'title' => $typetext . ' '.$university->name.' MOI status updated to '.$statusText,
+                'message' => $typetext . ' '.$university->name.' MOI status updated to '.$statusText,
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
+
+        // Success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('University successfully updated!'),
+        ], 200);
+    }
+
+    public function updateUniversityInternationalStatus(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+            'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
+
+        // Check permission
+        if (! \Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
+
+        // Find university
+        if ($request->type == 1) {
+            $university = University::find($request->university_id);
+        } else {
+            $university = Homeuniversity::find($request->university_id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
+        
+
+        if (! $university) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University not found.'),
+            ], 404);
+        }
+
+        // Update status
+        $university->international_status = $request->status;
+        $university->save();
+
+        $statusText = $request->status == 1 ? 'active' : 'inactive';
+       
+
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $typetext . ' '.$university->name.' international status updated to '.$statusText,
+                'message' => $typetext . ' '.$university->name.' international status updated to '.$statusText,
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
+
+        // Success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('University successfully updated!'),
+        ], 200);
+    }
+    public function updateUniversityhomeStatus(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+            'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
+
+        // Check permission
+        if (! \Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
+
+        // Find university
+        if ($request->type == 1) {
+            $university = University::find($request->university_id);
+        } else {
+            $university = Homeuniversity::find($request->university_id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
+        
+
+        if (! $university) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University not found.'),
+            ], 404);
+        }
+
+        // Update status
+        $university->home_status = $request->status;
+        $university->save();
+
+        $statusText = $request->status == 1 ? 'active' : 'inactive';
+       
+
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $typetext . ' '.$university->name.' home status updated to '.$statusText,
+                'message' => $typetext . ' '.$university->name.' home status updated to '.$statusText,
             ]),
             'module_id' => $university->id,
             'module_type' => 'university',
