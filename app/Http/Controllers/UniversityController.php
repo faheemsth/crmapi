@@ -437,7 +437,7 @@ class UniversityController extends Controller
         }
         // Build statuses array keyed by country name
         $homestatuses = [];
-        foreach ($universityStatsByCountries as $u) {
+        foreach ($homeuniversityStatsByCountries as $u) {
 
             // dd($u,$u->resolved_country_name,$u->total_universities);
 
