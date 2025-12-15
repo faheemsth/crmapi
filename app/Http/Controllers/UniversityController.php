@@ -490,7 +490,7 @@ class UniversityController extends Controller
  
         }
         // Single loop to compute totals for Europe & Middle East
-        foreach ($statuses as $countryName => $data) {
+        foreach ($homestatuses as $countryName => $data) {
             $count = $data['count'];
 
            
