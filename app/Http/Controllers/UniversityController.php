@@ -90,6 +90,16 @@ class UniversityController extends Controller
             if ($request->country === 'Europe') {
                 $placeholders = implode(',', array_fill(0, count($europeanCountries), '?'));
                 $query->whereRaw("$caseCountry IN ($placeholders)", $europeanCountries);
+            }else  if ($request->country === 'UK Home') {
+                $country = Country::find('United Kingdom');
+
+                if (! empty($country)) {
+                    $query->whereRaw("$caseCountry LIKE ?", ['%'.$country->name.'%']);
+                } else {
+                    $query->whereRaw("$caseCountry LIKE ?", ['%'.$request->country.'%']);
+                }
+
+                $query->where('home_status', '=', 1);
             } else {
                 $country = Country::find($request->country);
 
