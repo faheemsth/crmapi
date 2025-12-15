@@ -389,6 +389,39 @@ class UniversityController extends Controller
             ->groupBy('resolved_country_name', 'resolved_country_code')
             ->get();
 
+            // University statistics grouped by country (use actual column 'country')
+        $homeuniversityStatsByCountries = University::query()
+            ->selectRaw("
+                        COUNT(universities.id) AS total_universities,
+
+                        COALESCE(
+                            CASE
+                                WHEN universities.country REGEXP '^[0-9]+$'
+                                    THEN c_id.name        
+                                ELSE c_name.name         
+                            END,
+                            universities.country         
+                        ) AS resolved_country_name,
+
+                        COALESCE(
+                            CASE
+                                WHEN universities.country REGEXP '^[0-9]+$'
+                                    THEN c_id.country_code      
+                                ELSE c_name.country_code        
+                            END,
+                            NULL
+                        ) AS resolved_country_code
+                    ")
+            ->leftJoin('countries AS c_id', function ($join) {
+                $join->on('c_id.id', '=', DB::raw('CAST(universities.country AS UNSIGNED)'));
+            })
+            ->leftJoin('countries AS c_name', function ($join) {
+                $join->on(DB::raw('LOWER(c_name.name)'), '=', DB::raw('LOWER(universities.country)'));
+            })
+            ->where('home_status', 1)
+            ->groupBy('resolved_country_name', 'resolved_country_code')
+            ->get();
+
         // Build statuses array keyed by country name
         $statuses = [];
         foreach ($universityStatsByCountries as $u) {
@@ -397,6 +430,19 @@ class UniversityController extends Controller
 
             $countryName = $u->resolved_country_name;  // accessor returns full country name
             $statuses[$countryName] = [
+                'country_code' => $u->resolved_country_code, // estore original cod test
+                'count' => $u->total_universities,
+            ];
+
+        }
+        // Build statuses array keyed by country name
+        $homestatuses = [];
+        foreach ($universityStatsByCountries as $u) {
+
+            // dd($u,$u->resolved_country_name,$u->total_universities);
+
+            $countryName = $u->resolved_country_name;  // accessor returns full country name
+            $homestatuses[$countryName] = [
                 'country_code' => $u->resolved_country_code, // estore original cod test
                 'count' => $u->total_universities,
             ];
@@ -441,6 +487,13 @@ class UniversityController extends Controller
             if (isset($europeMap[$countryName])) {
                 $europeCount += $count;
             }
+ 
+        }
+        // Single loop to compute totals for Europe & Middle East
+        foreach ($statuses as $countryName => $data) {
+            $count = $data['count'];
+
+           
 
             if (isset($middleEastMap[$countryName])) {
                 $middleEastCount += $count;
@@ -451,8 +504,8 @@ class UniversityController extends Controller
             'country_code' => 'eu', // estore original cod test
             'count' => $europeCount,
         ];
-        $statuses['Middle East'] = [
-            'country_code' => 'me', // estore original cod test
+        $statuses['UK Home'] = [
+            'country_code' => 'GB', // estore original cod test
             'count' => $middleEastCount,
         ];
 
@@ -464,7 +517,7 @@ class UniversityController extends Controller
             }
         }
 
-        $sortedStatuses['Middle East'] = $statuses['Middle East'];
+        $sortedStatuses['UK Home'] = $statuses['UK Home'];
         $sortedStatuses['Europe'] = $statuses['Europe'];
 
         // Supporting dropdowns
@@ -485,7 +538,7 @@ class UniversityController extends Controller
                 'payOuts' => $payOuts,
                 'ToolkitPaymentTypes' => $ToolkitPaymentTypes,
                 'toolkitLevels' => $toolkitLevels,
-                'general_country' => $general_country.',Europe',
+                'general_country' => $general_country.',Europe,UK Home',
                 'middle_east_country' => $middle_east_country,
                 'europe_country' => $europe_country,
                 'Country' => $Country,
