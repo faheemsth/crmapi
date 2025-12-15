@@ -740,6 +740,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/updateUniversityStatus', [UniversityController::class, 'updateUniversityStatus']);
     Route::post('/updateUniversityCourseStatus', [UniversityController::class, 'updateUniversityCourseStatus']);
     Route::post('/updateUniversityMOIStatus', [UniversityController::class, 'updateUniversityMOIStatus']);
+    Route::post('/updateUniversityInternationalStatus', [UniversityController::class, 'updateUniversityInternationalStatus']);
+    Route::post('/updateUniversityhomeStatus', [UniversityController::class, 'updateUniversityhomeStatus']);
     Route::post('/updateAboutUniversity', [UniversityController::class, 'updateAboutUniversity']);
     Route::post('/getPublicUniversitiesTiles', [UniversityController::class, 'getPublicUniversitiesTiles']);
     Route::post('/getIntakeMonthByUniversity', [UniversityController::class, 'getIntakeMonthByUniversity']);

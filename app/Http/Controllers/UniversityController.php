@@ -1470,6 +1470,139 @@ class UniversityController extends Controller
         ], 200);
     }
 
+    public function updateUniversityInternationalStatus(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+            'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
+
+        // Check permission
+        if (! \Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
+
+        // Find university
+        if ($request->type == 1) {
+            $university = University::find($request->university_id);
+        } else {
+            $university = Homeuniversity::find($request->university_id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
+        
+
+        if (! $university) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University not found.'),
+            ], 404);
+        }
+
+        // Update status
+        $university->international_status = $request->status;
+        $university->save();
+
+        $statusText = $request->status == 1 ? 'active' : 'inactive';
+       
+
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $typetext . ' '.$university->name.' international status updated to '.$statusText,
+                'message' => $typetext . ' '.$university->name.' international status updated to '.$statusText,
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
+
+        // Success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('University successfully updated!'),
+        ], 200);
+    }
+    public function updateUniversityhomeStatus(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'university_id' => 'required|exists:universities,id',
+            'status' => 'required|in:0,1', // Assuming 0 or 1 as status values
+            'type' => 'required|in:1,2', // Assuming 0 or 1 as status values
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
+
+        // Check permission
+        if (! \Auth::user()->can('edit university')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('Permission Denied.'),
+            ], 403);
+        }
+
+        // Find university
+        if ($request->type == 1) {
+            $university = University::find($request->university_id);
+        } else {
+            $university = Homeuniversity::find($request->university_id);
+        }
+
+         $typetext = $request->type == 1 ? 'international' : 'home';
+        
+
+        if (! $university) {
+            return response()->json([
+                'status' => 'error',
+                'message' => __('University not found.'),
+            ], 404);
+        }
+
+        // Update status
+        $university->home_status = $request->status;
+        $university->save();
+
+        $statusText = $request->status == 1 ? 'active' : 'inactive';
+       
+
+        $logData = [
+            'type' => 'info',
+            'note' => json_encode([
+                'title' => $typetext . ' '.$university->name.' home status updated to '.$statusText,
+                'message' => $typetext . ' '.$university->name.' home status updated to '.$statusText,
+            ]),
+            'module_id' => $university->id,
+            'module_type' => 'university',
+            'notification_type' => 'University Updated',
+        ];
+        addLogActivity($logData);
+
+        // Success response
+        return response()->json([
+            'status' => 'success',
+            'message' => __('University successfully updated!'),
+        ], 200);
+    }
+
     public function pluckInstitutes(Request $request)
     {
         $University = University::pluck('name', 'id')->toArray();
