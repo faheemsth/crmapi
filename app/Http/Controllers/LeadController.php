@@ -280,10 +280,10 @@ class LeadController extends Controller
             'lead_state' => 'required',
             'lead_postal_code' => 'required',
             'lead_street' => 'required',
-            'lead_last_education' => 'required',
-            'lead_cgpa_percentage' => 'required',
-            'lead_passing_year' => 'required',
-            'lead_language_test' => 'required',
+            // 'lead_last_education' => 'required',
+            // 'lead_cgpa_percentage' => 'required',
+            // 'lead_passing_year' => 'required',
+            // 'lead_language_test' => 'required',
         ]);
 
         if ($validator->fails()) {
