@@ -885,6 +885,25 @@ class LeadController extends Controller
 
             if (! empty($test['name']) || ! empty($test['email']) || ! empty($test['phone']) || ! empty($test['subject']) || ! empty($test['notes'])) {
                 $lead->save();
+
+                        // Add Stage History
+                addLeadHistory([
+                    'stage_id' => $stage->id,
+                    'type_id' => $lead->id,
+                    'type' => 'lead',
+                ]);
+
+                // Log Activity
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $lead->name.' Lead Created',
+                        'message' => $lead->name.' Lead created successfully',
+                    ]),
+                    'module_id' => $lead->id,
+                    'module_type' => 'lead',
+                    'notification_type' => 'Lead Created',
+                ]);
                 // dd($test);
                 if (in_array('notes', $column_arr)) {
                     $notes = new LeadNote;
@@ -1004,6 +1023,25 @@ class LeadController extends Controller
             $lead->date = date('Y-m-d');
             if (! empty($test['name']) || ! empty($test['email']) || ! empty($test['phone']) || ! empty($test['subject']) || ! empty($test['notes'])) {
                 $lead->save();
+
+                          // Add Stage History
+                addLeadHistory([
+                    'stage_id' => $stage->id,
+                    'type_id' => $lead->id,
+                    'type' => 'lead',
+                ]);
+
+                // Log Activity
+                addLogActivity([
+                    'type' => 'success',
+                    'note' => json_encode([
+                        'title' => $lead->name.' Lead Created',
+                        'message' => $lead->name.' Lead created successfully',
+                    ]),
+                    'module_id' => $lead->id,
+                    'module_type' => 'lead',
+                    'notification_type' => 'Lead Created',
+                ]);
 
                 if (in_array('notes', $column_arr)) {
                     $notes = new LeadNote;
