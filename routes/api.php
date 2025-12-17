@@ -352,6 +352,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/GetLeadNotes', [LeadController::class, 'GetLeadNotes']);
     Route::post('/DeleteLeadNotes', [LeadController::class, 'DeleteLeadNotes']);
     Route::post('/EmailMarketing', [LeadController::class, 'EmailMarketing']);
+    Route::post('/LeadStageHistory', [LeadController::class, 'LeadStageHistory']);
 
 
 

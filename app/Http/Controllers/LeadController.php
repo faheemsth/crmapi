@@ -310,10 +310,10 @@ class LeadController extends Controller
             'lead_state' => 'required',
             'lead_postal_code' => 'required',
             'lead_street' => 'required',
-            'lead_last_education' => 'required',
-            'lead_cgpa_percentage' => 'required',
-            'lead_passing_year' => 'required',
-            'lead_language_test' => 'required',
+            // 'lead_last_education' => 'required',
+            // 'lead_cgpa_percentage' => 'required',
+            // 'lead_passing_year' => 'required',
+            // 'lead_language_test' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -382,11 +382,11 @@ class LeadController extends Controller
         $lead->pipeline_id = $pipeline->id;
         $lead->created_by = Session::get('auth_type_id') ?? $user->id;
         $lead->date = now()->format('Y-m-d');
-        $lead->drive_link = $request->drive_link ?? '';
-        $lead->language_test = $request->lead_language_test ?? '';
-        $lead->passing_year = $request->lead_passing_year ?? '';
-        $lead->cgpa_percentage = $request->lead_cgpa_percentage ?? '';
-        $lead->last_education = $request->lead_last_education ?? '';
+        $lead->drive_link = $request->drive_link ?? null;
+        $lead->language_test = $request->lead_language_test ?? null;
+        $lead->passing_year = $request->lead_passing_year ?? null;
+        $lead->cgpa_percentage = $request->lead_cgpa_percentage ?? null;
+        $lead->last_education = $request->lead_last_education ?? null;
 
         $lead->save();
 
@@ -448,6 +448,31 @@ class LeadController extends Controller
             'lead' => $lead,
             'message' => __('Lead successfully created!'),
         ], 201);
+    }
+    public function LeadStageHistory(Request $request)
+    {
+        // Validate Input
+        $validator = \Validator::make($request->all(), [
+            'type' => 'required|string',
+            'id'   => 'required|exists:leads,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $stage_histories = StageHistory::where('type', $request->type)
+            ->where('type_id', $request->id)
+            ->pluck('stage_id')
+            ->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $stage_histories,
+        ], 200);
     }
 
     public function updateLead(Request $request)
