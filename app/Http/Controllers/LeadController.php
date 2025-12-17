@@ -352,11 +352,11 @@ class LeadController extends Controller
         $lead->pipeline_id = $pipeline->id;
         $lead->created_by = Session::get('auth_type_id') ?? $user->id;
         $lead->date = now()->format('Y-m-d');
-        $lead->drive_link = $request->drive_link ?? '';
-        $lead->language_test = $request->lead_language_test ?? '';
-        $lead->passing_year = $request->lead_passing_year ?? '';
-        $lead->cgpa_percentage = $request->lead_cgpa_percentage ?? '';
-        $lead->last_education = $request->lead_last_education ?? '';
+        $lead->drive_link = $request->drive_link ?? null;
+        $lead->language_test = $request->lead_language_test ?? null;
+        $lead->passing_year = $request->lead_passing_year ?? null;
+        $lead->cgpa_percentage = $request->lead_cgpa_percentage ?? null;
+        $lead->last_education = $request->lead_last_education ?? null;
 
         $lead->save();
 
