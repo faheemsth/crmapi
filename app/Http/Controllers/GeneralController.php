@@ -208,7 +208,7 @@ class GeneralController extends Controller
             ], 422);
         }
 
-        $user = User::select('id', 'name')->find($request->id);
+        $user = User::where('id', $request->id)->pluck('name', 'id');
 
         if (!$user) {
             return response()->json([
