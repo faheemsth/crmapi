@@ -292,7 +292,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied.'),
-            ], 403);
+            ], 200);
         }
 
         // Validate Input
@@ -320,7 +320,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors(),
-            ], 422);
+            ], 200);
         }
 
         // Pipeline & Stage Setup
@@ -336,7 +336,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Please Create Stage for This Pipeline.'),
-            ], 400);
+            ], 200);
         }
 
         // Check for Duplicate Lead
@@ -351,7 +351,7 @@ class LeadController extends Controller
                 'status' => 'error',
                 'message' => __('Lead already exists.'),
                 'lead_id' => $leadExist->id,
-            ], 409);
+            ], 200);
         }
 
         // Create New Lead
@@ -509,7 +509,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => $validator->errors(),
-            ], 422);
+            ], 200);
         }
 
         // Fetch Lead
