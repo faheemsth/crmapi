@@ -336,7 +336,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Please Create Stage for This Pipeline.'),
-            ], 200);
+            ], 422);
         }
 
         // Check for Duplicate Lead
@@ -351,7 +351,7 @@ class LeadController extends Controller
                 'status' => 'error',
                 'message' => __('Lead already exists.'),
                 'lead_id' => $leadExist->id,
-            ], 200);
+            ], 422);
         }
 
         // Create New Lead
