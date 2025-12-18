@@ -882,6 +882,7 @@ class LeadController extends Controller
                     ->where('brand_id', $request->brand_id)
                     ->where('region_id', $request->region_id)
                     ->where('branch_id', $request->lead_branch)
+                    ->where('created_by', $usr->id)
                     ->first();
 
                 if ($lead_exist) {
