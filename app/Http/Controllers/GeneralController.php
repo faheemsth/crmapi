@@ -195,6 +195,33 @@ class GeneralController extends Controller
 
 
 
+    public function agentTeam(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = User::select('id', 'name')->find($request->id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'failure',
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'user' => $user, // returns its own id
+        ]);
+    }
 
 
 
