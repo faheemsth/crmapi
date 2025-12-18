@@ -1049,10 +1049,18 @@ public function GetBranchByType()
         $sources = Source::pluck('name', 'id');
 
         // Get approved agencies
-        $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
-            ->where('approved_status', '2')
-            ->pluck('agencies.organization_name', 'agencies.id');
+        if (Auth::user()->type === 'Agent') {
 
+            $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+                ->where('users.id', Auth::id())
+                ->where('approved_status', '2')
+                ->pluck('agencies.organization_name', 'agencies.id');
+
+        } else {
+            $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+                ->where('approved_status', '2')
+                ->pluck('agencies.organization_name', 'agencies.id');
+        }
         $tags = [];
 
             if (Auth::check()) {
