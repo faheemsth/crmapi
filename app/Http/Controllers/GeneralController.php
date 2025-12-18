@@ -195,6 +195,33 @@ class GeneralController extends Controller
 
 
 
+    public function agentTeam(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = User::where('id', $request->id)->pluck('name', 'id');
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'failure',
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'user' => $user, // returns its own id
+        ]);
+    }
 
 
 
@@ -1022,10 +1049,19 @@ public function GetBranchByType()
         $sources = Source::pluck('name', 'id');
 
         // Get approved agencies
-        $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
-            ->where('approved_status', '2')
-            ->pluck('agencies.organization_name', 'agencies.id');
+        if (Auth::user()->type === 'Agent') {
 
+            $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+                ->where('users.id', Auth::id())
+                ->where('users.is_active', 1)
+                ->selectRaw('COALESCE(agencies.organization_name, users.name) as display_name, agencies.id')
+                ->pluck('display_name', 'agencies.id');
+
+        } else {
+            $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
+                ->where('users.is_active', '1')
+                ->pluck('agencies.organization_name', 'agencies.id');
+        }
         $tags = [];
 
             if (Auth::check()) {

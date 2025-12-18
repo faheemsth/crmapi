@@ -4255,5 +4255,29 @@ public function getDashboardholiday(Request $request)
         ], 500);
     }
 }
+    public function agreeTerms(Request $request)
+    {
+        $request->validate([
+            'terms_agreed' => 'required|boolean',
+            'terms_agreed_at' => 'nullable|date'
+        ]);
 
+        $user = auth()->user();
+
+        $user->terms_agreed = $request->terms_agreed;
+        $user->terms_agreed_at = $request->terms_agreed_at 
+            ? Carbon::parse($request->terms_agreed_at)
+            : now();
+
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Terms accepted successfully',
+            'data' => [
+                'terms_agreed' => $user->terms_agreed,
+                'terms_agreed_at' => $user->terms_agreed_at
+            ]
+        ], 200);
+    }
 }

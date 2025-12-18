@@ -302,6 +302,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/getProfileData', [UserController::class, 'getProfileData']);
     Route::post('/updateUserStatus', [UserController::class, 'updateUserStatus']);
+    Route::post('/user/agree-terms', [UserController::class, 'agreeTerms']);
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
     Route::get('/agentRequestGet', [AgentController::class, 'agentRequestGet']);
     Route::post('/agentRequestPost', [AgentController::class, 'agentRequestPost']);
@@ -926,6 +927,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getDefaultFiltersData', [GeneralController::class, 'getDefaultFiltersData']);
     Route::get('/getAllProjectDirectors', [GeneralController::class, 'getAllProjectDirectors']);
     Route::post('/getRegionBrands', [GeneralController::class, 'getRegionBrands']);
+    Route::post('/agentTeam', [GeneralController::class, 'agentTeam']);
     Route::post('/getMultiRegionBrands', [GeneralController::class, 'getMultiRegionBrands']);
     Route::post('/getFilterData', [GeneralController::class, 'getFilterData']);
     Route::post('/getFilterBranchUsers', [GeneralController::class, 'getFilterBranchUsers']);
