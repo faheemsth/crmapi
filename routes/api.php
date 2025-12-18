@@ -302,6 +302,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/getProfileData', [UserController::class, 'getProfileData']);
     Route::post('/updateUserStatus', [UserController::class, 'updateUserStatus']);
+    Route::post('/user/agree-terms', [UserController::class, 'agreeTerms']);
     Route::post('/logout', [LoginRegisterController::class, 'logout']);
     Route::get('/agentRequestGet', [AgentController::class, 'agentRequestGet']);
     Route::post('/agentRequestPost', [AgentController::class, 'agentRequestPost']);
