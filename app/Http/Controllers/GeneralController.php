@@ -1053,12 +1053,13 @@ public function GetBranchByType()
 
             $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
                 ->where('users.id', Auth::id())
-                ->where('approved_status', '2')
-                ->pluck('agencies.organization_name', 'agencies.id');
+                ->where('users.is_active', 1)
+                ->selectRaw('COALESCE(agencies.organization_name, users.name) as display_name, agencies.id')
+                ->pluck('display_name', 'agencies.id');
 
         } else {
             $agencies = User::join('agencies', 'agencies.user_id', '=', 'users.id')
-                ->where('approved_status', '2')
+                ->where('users.is_active', '1')
                 ->pluck('agencies.organization_name', 'agencies.id');
         }
         $tags = [];
