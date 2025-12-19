@@ -481,13 +481,13 @@ class LeadController extends Controller
     {
         $user = \Auth::user();
 
-        // Check Permissions
-        if (! $user->can('edit lead') && $user->type !== 'super admin') {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission Denied.'),
-            ], 200);
-        }
+        // // Check Permissions
+        // if (! $user->can('edit lead') && $user->type !== 'super admin') {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => __('Permission Denied.'),
+        //     ], 200);
+        // }
 
         // Validate Input
         $validator = \Validator::make($request->all(), [
