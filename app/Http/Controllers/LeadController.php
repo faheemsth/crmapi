@@ -287,6 +287,8 @@ class LeadController extends Controller
     {
         $user = \Auth::user();
 
+        dd($user->can('create lead'));
+
         // Check Permissions
         if (!$user->can('create lead')) {
             return response()->json([
