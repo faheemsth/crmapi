@@ -3864,11 +3864,11 @@ public function getDashboardholiday(Request $request)
         $user->profile_status = $statusText;
         $user->comment = $user->blocked_reason;
         if($statusText === 'Approved'){
-            $role_r = Role::findByName($user->type);
+            $role_r = Role::findByName($user->type, 'sanctum');
             $user->assignRole($role_r);
         }
         if($statusText === 'Rejected'){
-            $role_r = Role::findByName($user->type);
+            $role_r = Role::findByName($user->type, 'sanctum');
             $user->removeRole($role_r);
         }
         // email template
