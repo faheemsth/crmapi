@@ -3863,7 +3863,14 @@ public function getDashboardholiday(Request $request)
         $statusText = $statusMap[$request->is_active] ?? 'Unknown';
         $user->profile_status = $statusText;
         $user->comment = $user->blocked_reason;
-
+        if($statusText === 'Approved'){
+            $role_r = Role::findByName('Agent');
+            $user->assignRole($role_r);
+        }
+        if($statusText === 'Rejected'){
+            $role_r = Role::findByName('Agent');
+            $user->assignRole($role_r);
+        }
         // email template
         $templateId = Utility::getValByName('account_status_agent_email_template');
         $emailTemplate = EmailTemplate::find($templateId);
