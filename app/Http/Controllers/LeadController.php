@@ -292,7 +292,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied.'),
-            ], 403);
+            ], 200);
         }
 
         // Validate Input
@@ -303,13 +303,13 @@ class LeadController extends Controller
             'region_id' => 'required|exists:regions,id',
             'lead_branch' => 'required|exists:branches,id',
             'lead_assigned_user' => 'required|exists:users,id',
-            'lead_phone' => 'required',
+            'lead_phone' => 'nullable',
             'lead_email' => 'required',
-            'lead_country' => 'required',
-            'lead_city' => 'required',
-            'lead_state' => 'required',
-            'lead_postal_code' => 'required',
-            'lead_street' => 'required',
+            'lead_country' => 'nullable',
+            'lead_city' => 'nullable',
+            'lead_state' => 'nullable',
+            'lead_postal_code' => 'nullable',
+            'lead_street' => 'nullable',
             // 'lead_last_education' => 'required',
             // 'lead_cgpa_percentage' => 'required',
             // 'lead_passing_year' => 'required',
@@ -336,7 +336,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Please Create Stage for This Pipeline.'),
-            ], 400);
+            ], 422);
         }
 
         // Check for Duplicate Lead
@@ -351,7 +351,7 @@ class LeadController extends Controller
                 'status' => 'error',
                 'message' => __('Lead already exists.'),
                 'lead_id' => $leadExist->id,
-            ], 409);
+            ], 422);
         }
 
         // Create New Lead
@@ -484,7 +484,7 @@ class LeadController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied.'),
-            ], 403);
+            ], 200);
         }
 
         // Validate Input
@@ -496,13 +496,13 @@ class LeadController extends Controller
             'region_id' => 'required|exists:regions,id',
             'lead_branch' => 'required|exists:branches,id',
             'lead_assigned_user' => 'required|exists:users,id',
-            'lead_phone' => 'required',
+            'lead_phone' => 'nullable',
             'lead_email' => 'required|email',
-            'lead_country' => 'required',
-            'lead_city' => 'required',
-            'lead_state' => 'required',
-            'lead_postal_code' => 'required',
-            'lead_street' => 'required',
+            'lead_country' => 'nullable',
+            'lead_city' => 'nullable',
+            'lead_state' => 'nullable',
+            'lead_postal_code' => 'nullable',
+            'lead_street' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -882,6 +882,7 @@ class LeadController extends Controller
                     ->where('brand_id', $request->brand_id)
                     ->where('region_id', $request->region_id)
                     ->where('branch_id', $request->lead_branch)
+                    ->where('created_by', $usr->id)
                     ->first();
 
                 if ($lead_exist) {
