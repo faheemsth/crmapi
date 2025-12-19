@@ -287,15 +287,15 @@ class LeadController extends Controller
     {
         $user = \Auth::user();
 
-        dd($user->can('create lead'));
+        // dd($user->can('create lead'));
 
-        // Check Permissions
-        if (!$user->can('create lead')) {
-            return response()->json([
-                'status' => 'error',
-                'message' => __('Permission Denied.'),
-            ], 200);
-        }
+        // // Check Permissions
+        // if (!$user->can('create lead')) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => __('Permission Denied.'),
+        //     ], 200);
+        // }
 
         // Validate Input
         $validator = \Validator::make($request->all(), [
