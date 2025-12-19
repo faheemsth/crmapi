@@ -214,6 +214,7 @@ class UniversityController extends Controller
             'pay_out_id',
             'team_id',
         ])->where('uni_status', '0')
+        ->where('international_status', '1')
             ->with([
                 'createdBy:id,name',
                 'rank:id,name',
@@ -226,7 +227,7 @@ class UniversityController extends Controller
             ->append('country_name');
 
         // University statistics grouped by country (use actual column 'country')
-        $universityStatsByCountries = University::query()->where('uni_status', '0')
+        $universityStatsByCountries = University::query()->where('uni_status', '0')->where('international_status', '1')
             ->selectRaw("
                         COUNT(universities.id) AS total_universities,
 
