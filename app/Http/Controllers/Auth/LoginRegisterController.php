@@ -219,7 +219,7 @@ class LoginRegisterController extends Controller
 
 
          if($user->type=='Agent' && $user->is_active!=1){
-            $data['permissions'] =['manage university']; // empty if role not found
+            $data['permissions'] =[]; // empty if role not found
         }
        
         $data['encrptID'] =  encryptData($user->id);
