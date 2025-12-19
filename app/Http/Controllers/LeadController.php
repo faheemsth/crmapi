@@ -288,7 +288,7 @@ class LeadController extends Controller
         $user = \Auth::user();
 
         // Check Permissions
-        if (! $user->can('create lead') && $user->type !== 'super admin') {
+        if (!$user->can('create lead')) {
             return response()->json([
                 'status' => 'error',
                 'message' => __('Permission Denied.'),
