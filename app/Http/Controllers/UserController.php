@@ -3863,29 +3863,12 @@ public function getDashboardholiday(Request $request)
         $statusText = $statusMap[$request->is_active] ?? 'Unknown';
         $user->profile_status = $statusText;
         $user->comment = $user->blocked_reason;
-        if ($statusText === 'Approved') {
-            // Find role by name using 'web' guard
-            $role_r = Role::where('name', $user->type)
-                        ->where('guard_name', 'web')
-                        ->first();
 
-            if ($role_r) {
-                $user->syncRoles([$role_r]); // Assigns the role and removes others if needed
-            } else {
-                // Optional: log or handle role not found
-                \Log::warning("Role '{$user->type}' not found for guard 'web'");
-            }
-        }
+       
+       
+ 
 
-        if ($statusText === 'Rejected') {
-            $role_r = Role::where('name', $user->type)
-                        ->where('guard_name', 'web')
-                        ->first();
 
-            if ($role_r && $user->hasRole($role_r)) {
-                $user->removeRole($role_r);
-            }
-        }
         // email template
         $templateId = Utility::getValByName('account_status_agent_email_template');
         $emailTemplate = EmailTemplate::find($templateId);
@@ -3936,15 +3919,18 @@ public function getDashboardholiday(Request $request)
         $logData['module_type'] = 'agentprofile';
         addLogActivity($logData);
 
+        
+
+
         return response()->json([
             'status' => 'success',
-            'msg' => $statusText . ' agent successfully',
+            'message' => $statusText . ' agent successfully',
         ], 200);
 
     } catch (\Exception $e) {
         return response()->json([
             'status' => 'error',
-            'msg' => 'Something went wrong: ' . $e->getMessage(),
+            'message' => 'Something went wrong: ' . $e->getMessage(),
         ], 500);
     }
 }

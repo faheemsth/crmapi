@@ -212,9 +212,16 @@ class LoginRegisterController extends Controller
         $role = \Spatie\Permission\Models\Role::where('name', $currentRole)->first();
 
         $data['roles'] = $role->name;
-        $data['permissions'] = $role 
+        
+             $data['permissions'] = $role 
             ? $role->permissions()->pluck('name') 
             : collect(); // empty if role not found
+
+
+         if($user->type=='Agent' && $user->is_active!=1){
+            $data['permissions'] =[]; // empty if role not found
+        }
+       
         $data['encrptID'] =  encryptData($user->id);
        
 
