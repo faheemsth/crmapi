@@ -186,7 +186,7 @@ class LeadController extends Controller
         } elseif ($userType === 'Branch Manager' && $usr->branch_id) {
             $leadsQuery->where('leads.branch_id', $usr->branch_id);
         } elseif ($userType === 'Agent') {
-            $leadsQuery->where('leads.created_by', $usr->agent_id);
+            $leadsQuery->where('leads.user_id', $usr->agent_id);
         }
 
         // Apply Search Filters
