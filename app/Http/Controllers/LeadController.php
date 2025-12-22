@@ -59,7 +59,7 @@ class LeadController extends Controller
             'brand' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer',
             'branch_id' => 'nullable|integer',
-            'stage_id' => 'nullable|array',
+            'stage_id' => 'nullable|integer|exists:lead_stages,id',
             'users' => 'nullable|array',
             'lead_assigned_user' => 'sometimes|nullable',
             'created_by' => 'sometimes|nullable',
@@ -107,8 +107,7 @@ class LeadController extends Controller
                 $join->on('sh.type_id', '=', 'leads.id')
                     ->where('sh.type', '=', 'lead')
                     ->whereColumn('sh.stage_id', 'leads.stage_id');
-            })
-              ->groupBy('leads.id');
+            });
 
         // Apply Filters
         if ($request->filled('Assigned')) {
