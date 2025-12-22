@@ -537,8 +537,13 @@ public function registerAgent(Request $request)
             'brand_id' => $request->brand_id,
             'region_id' => $request->region_id,
             'branch_id' => $request->branch_id,
+            'agent_id' => $user->id, // Self-referential
             'email_verified_at' => null,
         ]);
+
+        // Step 2: Update agent_id with its own ID
+        $user->agent_id = $user->id;
+        $user->save();
 
         // Create Agency Record
         $agency = Agency::create([

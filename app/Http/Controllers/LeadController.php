@@ -186,7 +186,7 @@ class LeadController extends Controller
         } elseif ($userType === 'Branch Manager' && $usr->branch_id) {
             $leadsQuery->where('leads.branch_id', $usr->branch_id);
         } elseif ($userType === 'Agent') {
-            $leadsQuery->where('leads.user_id', $usr->id);
+            $leadsQuery->where('leads.agent_id', $usr->agent_id);
         }
 
         // Apply Search Filters
@@ -415,6 +415,7 @@ class LeadController extends Controller
         $lead->tag_ids = ! empty($request->tag_ids) ? implode(',', $request->tag_ids) : '';
         $lead->pipeline_id = $pipeline->id;
         $lead->created_by = Session::get('auth_type_id') ?? $user->id;
+        $lead->agent_id =  $user->agent_id;
         $lead->date = now()->format('Y-m-d');
         $lead->drive_link = $request->drive_link ?? null;
         $lead->language_test = $request->lead_language_test ?? null;
@@ -941,6 +942,9 @@ class LeadController extends Controller
 
             $lead->stage_id = $stage->id;
             $lead->created_by = $usr->id;
+            if($usr->type == 'Agent'){
+                $lead->agent_id = $usr->agent_id;
+            }
             $lead->date = date('Y-m-d');
 
             if (! empty($test['name']) || ! empty($test['email']) || ! empty($test['phone']) || ! empty($test['subject']) || ! empty($test['notes'])) {
@@ -1080,6 +1084,9 @@ class LeadController extends Controller
 
             $lead->stage_id = $stage->id;
             $lead->created_by = \Auth::user()->id;
+             if($usr->type == 'Agent'){
+                $lead->agent_id = $usr->agent_id;
+            }
             $lead->date = date('Y-m-d');
             if (! empty($test['name']) || ! empty($test['email']) || ! empty($test['phone']) || ! empty($test['subject']) || ! empty($test['notes'])) {
                 $lead->save();
