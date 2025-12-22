@@ -707,7 +707,7 @@ class UserController extends Controller
             ], 403);
         } 
 
-        $employeesQuery = User::with(['branch', 'brand'])->select('users.*');
+        $employeesQuery = User::with(['branch', 'brand:id,name'])->select('users.*');
 
         // Apply filters
         if ($request->filled('brand')) {
