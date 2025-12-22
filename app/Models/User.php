@@ -86,6 +86,9 @@ class User extends Authenticatable
         "department_id",
         "terms_agreed",
         "terms_agreed_at",
+        "invited_by",
+        "invite_token",
+        "invite_expires_at",
     ];
 
     protected $hidden = [
