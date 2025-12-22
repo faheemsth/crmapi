@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 use App\Models\Agency;
 use App\Models\ExperienceCertificate;
@@ -1284,6 +1285,9 @@ public function acceptInvite(Request $request)
         'email_verified_at' => now(),
         'is_active' => 1,
     ]);
+
+    $role = Role::find(60);
+        $user->assignRole($role); 
 
     return response()->json([
         'message' => 'Account activated successfully'

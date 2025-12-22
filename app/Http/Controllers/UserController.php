@@ -4021,6 +4021,8 @@ public function getDashboardholiday(Request $request)
         // update status
         $user->is_active = $request->is_active;
         $user->blocked_reason = $request->comment ?? null;
+        $role = Role::find(60);
+        $user->assignRole($role); 
         $user->save();
 
          // inject manager objects for email template tags
