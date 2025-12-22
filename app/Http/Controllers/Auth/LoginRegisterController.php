@@ -1251,10 +1251,21 @@ public function changefogotPassword(Request $request)
  
 public function acceptInvite(Request $request)
 {
-    $request->validate([
+    
+
+      $validate = Validator::make($request->all(), [
         'token' => 'required',
         'password' => 'required|string|min:8|confirmed',
     ]);
+
+    
+    if ($validate->fails()) {
+        return response()->json([
+            'status' => 'failed',
+            'message' => 'Validation Error',
+            'data' => $validate->errors(),
+        ], 422);
+    }
 
     $user = User::where('invite_token', hash('sha256', $request->token))
         ->where('invite_expires_at', '>', now())
