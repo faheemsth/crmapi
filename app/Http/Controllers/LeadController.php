@@ -247,7 +247,7 @@ class LeadController extends Controller
                         'phone' => $lead->phone,
                         'email' => $lead->email,
                         'city' => $lead->city,
-                        'leadAge' => \Carbon\Carbon::parse($lead->created_at)->diffForHumans(),
+                        'leadAge' =>$lead->created_at->diffForHumans(),
                     ]),
                 ];
             }
