@@ -93,6 +93,7 @@ class LeadController extends Controller
             'leads.created_by',
             'leads.user_id',
             'leads.stage_id',
+            'leads.created_at',
             'leads.tag_ids'
         )
             ->with('assignto')
