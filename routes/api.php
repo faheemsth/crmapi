@@ -283,6 +283,7 @@ Route::controller(LoginRegisterController::class)->group(function () {
     Route::post('/forgotpasswordAgentOTP', 'forgotpasswordAgentOTP');
     Route::post('/verifyforgotpasswordOtp', 'verifyforgotpasswordOtp');
     Route::post('/changefogotPassword', 'changefogotPassword');
+    Route::post('/acceptInvite', 'acceptInvite');
 });
 
 //Route::get('/appMeta', [ProductController::class, 'appMeta']);

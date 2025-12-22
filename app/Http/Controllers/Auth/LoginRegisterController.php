@@ -1249,6 +1249,35 @@ public function changefogotPassword(Request $request)
 
 
  
+public function acceptInvite(Request $request)
+{
+    $request->validate([
+        'token' => 'required',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $user = User::where('invite_token', hash('sha256', $request->token))
+        ->where('invite_expires_at', '>', now())
+        ->first();
+
+    if (!$user) {
+        return response()->json([
+            'message' => 'Invalid or expired invitation'
+        ], 422);
+    }
+
+    $user->update([
+        'password' => Hash::make($request->password),
+        'invite_token' => null,
+        'invite_expires_at' => null,
+        'email_verified_at' => now(),
+        'is_active' => 1,
+    ]);
+
+    return response()->json([
+        'message' => 'Account activated successfully'
+    ]);
+}
 
 
 
