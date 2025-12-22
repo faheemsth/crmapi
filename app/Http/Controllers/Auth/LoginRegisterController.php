@@ -673,6 +673,175 @@ public function registerAgent(Request $request)
         ], 500);
     }
 }
+public function inviteAgent(Request $request)
+{
+    try {
+       
+
+     
+
+        // Input Validation
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',  
+        ]);
+
+        if ($validator->fails()) {
+            \Log::error('Validation failed', ['errors' => $validator->errors()->toArray()]);
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+           $authUser = auth()->user();
+
+            if ($authUser->type !== 'Agent') {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+        // Begin database transaction
+        DB::beginTransaction();
+
+        
+ 
+
+        $token = Str::uuid()->toString();
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => null, // will be set later
+            'type' => 'Agent',
+            'is_active' => 0,
+            'agent_id' => $authUser->agent_id, // SAME TEAM
+            'brand_id' => $authUser->brand_id,
+            'region_id' => $authUser->region_id,
+            'branch_id' => $authUser->branch_id,
+            'invited_by' => $authUser->id,
+            'invite_token' => hash('sha256', $token),
+            'invite_expires_at' => now()->addDays(3),
+            'created_by' => $authUser->id,
+        ]);
+
+        // Send invitation email
+        $inviteLink =   "https://agentstaging.convosoftserver.com/accept-invite?token={$token}";
+
+
+        
+
+        // Initialize User Defaults
+        try {
+            $user->userDefaultDataRegister($user->id);
+            $user->userWarehouseRegister($user->id);
+            $user->userDefaultBankAccount($user->id);
+
+            Utility::chartOfAccountTypeData($user->id);
+            Utility::chartOfAccountData($user);
+            Utility::chartOfAccountData1($user->id);
+            Utility::pipeline_lead_deal_Stage($user->id);
+            Utility::project_task_stages($user->id);
+            Utility::labels($user->id);
+            Utility::sources($user->id);
+            Utility::jobStage($user->id);
+
+            GenerateOfferLetter::defaultOfferLetterRegister($user->id);
+            ExperienceCertificate::defaultExpCertificatRegister($user->id);
+            JoiningLetter::defaultJoiningLetterRegister($user->id);
+            NOC::defaultNocCertificateRegister($user->id);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('User initialization failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'message' => 'Registration completed but initialization failed',
+                'error' => config('app.debug') ? $e->getMessage() : 'Initialization error'
+            ], 201);
+        }
+
+        // Send verification email
+        if ($user->email) {
+            try {
+                // Generate proper verification token
+                
+                
+                
+                $user->inviteLink  = $inviteLink;
+                 $new_agent_email_template = Utility::getValByName('invite_agent_email_template');
+
+
+
+                $newagntTemplate = EmailTemplate::find($new_agent_email_template);
+
+               $insertData = buildEmailData($newagntTemplate, $user,$cc=null);
+
+               
+
+                // FIX: Create the queue record and get the ID
+                $queueId = EmailSendingQueue::insertGetId($insertData);
+                
+                // FIX: Now retrieve the queue record
+                $queue = EmailSendingQueue::find($queueId);
+
+                 try {
+                    Mail::to($queue->to)->send(new CampaignEmail($queue));
+
+                    // only update after successful send
+                    $queue->is_send = '1';
+                    $queue->save();
+
+                    
+
+                } catch (\Exception $e) {
+                    $queue->status = '2';
+                    $queue->mailerror = $e->getMessage();
+                    $queue->save();
+
+                    
+                }
+
+                // Mail::to($user->email)->send(new WelcomeEmail($data));
+                
+            } catch (\Exception $e) {
+                \Log::error('Email sending failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        // Fire registered event
+        event(new Registered($user));
+
+        // Commit transaction
+        DB::commit();
+
+        return response()->json([
+            'message' => 'Agent registered successfully',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'type' => $user->type
+            ] 
+        ], 201);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json(['errors' => $e->errors()], 422);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Agent registration failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'message' => 'Registration failed',
+            'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+        ], 500);
+    }
+}
 
     public function userDetail(Request $request)
 {
