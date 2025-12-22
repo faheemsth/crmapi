@@ -97,10 +97,10 @@ class LeadController extends Controller
             'leads.created_at',
             'leads.tag_ids'
         )
-            ->with('assignto')
-            ->with('brand')
+            ->with('assignto:id,name')
+            ->with('brand:id,name')
             ->with('stage')
-            ->with('branch')
+            ->with('branch:id,name')
             ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')
              // Join only CURRENT stage history of the lead
             ->leftJoin('stage_histories as sh', function ($join) {
