@@ -3232,7 +3232,7 @@ class LeadController extends Controller
                     ? Carbon::parse($current->created_at)->diffInDays(Carbon::parse($next->created_at))
                     : 0; // last stage → keep 0 (or use now())
 
-                $result[] = [
+                $result[$stage->id] = [
                     'stage_id'   => $stage->id,
                     'stage_name' => $stage->name,
                     'days'       => $days,
