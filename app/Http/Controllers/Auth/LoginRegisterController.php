@@ -536,8 +536,7 @@ public function registerAgent(Request $request)
             'created_by' => 1,
             'brand_id' => $request->brand_id,
             'region_id' => $request->region_id,
-            'branch_id' => $request->branch_id,
-            'agent_id' => $user->id, // Self-referential
+            'branch_id' => $request->branch_id, 
             'email_verified_at' => null,
         ]);
 
