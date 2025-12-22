@@ -712,7 +712,7 @@ public function inviteAgent(Request $request)
             'password' => null, // will be set later
             'type' => 'Agent',
             'is_active' => 0,
-            'agent_id' => $authUser->agent_id, // SAME TEAM
+            'agent_id' => $authUser->id, // SAME TEAM
             'brand_id' => $authUser->brand_id,
             'region_id' => $authUser->region_id,
             'branch_id' => $authUser->branch_id,

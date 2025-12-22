@@ -89,6 +89,7 @@ class User extends Authenticatable
         "invited_by",
         "invite_token",
         "invite_expires_at",
+        "agent_id",
     ];
 
     protected $hidden = [
