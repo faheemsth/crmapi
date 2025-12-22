@@ -3175,4 +3175,70 @@ class LeadController extends Controller
             'data' => $kanban,
         ]);
     }
+ 
+        public function getHistoryStageDays(Request $request)
+        {
+
+
+            
+                $validator = Validator::make($request->all(), [
+
+                    'type_id' => 'required|integer|min:1',
+                    'type' => 'required|string', 
+                ]);
+
+                if ($validator->fails()) {
+                    return response()->json([
+                        'status' => 'error',
+                        'errors' => $validator->errors(),
+                    ], 422);
+                }
+            // 1. Get all stages of pipeline
+            $stages = LeadStage::orderBy('order')->get();
+
+            $leadId = $request->input('type_id');
+            $type = $request->input('type');
+
+            // 2. Get stage history for the lead
+            $histories = StageHistory::where('type', $type)
+                ->where('type_id', $leadId)
+                ->orderBy('created_at')
+                ->get()
+                ->values(); // reset index
+
+            $result = [];
+
+            foreach ($stages as $stage) {
+
+                // Find stage in history
+                $index = $histories->search(fn ($h) => $h->stage_id == $stage->id);
+
+                // Stage skipped
+                if ($index === false) {
+                    $result[] = [
+                        'stage_id'   => $stage->id,
+                        'stage_name' => $stage->name,
+                        'days'       => 0,
+                    ];
+                    continue;
+                }
+
+                $current = $histories[$index];
+                $next = $histories[$index + 1] ?? null;
+
+                // Calculate days
+                $days = $next
+                    ? Carbon::parse($current->created_at)->diffInDays(Carbon::parse($next->created_at))
+                    : 0; // last stage → keep 0 (or use now())
+
+                $result[] = [
+                    'stage_id'   => $stage->id,
+                    'stage_name' => $stage->name,
+                    'days'       => $days,
+                ];
+            }
+
+            return $result;
+        }
+
 }
