@@ -674,8 +674,7 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'page' => 'nullable|integer|min:1',
-            'perPage' => 'nullable|integer|min:1',
-            'agent_id' => 'required|integer|exists:users,id',
+            'perPage' => 'nullable|integer|min:1', 
             'brand' => 'nullable|integer|exists:users,id',
             'region_id' => 'nullable|integer|exists:regions,id',
             'branch_id' => 'nullable|integer|exists:branches,id',
