@@ -514,7 +514,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/getEmployees', [UserController::class, 'getEmployees']);
     Route::post('/getAgents', [UserController::class, 'getAgents']);
     Route::post('/getAgentTeam', [UserController::class, 'getAgentTeam']);
-    Route::post('/inviteAgent', [UserController::class, 'inviteAgent']);
+    Route::post('/inviteAgent', [LoginRegisterController::class, 'inviteAgent']);
     Route::get('/employees', [UserController::class, 'employees']);
     Route::get('/Pluck_All_Users', [UserController::class, 'Pluck_All_Users']);
     Route::post('/Pluck_All_Users_by_filter', [UserController::class, 'Pluck_All_Users_by_filter']);
