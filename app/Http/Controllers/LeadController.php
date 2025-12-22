@@ -101,7 +101,14 @@ class LeadController extends Controller
             ->with('brand')
             ->with('stage')
             ->with('branch')
-            ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id');
+            ->leftJoin('lead_stages', 'leads.stage_id', '=', 'lead_stages.id')
+             // Join only CURRENT stage history of the lead
+            ->leftJoin('stage_histories as sh', function ($join) {
+                $join->on('sh.type_id', '=', 'leads.id')
+                    ->where('sh.type', '=', 'lead')
+                    ->whereColumn('sh.stage_id', 'leads.stage_id');
+            })
+              ->groupBy('leads.id');
 
         // Apply Filters
         if ($request->filled('Assigned')) {
@@ -145,7 +152,31 @@ class LeadController extends Controller
 
         if ($request->filled('created_at_from')) {
             $leadsQuery->whereDate('leads.created_at', '>=', $request->created_at_from);
+        } 
+
+        if ($request->filled('days_at_stage')) {
+
+            $days = $request->days_at_stage;
+
+            if ($days === '30+') {
+
+                // Greater than 30 days
+                $leadsQuery->whereDate(
+                    'sh.created_at',
+                    '<=',
+                    Carbon::now()->subDays(30)
+                );
+
+            } else {
+
+                // Exactly 3, 5, 15, 30 days (range-based)
+                $from = Carbon::now()->subDays((int) $days);
+                $to   = Carbon::now()->subDays(((int) $days) - 1);
+
+                $leadsQuery->whereBetween('sh.created_at', [$from, $to]);
+            }
         }
+
 
         // User Permissions Filtering
         $userType = $usr->type;
