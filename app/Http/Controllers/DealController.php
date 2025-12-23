@@ -511,4 +511,30 @@ class DealController extends Controller
         $deal->stage_id = $dealStageId;
         $deal->save();
     }
+
+        public function dealStageHistory(Request $request)
+    {
+        // Validate Input
+        $validator = \Validator::make($request->all(), [
+            'type' => 'required|string',
+            'id'   => 'required|exists:deals,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $validator->errors()
+            ], 422);
+        }
+
+        $stage_histories = StageHistory::where('type', $request->type)
+            ->where('type_id', $request->id)
+            ->pluck('stage_id')
+            ->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => $stage_histories,
+        ], 200);
+    }
 }

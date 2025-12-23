@@ -631,7 +631,7 @@ class LeadController extends Controller
 
                 if (! $resp['is_success']) {
                     return response()->json([
-                        'status' => 'success',
+                        'status' => 'info',
                         'lead_id' => $lead->id,
                         'message' => __('Lead successfully updated!'),
                     ]);
@@ -640,7 +640,7 @@ class LeadController extends Controller
         }
 
         return response()->json([
-            'status' => 'success',
+            'status' => 'info',
             'lead_id' => $lead->id,
             'message' => __('Lead successfully updated!'),
         ], 200);

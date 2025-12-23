@@ -471,6 +471,7 @@ class ApplicationsController extends Controller
             ]);
             $new_app->tag_ids     = !empty($request->tag_ids) ? implode(',', $request->tag_ids) : '';
             $new_app->brand_id = $deal->brand_id;
+            $new_app->agent_id = $deal->agent_id;
             $new_app->campus = $request->campus;
             $new_app->intakeYear = $request->intakeYear;
             $new_app->course_id = $course_id;
