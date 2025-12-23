@@ -1708,6 +1708,7 @@ class LeadController extends Controller
         $deal->intake_month = $request->intake_month;
         $deal->intake_year = $request->intake_year;
         $deal->brand_id = $lead->brand_id;
+        $deal->agent_id = $lead->agent_id;
         $deal->organization_id = is_string($lead->organization_id) ? 0 : $lead->organization_id;
         $deal->organization_link = $lead->organization_link;
         $deal->tag_ids = $lead->tag_ids;
@@ -1857,7 +1858,7 @@ class LeadController extends Controller
         addLogActivity($data);
 
         $data = [
-            'type' => 'info',
+            'type' => 'sucssess',
             'note' => json_encode([
                 'title' => 'Deal Created',
                 'message' => 'Deal created successfully.',
@@ -3231,11 +3232,27 @@ class LeadController extends Controller
                         'errors' => $validator->errors(),
                     ], 422);
                 }
-            // 1. Get all stages of pipeline
-            $stages = LeadStage::orderBy('order')->get();
+          
 
             $leadId = $request->input('type_id');
             $type = $request->input('type');
+
+            if ($type !== 'lead' && $type !== 'deal') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid type provided. Must be either "lead" or "deal".',
+                ], 400);
+            } 
+
+              if ($type === 'lead') {
+                $stages = LeadStage::orderBy('id')->get();
+            } else if ($type === 'deal') {
+
+                $stages = Stage::orderBy('id')->get();
+            }
+            
+            
+          
 
             // 2. Get stage history for the lead
             $histories = StageHistory::where('type', $type)
