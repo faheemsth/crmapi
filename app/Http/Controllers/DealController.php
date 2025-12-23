@@ -231,10 +231,7 @@ class DealController extends Controller
 
          // Calculate Lead Stage Progress
             $stages  = Stage::orderBy('id')->get()->pluck('name', 'id')->toArray();
-            $currentStageIndex = $stages->pluck('id')->search($deal->stage_id) + 1;
-            $progressPercentage = $stages->count() > 0
-                ? number_format(($currentStageIndex * 100) / $stages->count())
-                : 0;
+             
 
             // Fetch Related Data
             $tasks = DealTask::where([
@@ -260,8 +257,7 @@ class DealController extends Controller
             'stageHistories' => $stageHistories,
             'logActivities' => $logActivities,
             'tasks' => $tasks,
-            'stages' => $stages,
-            'progressPercentage' => $progressPercentage,
+            'stages' => $stages, 
             'applications' => $applications,
         ],200);
 
