@@ -197,18 +197,23 @@ class GeneralController extends Controller
 
     public function agentTeam(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'id' => 'required|integer|exists:users,id',
-        ]);
+        // $validator = Validator::make($request->all(), [
+        //     'id' => 'required|integer|exists:users,id',
+        // ]);
 
-        if ($validator->fails()) {
+
+         $authuser = \Auth::user(); // Authenticated user
+
+        if ( $authuser->type !='Agent') {
             return response()->json([
                 'status' => 'error',
-                'errors' => $validator->errors()
+                'errors' => 'Only Agent can access this.',
             ], 422);
         }
 
-        $user = User::where('id', $request->id)->pluck('name', 'id');
+       
+
+        $user = User::where('id', $authuser->agent_id)->pluck('name', 'id');
 
         if (!$user) {
             return response()->json([
@@ -987,7 +992,7 @@ public function GetBranchByType()
                 } elseif ($userType === 'Branch Manager' && !empty(\Auth::user()->branch_id)) {
                     $leadsQuery->where('branch_id', \Auth::user()->branch_id);
                 } elseif ($userType === 'Agent') {
-                    $leadsQuery->where('user_id', \Auth::user()->id);
+                    $leadsQuery->where('agent_id', \Auth::user()->agent_id);
                 }
 
                 // Ensure data exists in the query result
