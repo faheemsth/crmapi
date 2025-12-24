@@ -551,6 +551,8 @@ class GeneralController extends Controller
             'data' => $stages,
         ], 200);
     }
+
+
     public function getRolesPluck()
     {
         $excludedTypes = ['company', 'team', 'client'];
@@ -558,6 +560,15 @@ class GeneralController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $roles,
+        ], 200);
+    }
+    
+    public function getapplicationStagesPluck()
+    {
+         $stages = ApplicationStage::orderBy('id')->pluck('name', 'id')->toArray();
+        return response()->json([
+            'status' => 'success',
+            'data' => $stages,
         ], 200);
     }
 

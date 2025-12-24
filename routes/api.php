@@ -940,6 +940,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/getSources', [GeneralController::class, 'getSources']);
     Route::get('/getBranches', [GeneralController::class, 'getBranches']);
     Route::get('/getStages', [GeneralController::class, 'getStages']);
+    Route::get('/getapplicationStagesPluck', [GeneralController::class, 'getapplicationStagesPluck']);
     Route::get('/getTags', [GeneralController::class, 'getTags']);
     Route::get('/getTagsByBrandId', [GeneralController::class, 'getTagsByBrandId']);
     Route::get('/getJobCategories', [GeneralController::class, 'getJobCategories']);
