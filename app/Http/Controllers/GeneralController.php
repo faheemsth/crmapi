@@ -213,7 +213,7 @@ class GeneralController extends Controller
 
        
 
-        $user = User::where('agent_id', $authuser->agent_id)->pluck('name', 'id');
+        $user = User::where('agent_id', $authuser->agent_id)->where('is_active', 1)->pluck('name', 'id');
 
         if (!$user) {
             return response()->json([
