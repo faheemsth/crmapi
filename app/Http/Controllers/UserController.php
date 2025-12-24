@@ -761,7 +761,7 @@ class UserController extends Controller
 
         
 
-        $employeesQuery->where('agent_id', $user->id);
+        $employeesQuery->where('agent_id', $user->agent_id);
 
           // Clone query before pagination for counts
            $countsQuery = clone $employeesQuery;
