@@ -1290,8 +1290,10 @@ public function acceptInvite(Request $request)
         $user->assignRole($role); 
 
     return response()->json([
+        'status' => 'success',
         'message' => 'Account activated successfully'
-    ]);
+    ], 200);
+
 }
 
 
