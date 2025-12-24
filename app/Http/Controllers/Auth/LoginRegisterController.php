@@ -1274,7 +1274,8 @@ public function acceptInvite(Request $request)
 
     if (!$user) {
         return response()->json([
-            'message' => 'Invalid or expired invitation'
+                'status' => 'error',
+                'message' => 'Invalid or expired invitation'
         ], 422);
     }
 
@@ -1290,8 +1291,10 @@ public function acceptInvite(Request $request)
         $user->assignRole($role); 
 
     return response()->json([
+        'status' => 'success',
         'message' => 'Account activated successfully'
-    ]);
+    ], 200);
+
 }
 
 
