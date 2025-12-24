@@ -14,6 +14,7 @@ class UniversityRule extends Model
         'university_id',
         'position',
         'rule_type',
+        'type',
         'created_by',
     ];
 
