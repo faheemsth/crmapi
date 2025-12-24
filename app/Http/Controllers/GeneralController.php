@@ -195,7 +195,7 @@ class GeneralController extends Controller
 
 
 
-    public function agentTeam(Request $request)
+    public function agentTeamPluck(Request $request)
     {
         // $validator = Validator::make($request->all(), [
         //     'id' => 'required|integer|exists:users,id',
@@ -213,7 +213,7 @@ class GeneralController extends Controller
 
        
 
-        $user = User::where('id', $authuser->agent_id)->pluck('name', 'id');
+        $user = User::where('agent_id', $authuser->agent_id)->pluck('name', 'id');
 
         if (!$user) {
             return response()->json([
