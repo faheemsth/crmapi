@@ -1388,7 +1388,28 @@ class ApplicationsController extends Controller
             'message' => 'Application updated successfully!'
         ]);
     }
+    public function DeleteLeadNotes(Request $request)
+    {
+        $rules = [
+            'id' => 'required|integer|min:1',
+        ];
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+        $discussions = ApplicationNote::find($request->id);
+        if (! empty($discussions)) {
+            $discussions->delete();
+        }
 
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Application Note deleted!'),
+        ], 201);
+    }
     public function applicationNotesStore(Request $request)
     {
         $validator = \Validator::make($request->all(), [
