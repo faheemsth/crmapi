@@ -1388,7 +1388,7 @@ class ApplicationsController extends Controller
             'message' => 'Application updated successfully!'
         ]);
     }
-    public function DeleteLeadNotes(Request $request)
+    public function DeleteApplicationNotes(Request $request)
     {
         $rules = [
             'id' => 'required|integer|min:1',
