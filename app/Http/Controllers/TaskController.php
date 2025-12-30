@@ -435,7 +435,7 @@ class TaskController extends Controller
                     // $filteredValues = array_filter($value, function ($val) {
                     //     return !empty($val);
                     // });
-                    $finalQuery->whereIn('deal_tasks.assigned_to', $value);
+                    $finalQuery->where('deal_tasks.assigned_to', $value);
                 } elseif ($column === 'brand_id') {
                     $finalQuery->where('deal_tasks.brand_id', $value);
                 } elseif ($column === 'region_id') {
