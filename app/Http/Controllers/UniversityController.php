@@ -1017,6 +1017,8 @@ class UniversityController extends Controller
         $university->campuses = implode(',', $request->campuses);
         $university->agency = $request->agency;
         $university->website_link = $request->website_link;
+        $university->is_refund = $request->is_refund;
+        $university->refund_detail = $request->refund_detail;
         if ($request->product_coordinator_id != 'N/A') {
             $university->product_coordinator_id = $request->product_coordinator_id;
         }
