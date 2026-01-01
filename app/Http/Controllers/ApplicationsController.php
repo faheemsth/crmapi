@@ -1388,7 +1388,28 @@ class ApplicationsController extends Controller
             'message' => 'Application updated successfully!'
         ]);
     }
+    public function DeleteApplicationNotes(Request $request)
+    {
+        $rules = [
+            'id' => 'required|integer|min:1',
+        ];
+        $validator = \Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+        $discussions = ApplicationNote::find($request->id);
+        if (! empty($discussions)) {
+            $discussions->delete();
+        }
 
+        return response()->json([
+            'status' => 'success',
+            'message' => __('Application Note deleted!'),
+        ], 201);
+    }
     public function applicationNotesStore(Request $request)
     {
         $validator = \Validator::make($request->all(), [
@@ -1473,16 +1494,26 @@ class ApplicationsController extends Controller
             ], 403);
         }
 
-        // ✅ Fetch notes
+        // ✅ Fetch and format notes
         $notes = ApplicationNote::where('application_id', $request->application_id)
             ->orderBy('created_at', 'DESC')
-            ->get();
+            ->get()
+            ->map(function ($note) {
+                return [
+                    'id'        => $note->id,
+                    'text'      => htmlspecialchars_decode($note->description),
+                    'author'    => $note?->author?->name,
+                    'time'      => $note->created_at->diffForHumans(),
+                    'pinned'    => false, // default as required
+                    'timestamp' => $note->created_at->toISOString(),
+                ];
+            });
 
         // ✅ Return structured response
         return response()->json([
-            'status' => true,
+            'status'  => true,
             'message' => 'Application notes fetched successfully.',
-            'data' => $notes,
+            'data'    => $notes,
         ]);
     }
 

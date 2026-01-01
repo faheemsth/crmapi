@@ -432,10 +432,10 @@ class TaskController extends Controller
                         });
                     }
                 } elseif ($column === 'assigned_to') {
-                    $filteredValues = array_filter($value, function ($val) {
-                        return !empty($val);
-                    });
-                    $finalQuery->whereIn('deal_tasks.assigned_to', $filteredValues);
+                    // $filteredValues = array_filter($value, function ($val) {
+                    //     return !empty($val);
+                    // });
+                    $finalQuery->where('deal_tasks.assigned_to', $value);
                 } elseif ($column === 'brand_id') {
                     $finalQuery->where('deal_tasks.brand_id', $value);
                 } elseif ($column === 'region_id') {
