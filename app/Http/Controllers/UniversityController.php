@@ -77,8 +77,12 @@ class UniversityController extends Controller
                $query->where('universities.uni_status', $request->is_active);
             }
         }
+
         if ($request->filled('team_id')) {
             $query->where('universities.team_id', $request->team_id);
+        }
+        if ($request->filled('is_refund')) {
+            $query->where('universities.is_refund', $request->is_refund);
         }
 
         if ($request->filled('city')) {
